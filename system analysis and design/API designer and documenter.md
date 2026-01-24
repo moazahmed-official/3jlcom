@@ -984,3 +984,528 @@ Accept: application/json
 ---
 
 **File Created:** API Designer and Documenter — 15 key APIs expanded with detailed 8-column format, realistic requests/responses, auth requirements, and descriptions.
+---
+
+### 16. Admin Logout
+
+| Field | Value |
+|-------|-------|
+| **API Name** | Admin Logout |
+| **Method** | POST |
+| **Route** | /api/admin/auth/logout |
+| **Authorization** | Admin |
+| **Function Description** | Logout the admin user and invalidate the JWT token. |
+| **Description** | تسجيل خروج الادمن |
+
+**Request Headers:**
+```
+Authorization: Bearer {token}
+Accept: application/json
+```
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "message": "Logout successful. Token invalidated."
+}
+```
+
+**Error Response (401):**
+```json
+{
+  "success": false,
+  "message": "Unauthenticated. Please login.",
+  "errors": {}
+}
+```
+
+---
+
+### 17. Change Admin Password
+
+| Field | Value |
+|-------|-------|
+| **API Name** | Change Password |
+| **Method** | PUT |
+| **Route** | /api/admin/auth/password |
+| **Authorization** | Admin |
+| **Function Description** | Change the password for the authenticated admin account. |
+| **Description** | تغيير كلمة مرور الادمن |
+
+**Request Headers:**
+```
+Authorization: Bearer {token}
+Content-Type: application/json
+Accept: application/json
+```
+
+**Request Body:**
+```json
+{
+  "current_password": "OldPassword123!",
+  "new_password": "NewSecurePassword456!",
+  "new_password_confirmation": "NewSecurePassword456!"
+}
+```
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "message": "Password changed successfully."
+}
+```
+
+**Error Response (422):**
+```json
+{
+  "success": false,
+  "message": "Validation failed",
+  "errors": {
+    "current_password": ["Current password is incorrect."]
+  }
+}
+```
+
+---
+
+### 18. Get Admin Profile
+
+| Field | Value |
+|-------|-------|
+| **API Name** | Profile |
+| **Method** | GET |
+| **Route** | /api/admin/profile |
+| **Authorization** | Admin |
+| **Function Description** | Retrieve the authenticated admin's profile information. |
+| **Description** | جلب بيانات الحساب الشخصي للادمن |
+
+**Request Headers:**
+```
+Authorization: Bearer {token}
+Accept: application/json
+```
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "message": "Profile retrieved successfully",
+  "data": {
+    "id": 1,
+    "name": "Admin User",
+    "email": "admin@smartcars.com",
+    "role": "super_admin",
+    "created_at": "2026-01-01T09:00:00Z"
+  }
+}
+```
+
+---
+
+### 19. Update Admin Profile
+
+| Field | Value |
+|-------|-------|
+| **API Name** | Update Profile |
+| **Method** | PUT |
+| **Route** | /api/admin/profile |
+| **Authorization** | Admin |
+| **Function Description** | Update the authenticated admin's profile details. |
+| **Description** | تعديل بيانات الحساب الشخصي للادمن |
+
+**Request Headers:**
+```
+Authorization: Bearer {token}
+Content-Type: application/json
+Accept: application/json
+```
+
+**Request Body:**
+```json
+{
+  "name": "Admin User Updated",
+  "email": "admin.updated@smartcars.com"
+}
+```
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "message": "Profile updated successfully",
+  "data": {
+    "id": 1,
+    "name": "Admin User Updated",
+    "email": "admin.updated@smartcars.com"
+  }
+}
+```
+
+**Error Response (422):**
+```json
+{
+  "success": false,
+  "message": "Validation failed",
+  "errors": {
+    "email": ["The email has already been taken."]
+  }
+}
+```
+
+---
+
+### 20. Update User (Admin)
+
+| Field | Value |
+|-------|-------|
+| **API Name** | Update User |
+| **Method** | PUT |
+| **Route** | /api/admin/users/{id} |
+| **Authorization** | Admin, Country Manager |
+| **Function Description** | Update details for a specific user account. |
+| **Description** | تعديل بيانات مستخدم |
+
+**Request Headers:**
+```
+Authorization: Bearer {token}
+Content-Type: application/json
+Accept: application/json
+```
+
+**Request Body:**
+```json
+{
+  "name": "Updated User Name",
+  "phone": "+962799999999",
+  "email": "updateduser@example.com",
+  "role": "dealer",
+  "country_id": 1,
+  "city_id": 2,
+  "is_verified": true
+}
+```
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "message": "User updated successfully",
+  "data": {
+    "id": 5,
+    "name": "Updated User Name",
+    "phone": "+962799999999",
+    "email": "updateduser@example.com",
+    "role": "dealer",
+    "is_verified": true
+  }
+}
+```
+
+---
+
+### 21. Delete User (Admin)
+
+| Field | Value |
+|-------|-------|
+| **API Name** | Delete User |
+| **Method** | DELETE |
+| **Route** | /api/admin/users/{id} |
+| **Authorization** | Admin, Country Manager |
+| **Function Description** | Delete a user account by ID. |
+| **Description** | حذف مستخدم |
+
+**Request Headers:**
+```
+Authorization: Bearer {token}
+Accept: application/json
+```
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "message": "User deleted successfully."
+}
+```
+
+---
+
+### 22. Assign Role to User (Admin)
+
+| Field | Value |
+|-------|-------|
+| **API Name** | Assign Role |
+| **Method** | POST |
+| **Route** | /api/admin/users/{id}/role |
+| **Authorization** | Admin, Country Manager |
+| **Function Description** | Assign or change the role for a user account. |
+| **Description** | تعيين أو تغيير Role لمستخدم |
+
+**Request Headers:**
+```
+Authorization: Bearer {token}
+Content-Type: application/json
+Accept: application/json
+```
+
+**Request Body:**
+```json
+{
+  "role": "showroom"
+}
+```
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "message": "Role assigned successfully.",
+  "data": {
+    "id": 5,
+    "role": "showroom"
+  }
+}
+```
+
+---
+
+### 23. Verify Seller / Showroom (Admin)
+
+| Field | Value |
+|-------|-------|
+| **API Name** | Verify Seller / Showroom |
+| **Method** | POST |
+| **Route** | /api/admin/users/{id}/verify |
+| **Authorization** | Admin, Country Manager |
+| **Function Description** | Activate or verify a seller or showroom account. |
+| **Description** | تفعيل / تحقق من تاجر أو معرض |
+
+**Request Headers:**
+```
+Authorization: Bearer {token}
+Accept: application/json
+```
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "message": "Seller verified successfully.",
+  "data": {
+    "id": 45,
+    "is_verified": true
+  }
+}
+```
+
+---
+
+### 24. Get User Details (Admin)
+
+| Field | Value |
+|-------|-------|
+| **API Name** | Get User Details |
+| **Method** | GET |
+| **Route** | /api/admin/users/{id} |
+| **Authorization** | Admin, Country Manager |
+| **Function Description** | Retrieve details for a specific user account. |
+| **Description** | جلب بيانات مستخدم محدد |
+
+**Request Headers:**
+```
+Authorization: Bearer {token}
+Accept: application/json
+```
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "message": "User details retrieved successfully",
+  "data": {
+    "id": 5,
+    "name": "Ahmed Al-Mansouri",
+    "phone": "+962791234567",
+    "email": "ahmed@example.com",
+    "role": "individual",
+    "country": "Jordan",
+    "status": "active",
+    "is_verified": false,
+    "created_at": "2026-01-15T10:30:00Z"
+  }
+}
+```
+
+---
+
+### 25. Get Ad Details (Admin)
+
+| Field | Value |
+|-------|-------|
+| **API Name** | Get Ad Details |
+| **Method** | GET |
+| **Route** | /api/admin/ads/{id} |
+| **Authorization** | Admin, Country Manager |
+| **Function Description** | Retrieve details for a specific ad. |
+| **Description** | تفاصيل الإعلان |
+
+**Request Headers:**
+```
+Authorization: Bearer {token}
+Accept: application/json
+```
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "message": "Ad details retrieved successfully",
+  "data": {
+    "id": 2456,
+    "seller_id": 45,
+    "ad_type": "normal",
+    "title": "2019 Toyota Corolla XLI",
+    "status": "published",
+    "price": 12500,
+    "views_count": 0,
+    "created_at": "2026-01-24T12:30:00Z",
+    "expires_at": "2026-02-23T23:59:59Z"
+  }
+}
+```
+
+---
+
+### 26. Update Ad (Admin)
+
+| Field | Value |
+|-------|-------|
+| **API Name** | Update Ad |
+| **Method** | PUT |
+| **Route** | /api/admin/ads/{id} |
+| **Authorization** | Admin, Country Manager |
+| **Function Description** | Update details for a specific ad. |
+| **Description** | تعديل الإعلان |
+
+**Request Headers:**
+```
+Authorization: Bearer {token}
+Content-Type: application/json
+Accept: application/json
+```
+
+**Request Body:**
+```json
+{
+  "title": "2019 Toyota Corolla XLI - Updated",
+  "description": "Updated description",
+  "price": {
+    "price_cash": 13000,
+    "currency": "JOD"
+  },
+  "status": "published"
+}
+```
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "message": "Ad updated successfully",
+  "data": {
+    "id": 2456,
+    "title": "2019 Toyota Corolla XLI - Updated",
+    "price": 13000,
+    "status": "published"
+  }
+}
+```
+
+---
+
+### 27. Delete Ad (Admin)
+
+| Field | Value |
+|-------|-------|
+| **API Name** | Delete Ad |
+| **Method** | DELETE |
+| **Route** | /api/admin/ads/{id} |
+| **Authorization** | Admin, Country Manager |
+| **Function Description** | Delete an ad by ID. |
+| **Description** | حذف الإعلان |
+
+**Request Headers:**
+```
+Authorization: Bearer {token}
+Accept: application/json
+```
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "message": "Ad deleted successfully."
+}
+```
+
+---
+
+### 28. Auto Republish Ad (Admin)
+
+| Field | Value |
+|-------|-------|
+| **API Name** | Auto Republish Ad |
+| **Method** | POST |
+| **Route** | /api/admin/ads/{id}/auto-republish |
+| **Authorization** | Admin, Country Manager |
+| **Function Description** | Enable auto-republish for an ad. |
+| **Description** | تفعيل النشر التلقائي |
+
+**Request Headers:**
+```
+Authorization: Bearer {token}
+Accept: application/json
+```
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "message": "Auto-republish enabled for ad.",
+  "data": {
+    "id": 2456,
+    "auto_republish": true
+  }
+}
+```
+
+---
+
+### 29. Push Ad to Facebook (Admin)
+
+| Field | Value |
+|-------|-------|
+| **API Name** | Push Ad to Facebook |
+| **Method** | POST |
+| **Route** | /api/admin/ads/{id}/push-fb |
+| **Authorization** | Admin, Country Manager |
+| **Function Description** | Publish the ad to Facebook via integration. |
+| **Description** | نشر الإعلان على Facebook |
+
+**Request Headers:**
+```
+Authorization: Bearer {token}
+Accept: application/json
+```
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "message": "Ad pushed to Facebook successfully."
+}
+```
+
+---
