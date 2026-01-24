@@ -1,0 +1,167 @@
+openapi: 3.0.3
+info:
+  title: Smart Car Ads - Core API Draft
+  version: 0.1.0
+servers:
+  - url: https://api.smartcars.local
+paths:
+  /api/user/auth/register:
+    post:
+      summary: Register user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCreate'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+  /api/user/auth/login:
+    post:
+      summary: Login user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserLogin'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+  /api/user/normal_ad:
+    post:
+      summary: Create normal ad
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdCreate'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdResponse'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    UserCreate:
+      type: object
+      required: [name, phone, password, password_confirmation]
+      properties:
+        name:
+          type: string
+        phone:
+          type: string
+        country_id:
+          type: integer
+        password:
+          type: string
+        password_confirmation:
+          type: string
+        account_type:
+          type: string
+    UserLogin:
+      type: object
+      required: [phone, password]
+      properties:
+        phone:
+          type: string
+        password:
+          type: string
+        remember_me:
+          type: boolean
+    AuthResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: object
+    UserResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/User'
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        full_name:
+          type: string
+        mobile_number:
+          type: string
+        email:
+          type: string
+        is_verified:
+          type: boolean
+    AdCreate:
+      type: object
+      required: [title, category_id, car_details, price]
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        category_id:
+          type: integer
+        city_id:
+          type: integer
+        car_details:
+          type: object
+          properties:
+            brand_id:
+              type: integer
+            model_id:
+              type: integer
+            year:
+              type: integer
+            mileage:
+              type: integer
+        price:
+          type: object
+          properties:
+            price_cash:
+              type: number
+            currency:
+              type: string
+    AdResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/Ad'
+    Ad:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        status:
+          type: string
+        price:
+          type: number
