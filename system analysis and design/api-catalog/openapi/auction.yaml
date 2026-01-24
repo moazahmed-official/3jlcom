@@ -1,0 +1,121 @@
+openapi: 3.0.3
+info:
+  title: Smart Car Ads API - Auctions
+  version: '1.0'
+servers:
+  - url: /api/v1
+paths:
+  /auctions:
+    post:
+      summary: Create an auction ad
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuctionCreate'
+      responses:
+        '201':
+          description: Created
+    get:
+      summary: List auctions
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Paginated list
+  /auctions/{auctionId}:
+    get:
+      summary: Get auction details
+      parameters:
+        - in: path
+          name: auctionId
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Details
+    put:
+      summary: Update auction
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Updated
+    delete:
+      summary: Delete auction
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Deleted
+  /auctions/{auctionId}/bids:
+    post:
+      summary: Place a bid
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BidCreate'
+      responses:
+        '201':
+          description: Bid accepted
+    get:
+      summary: List bids for auction
+      responses:
+        '200':
+          description: Bids list
+  /auctions/{auctionId}/actions/close:
+    post:
+      summary: Close auction (admin/owner)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Auction closed
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    AuctionCreate:
+      type: object
+      required: [title, start_price, start_time, end_time]
+      properties:
+        title:
+          type: string
+        start_price:
+          type: number
+        reserve_price:
+          type: number
+        start_time:
+          type: string
+          format: date-time
+        end_time:
+          type: string
+          format: date-time
+        media_ids:
+          type: array
+          items:
+            type: integer
+    BidCreate:
+      type: object
+      required: [auction_id, price]
+      properties:
+        auction_id:
+          type: integer
+        price:
+          type: number
+        comment:
+          type: string

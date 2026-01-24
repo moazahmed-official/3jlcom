@@ -1,0 +1,1708 @@
+openapi: 3.0.3
+info:
+  title: Smart Car Ads API - Full Bundle (dereferenced)
+  version: '1.0'
+  description: Fully dereferenced OpenAPI spec produced from fragment files. Use this file for tools that cannot resolve external $ref.
+servers:
+  - url: /api/v1
+
+paths:
+  /auth/login:
+    post:
+      summary: Authenticate user/admin and return JWT token
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone, password]
+              properties:
+                phone:
+                  type: string
+                password:
+                  type: string
+                remember_me:
+                  type: boolean
+      responses:
+        '200':
+          description: Successful login
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthSuccess'
+        '401':
+          description: Unauthorized
+  /auth/logout:
+    post:
+      summary: Invalidate current token
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Logged out
+  /auth/register:
+    post:
+      summary: Register a new user (OTP flow)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, phone, country_id]
+              properties:
+                name:
+                  type: string
+                phone:
+                  type: string
+                country_id:
+                  type: integer
+                account_type:
+                  type: string
+      responses:
+        '201':
+          description: Created
+  /auth/verify:
+    put:
+      summary: Verify OTP code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone, code]
+              properties:
+                phone:
+                  type: string
+                code:
+                  type: string
+      responses:
+        '200':
+          description: Verified
+  /auth/password/reset:
+    put:
+      summary: Reset password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone, new_password, code]
+              properties:
+                phone:
+                  type: string
+                new_password:
+                  type: string
+                code:
+                  type: string
+      responses:
+        '200':
+          description: Password reset
+
+  /users:
+    get:
+      summary: List users (admin/country_manager)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Paginated users list
+    post:
+      summary: Create user (admin)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCreate'
+      responses:
+        '201':
+          description: User created
+  /users/{userId}:
+    get:
+      summary: Get user details
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: User details
+    put:
+      summary: Update user
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserUpdate'
+      responses:
+        '200':
+          description: Updated
+    delete:
+      summary: Delete user
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Deleted
+  /users/{userId}/roles:
+    post:
+      summary: Assign or change roles for a user
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                roles:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: Roles updated
+  /users/{userId}/verify:
+    post:
+      summary: Verify seller/showroom (admin)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json: {}
+      responses:
+        '200':
+          description: Verification status updated
+
+  /normal-ads:
+    post:
+      summary: Create a normal ad
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NormalAdCreate'
+      responses:
+        '201':
+          description: Created
+    get:
+      summary: List normal ads
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+        - in: query
+          name: brand_id
+          schema:
+            type: integer
+        - in: query
+          name: model_id
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Paginated list
+  /normal-ads/{adId}:
+    get:
+      summary: Get normal ad details
+      parameters:
+        - in: path
+          name: adId
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Ad details
+    put:
+      summary: Update normal ad
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NormalAdUpdate'
+      responses:
+        '200':
+          description: Updated
+    delete:
+      summary: Delete normal ad
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Deleted
+  /normal-ads/{adId}/actions/republish:
+    post:
+      summary: Republish ad (trigger or schedule)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Republish queued
+
+  /unique-ads:
+    post:
+      summary: Create a unique ad
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UniqueAdCreate'
+      responses:
+        '201':
+          description: Created
+    get:
+      summary: List unique ads (owner/admin scope)
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Paginated list
+  /unique-ads/{adId}:
+    get:
+      summary: Get unique ad details
+      parameters:
+        - in: path
+          name: adId
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Ad details
+    put:
+      summary: Update unique ad
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UniqueAdUpdate'
+      responses:
+        '200':
+          description: Updated
+    delete:
+      summary: Delete unique ad
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Deleted
+  /unique-ads/{adId}/actions/feature:
+    post:
+      summary: Promote/feature a unique ad
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Featured
+
+  /caishha:
+    post:
+      summary: Create a Caishha ad (offers-first)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CaishhaCreate'
+      responses:
+        '201':
+          description: Created
+    get:
+      summary: List Caishha ads
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Paginated list
+  /caishha/{adId}:
+    get:
+      summary: Get Caishha details
+      parameters:
+        - in: path
+          name: adId
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Details
+    put:
+      summary: Update Caishha ad
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Updated
+    delete:
+      summary: Delete Caishha ad
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Deleted
+  /caishha/{adId}/offers:
+    post:
+      summary: Create an offer on Caishha ad
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CaishhaOfferCreate'
+      responses:
+        '201':
+          description: Offer created
+    get:
+      summary: List offers for Caishha ad
+      parameters:
+        - in: path
+          name: adId
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Offers list
+
+  /auctions:
+    post:
+      summary: Create an auction ad
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuctionCreate'
+      responses:
+        '201':
+          description: Created
+    get:
+      summary: List auctions
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Paginated list
+  /auctions/{auctionId}:
+    get:
+      summary: Get auction details
+      parameters:
+        - in: path
+          name: auctionId
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Details
+    put:
+      summary: Update auction
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Updated
+    delete:
+      summary: Delete auction
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Deleted
+  /auctions/{auctionId}/bids:
+    post:
+      summary: Place a bid
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BidCreate'
+      responses:
+        '201':
+          description: Bid accepted
+    get:
+      summary: List bids for auction
+      responses:
+        '200':
+          description: Bids list
+  /auctions/{auctionId}/actions/close:
+    post:
+      summary: Close auction (admin/owner)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Auction closed
+  /findit:
+    post:
+      summary: Create a Findit ad (finding request)
+      tags: [Findit]
+      security:
+        - bearerAuth: []
+      x-permissions:
+        roles: ["individual","dealer","showroom"]
+        scopes: ["findit.create"]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FinditCreate'
+      responses:
+        '201':
+          description: Created
+    get:
+      summary: List Findit ads/requests
+      x-permissions:
+        roles: ["admin","moderator"]
+        scopes: ["findit.read.any"]
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Paginated list
+  /findit/{id}:
+    get:
+      summary: Get Findit ad/request details
+      x-permissions:
+        roles: ["admin","moderator","individual","dealer","showroom"]
+        scopes: ["findit.read.any","findit.read.own"]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Details
+    put:
+      summary: Update Findit request (owner/admin)
+      security:
+        - bearerAuth: []
+      x-permissions:
+        roles: ["individual","admin"]
+        scopes: ["findit.update.own","findit.update.any"]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FinditUpdate'
+      responses:
+        '200':
+          description: Updated
+    delete:
+      summary: Delete Findit request (owner/admin)
+      security:
+        - bearerAuth: []
+      x-permissions:
+        roles: ["individual","admin"]
+        scopes: ["findit.delete.own","findit.delete.any"]
+      responses:
+        '204':
+          description: Deleted
+  /findit/{id}/offers:
+    post:
+      summary: Submit an offer for a Findit request
+      security:
+        - bearerAuth: []
+      x-permissions:
+        roles: ["dealer","showroom","marketer"]
+        scopes: ["findit.offers.create"]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FinditOfferCreate'
+      responses:
+        '201':
+          description: Offer created
+    get:
+      summary: List offers for a Findit request
+      x-permissions:
+        roles: ["admin","individual","dealer","showroom"]
+        scopes: ["findit.offers.read"]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Offers list
+
+  /media:
+    post:
+      summary: Upload media (image/video)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                purpose:
+                  type: string
+                related_resource:
+                  type: string
+                related_id:
+                  type: integer
+      responses:
+        '201':
+          description: Media stored and returned
+  /media/{mediaId}:
+    get:
+      summary: Get media metadata / signed URL
+      parameters:
+        - in: path
+          name: mediaId
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Media metadata
+    delete:
+      summary: Delete media
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Deleted
+
+  /offers:
+    post:
+      summary: Create an offer (generic resource for Caishha/other offers)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OfferCreate'
+      responses:
+        '201':
+          description: Offer created
+    get:
+      summary: List offers (admin/owner)
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Paginated offers
+  /offers/{offerId}:
+    get:
+      summary: Get offer details
+      parameters:
+        - in: path
+          name: offerId
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Offer details
+    put:
+      summary: Update offer
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OfferUpdate'
+      responses:
+        '200':
+          description: Updated
+    delete:
+      summary: Delete offer
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Deleted
+
+  /brands:
+    get:
+      summary: List brands
+      responses:
+        '200':
+          description: Brands list
+    post:
+      summary: Create brand (admin)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BrandCreate'
+      responses:
+        '201':
+          description: Created
+  /brands/{brandId}/models:
+    get:
+      summary: List models for brand
+      parameters:
+        - in: path
+          name: brandId
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Models list
+    post:
+      summary: Create model for brand (admin)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModelCreate'
+      responses:
+        '201':
+          description: Created
+
+  /reviews:
+    post:
+      summary: Create a review for a seller or ad
+      security:
+        - bearerAuth: []
+      x-permissions:
+        roles: ["individual","dealer","showroom"]
+        scopes: ["reviews.create"]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewCreate'
+            examples:
+              sample:
+                value:
+                  target_type: "seller"
+                  target_id: 123
+                  stars: 5
+                  title: "Great service"
+                  body: "Very helpful and honest"
+      responses:
+        '201':
+          description: Review created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewResponse'
+    get:
+      summary: List reviews (admin/moderator or filters)
+      x-permissions:
+        roles: ["admin","moderator"]
+        scopes: ["reviews.read.any"]
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+        - in: query
+          name: target_type
+          schema:
+            type: string
+        - in: query
+          name: target_id
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Paginated reviews
+  /reviews/{reviewId}:
+    get:
+      summary: Get review details
+      x-permissions:
+        roles: ["admin","moderator","individual","dealer","showroom"]
+        scopes: ["reviews.read.any","reviews.read.own"]
+      parameters:
+        - in: path
+          name: reviewId
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Review details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewResponse'
+    put:
+      summary: Update a review (owner)
+      security:
+        - bearerAuth: []
+      x-permissions:
+        roles: ["individual","dealer","showroom"]
+        scopes: ["reviews.update.own"]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewUpdate'
+            examples:
+              sample:
+                value:
+                  stars: 4
+                  title: "Updated title"
+                  body: "Updated comment"
+      responses:
+        '200':
+          description: Updated
+    delete:
+      summary: Delete a review (owner or admin)
+      security:
+        - bearerAuth: []
+      x-permissions:
+        roles: ["admin","moderator","individual","dealer","showroom"]
+        scopes: ["reviews.delete.own","reviews.delete.any"]
+      responses:
+        '204':
+          description: Deleted
+
+  /reports:
+    post:
+      summary: Create a report (ad/user/dealer)
+      security:
+        - bearerAuth: []
+      x-permissions:
+        roles: ["individual","dealer","showroom"]
+        scopes: ["reports.create"]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportCreate'
+            examples:
+              sample:
+                value:
+                  target_type: "ad"
+                  target_id: 3456
+                  reason: "fraud"
+                  details: "Price looks suspicious"
+      responses:
+        '201':
+          description: Report created
+    get:
+      summary: List reports (admin/moderator)
+      x-permissions:
+        roles: ["admin","moderator","country_manager"]
+        scopes: ["reports.read.any"]
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Paginated reports
+  /reports/{reportId}:
+    get:
+      summary: Get report details
+      x-permissions:
+        roles: ["admin","moderator"]
+        scopes: ["reports.read.any"]
+      parameters:
+        - in: path
+          name: reportId
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Report details
+    delete:
+      summary: Delete a report (admin)
+      security:
+        - bearerAuth: []
+      x-permissions:
+        roles: ["admin","moderator"]
+        scopes: ["reports.delete.any"]
+      responses:
+        '204':
+          description: Deleted
+
+  /packages:
+    get:
+      summary: List available packages (public)
+      x-permissions:
+        roles: ["public"]
+        scopes: ["packages.read"]
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Packages list
+    post:
+      summary: Create package (admin)
+      security:
+        - bearerAuth: []
+      x-permissions:
+        roles: ["admin","super_admin"]
+        scopes: ["packages.create"]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PackageCreate'
+            examples:
+              sample:
+                value:
+                  name: "Dealer Pro"
+                  description: "50 normal ads + 10 featured"
+                  price: 199.99
+                  duration_days: 30
+      responses:
+        '201':
+          description: Package created
+  /packages/{packageId}:
+    get:
+      summary: Get package details
+      parameters:
+        - in: path
+          name: packageId
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Package details
+    put:
+      summary: Update package (admin)
+      security:
+        - bearerAuth: []
+      x-permissions:
+        roles: ["admin","super_admin"]
+        scopes: ["packages.update"]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PackageUpdate'
+      responses:
+        '200':
+          description: Updated
+    delete:
+      summary: Delete package (admin)
+      security:
+        - bearerAuth: []
+      x-permissions:
+        roles: ["admin","super_admin"]
+        scopes: ["packages.delete"]
+      responses:
+        '204':
+          description: Deleted
+  /users/{userId}/packages:
+    get:
+      summary: List packages owned by user
+      security:
+        - bearerAuth: []
+      x-permissions:
+        roles: ["individual","dealer","showroom","admin"]
+        scopes: ["packages.read.own","packages.read.any"]
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: User packages
+  /packages/{packageId}/assign:
+    post:
+      summary: Assign package to a user (admin)
+      security:
+        - bearerAuth: []
+      x-permissions:
+        roles: ["admin"]
+        scopes: ["packages.assign"]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id]
+              properties:
+                user_id:
+                  type: integer
+                start_date:
+                  type: string
+                  format: date
+      responses:
+        '200':
+          description: Assigned
+
+  /notifications:
+    get:
+      summary: List notifications for current user
+      security:
+        - bearerAuth: []
+      x-permissions:
+        roles: ["individual","dealer","showroom","marketer"]
+        scopes: ["notifications.read.own"]
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Notifications list
+    post:
+      summary: Send notification (admin)
+      security:
+        - bearerAuth: []
+      x-permissions:
+        roles: ["admin","super_admin"]
+        scopes: ["notifications.send"]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotificationSend'
+            examples:
+              sample:
+                value:
+                  target: "user"
+                  target_id: 123
+                  title: "Your ad was approved"
+                  body: "Congratulations!"
+      responses:
+        '202':
+          description: Notification queued
+  /notifications/{id}:
+    get:
+      summary: Get a notification
+      security:
+        - bearerAuth: []
+      x-permissions:
+        roles: ["individual","dealer","showroom","marketer","admin"]
+        scopes: ["notifications.read.own","notifications.read.any"]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Notification details
+    patch:
+      summary: Mark notification read/hide
+      security:
+        - bearerAuth: []
+      x-permissions:
+        roles: ["individual","dealer","showroom","marketer"]
+        scopes: ["notifications.update.own"]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                is_read:
+                  type: boolean
+                is_hidden:
+                  type: boolean
+            examples:
+              sample:
+                value:
+                  is_read: true
+      responses:
+        '200':
+          description: Updated
+
+  /sliders:
+    get:
+      summary: List sliders (admin/public via filters)
+      parameters:
+        - in: query
+          name: location
+          schema:
+            type: string
+        - in: query
+          name: status
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sliders list
+    post:
+      summary: Create slider (admin)
+      security:
+        - bearerAuth: []
+      x-permissions:
+        roles: ["admin","super_admin"]
+        scopes: ["sliders.create"]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SliderCreate'
+            examples:
+              sample:
+                value:
+                  name: "Homepage Hero"
+                  image_media_id: 987
+                  location: "home"
+                  value: "https://example.com/promo"
+      responses:
+        '201':
+          description: Created
+  /sliders/{sliderId}:
+    get:
+      summary: Get slider details
+      parameters:
+        - in: path
+          name: sliderId
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Slider details
+    put:
+      summary: Update slider (admin)
+      security:
+        - bearerAuth: []
+      x-permissions:
+        roles: ["admin","super_admin"]
+        scopes: ["sliders.update"]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SliderUpdate'
+      responses:
+        '200':
+          description: Updated
+    delete:
+      summary: Delete slider (admin)
+      security:
+        - bearerAuth: []
+      x-permissions:
+        roles: ["admin","super_admin"]
+        scopes: ["sliders.delete"]
+      responses:
+        '204':
+          description: Deleted
+  /sliders/{sliderId}/actions/activate:
+    post:
+      summary: Activate slider
+      security:
+        - bearerAuth: []
+      x-permissions:
+        roles: ["admin"]
+        scopes: ["sliders.activate"]
+      responses:
+        '200':
+          description: Activated
+  /sliders/{sliderId}/actions/deactivate:
+    post:
+      summary: Deactivate slider
+      security:
+        - bearerAuth: []
+      x-permissions:
+        roles: ["admin"]
+        scopes: ["sliders.deactivate"]
+      responses:
+        '200':
+          description: Deactivated
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    AuthSuccess:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            token:
+              type: string
+            token_type:
+              type: string
+            expires_in:
+              type: integer
+            user:
+              $ref: '#/components/schemas/User'
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        phone:
+          type: string
+        account_type:
+          type: string
+        is_verified:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+    UserCreate:
+      type: object
+      required: [name, phone, country_id]
+      properties:
+        name:
+          type: string
+        phone:
+          type: string
+        country_id:
+          type: integer
+        account_type:
+          type: string
+    UserUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        phone:
+          type: string
+        city_id:
+          type: integer
+        profile_image_id:
+          type: integer
+    NormalAdCreate:
+      type: object
+      required: [title, description, category_id, city_id, country_id]
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        category_id:
+          type: integer
+        city_id:
+          type: integer
+        country_id:
+          type: integer
+        brand_id:
+          type: integer
+        model_id:
+          type: integer
+        year:
+          type: integer
+        price_cash:
+          type: number
+        media_ids:
+          type: array
+          items:
+            type: integer
+    NormalAdUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        price_cash:
+          type: number
+        media_ids:
+          type: array
+          items:
+            type: integer
+    UniqueAdCreate:
+      type: object
+      required: [title, description, category_id, city_id, country_id]
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        banner_image_id:
+          type: integer
+        banner_color:
+          type: string
+        is_verified_ad:
+          type: boolean
+        media_ids:
+          type: array
+          items:
+            type: integer
+    UniqueAdUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        is_verified_ad:
+          type: boolean
+        media_ids:
+          type: array
+          items:
+            type: integer
+    CaishhaCreate:
+      type: object
+      required: [title, description, city_id, country_id]
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        offers_window_period_days:
+          type: integer
+        media_ids:
+          type: array
+          items:
+            type: integer
+    CaishhaOfferCreate:
+      type: object
+      required: [ad_id, price]
+      properties:
+        ad_id:
+          type: integer
+        price:
+          type: number
+        comment:
+          type: string
+    AuctionCreate:
+      type: object
+      required: [title, start_price, start_time, end_time]
+      properties:
+        title:
+          type: string
+        start_price:
+          type: number
+        reserve_price:
+          type: number
+        start_time:
+          type: string
+          format: date-time
+        end_time:
+          type: string
+          format: date-time
+        media_ids:
+          type: array
+          items:
+            type: integer
+    BidCreate:
+      type: object
+      required: [auction_id, price]
+      properties:
+        auction_id:
+          type: integer
+        price:
+          type: number
+        comment:
+          type: string
+    MediaResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+        url:
+          type: string
+        thumbnail_url:
+          type: string
+        type:
+          type: string
+        status:
+          type: string
+          description: processing, ready, failed
+    OfferCreate:
+      type: object
+      required: [ad_id, price]
+      properties:
+        ad_id:
+          type: integer
+        price:
+          type: number
+        comment:
+          type: string
+    OfferUpdate:
+      type: object
+      properties:
+        price:
+          type: number
+        comment:
+          type: string
+    BrandCreate:
+      type: object
+      required: [name_en, name_ar]
+      properties:
+        name_en:
+          type: string
+        name_ar:
+          type: string
+    ModelCreate:
+      type: object
+      required: [name_en, name_ar]
+      properties:
+        name_en:
+          type: string
+        name_ar:
+          type: string
+        year_from:
+          type: integer
+        year_to:
+          type: integer
+    ReviewCreate:
+      type: object
+      required: [target_type, target_id, stars]
+      properties:
+        target_type:
+          type: string
+          description: "seller|ad"
+        target_id:
+          type: integer
+        stars:
+          type: integer
+          minimum: 1
+          maximum: 5
+        title:
+          type: string
+        body:
+          type: string
+    ReviewUpdate:
+      type: object
+      properties:
+        stars:
+          type: integer
+        title:
+          type: string
+        body:
+          type: string
+    ReviewResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            id:
+              type: integer
+            user_id:
+              type: integer
+            target_type:
+              type: string
+            target_id:
+              type: integer
+            stars:
+              type: integer
+            title:
+              type: string
+            body:
+              type: string
+            created_at:
+              type: string
+              format: date-time
+    ReportCreate:
+      type: object
+      required: [target_type, target_id, reason]
+      properties:
+        target_type:
+          type: string
+          description: "ad|user|dealer"
+        target_id:
+          type: integer
+        reason:
+          type: string
+        details:
+          type: string
+    ReportResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            id:
+              type: integer
+            reported_by:
+              type: integer
+            target_type:
+              type: string
+            target_id:
+              type: integer
+            reason:
+              type: string
+            details:
+              type: string
+            status:
+              type: string
+            created_at:
+              type: string
+              format: date-time
+    PackageCreate:
+      type: object
+      required: [name, price, duration_days]
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+        duration_days:
+          type: integer
+        features:
+          type: object
+    PackageUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+        duration_days:
+          type: integer
+        features:
+          type: object
+    PackageResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        price:
+          type: number
+        duration_days:
+          type: integer
+        active:
+          type: boolean
+    NotificationSend:
+      type: object
+      required: [target, title, body]
+      properties:
+        target:
+          type: string
+          description: "user|group|all|ad"
+        target_id:
+          type: integer
+        title:
+          type: string
+        body:
+          type: string
+        data:
+          type: object
+    NotificationResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        body:
+          type: string
+        is_read:
+          type: boolean
+        is_hidden:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+    SliderCreate:
+      type: object
+      required: [name, image_media_id, location]
+      properties:
+        name:
+          type: string
+        image_media_id:
+          type: integer
+        location:
+          type: string
+        value:
+          type: string
+        order:
+          type: integer
+        status:
+          type: string
+    SliderUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        image_media_id:
+          type: integer
+        location:
+          type: string
+        value:
+          type: string
+        order:
+          type: integer
+        status:
+          type: string
+    SliderResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        image_url:
+          type: string
+        location:
+          type: string
+        order:
+          type: integer
+        status:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+    FinditCreate:
+      type: object
+      required: [title, description, city_id, country_id]
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        desired_price:
+          type: number
+        city_id:
+          type: integer
+        country_id:
+          type: integer
+        category_id:
+          type: integer
+        media_ids:
+          type: array
+          items:
+            type: integer
+    FinditUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        desired_price:
+          type: number
+        media_ids:
+          type: array
+          items:
+            type: integer
+    FinditOfferCreate:
+      type: object
+      required: [findit_id, price]
+      properties:
+        findit_id:
+          type: integer
+        price:
+          type: number
+        comment:
+          type: string

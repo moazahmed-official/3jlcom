@@ -1,0 +1,129 @@
+openapi: 3.0.3
+info:
+  title: Smart Car Ads API - Normal Ads
+  version: '1.0'
+servers:
+  - url: /api/v1
+paths:
+  /normal-ads:
+    post:
+      summary: Create a normal ad
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NormalAdCreate'
+      responses:
+        '201':
+          description: Created
+    get:
+      summary: List normal ads
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+        - in: query
+          name: brand_id
+          schema:
+            type: integer
+        - in: query
+          name: model_id
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Paginated list
+  /normal-ads/{adId}:
+    get:
+      summary: Get normal ad details
+      parameters:
+        - in: path
+          name: adId
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Ad details
+    put:
+      summary: Update normal ad
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NormalAdUpdate'
+      responses:
+        '200':
+          description: Updated
+    delete:
+      summary: Delete normal ad
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Deleted
+  /normal-ads/{adId}/actions/republish:
+    post:
+      summary: Republish ad (trigger or schedule)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Republish queued
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    NormalAdCreate:
+      type: object
+      required: [title, description, category_id, city_id, country_id]
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        category_id:
+          type: integer
+        city_id:
+          type: integer
+        country_id:
+          type: integer
+        brand_id:
+          type: integer
+        model_id:
+          type: integer
+        year:
+          type: integer
+        price_cash:
+          type: number
+        media_ids:
+          type: array
+          items:
+            type: integer
+    NormalAdUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        price_cash:
+          type: number
+        media_ids:
+          type: array
+          items:
+            type: integer

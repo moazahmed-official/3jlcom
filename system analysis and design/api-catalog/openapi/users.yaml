@@ -1,0 +1,132 @@
+openapi: 3.0.3
+info:
+  title: Smart Car Ads API - Users
+  version: '1.0'
+servers:
+  - url: /api/v1
+paths:
+  /users:
+    get:
+      summary: List users (admin/country_manager)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Paginated users list
+    post:
+      summary: Create user (admin)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCreate'
+      responses:
+        '201':
+          description: User created
+  /users/{userId}:
+    get:
+      summary: Get user details
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: User details
+    put:
+      summary: Update user
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserUpdate'
+      responses:
+        '200':
+          description: Updated
+    delete:
+      summary: Delete user
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Deleted
+  /users/{userId}/roles:
+    post:
+      summary: Assign or change roles for a user
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                roles:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: Roles updated
+  /users/{userId}/verify:
+    post:
+      summary: Verify seller/showroom (admin)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json: {}
+      responses:
+        '200':
+          description: Verification status updated
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    UserCreate:
+      type: object
+      required: [name, phone, country_id]
+      properties:
+        name:
+          type: string
+        phone:
+          type: string
+        country_id:
+          type: integer
+        account_type:
+          type: string
+    UserUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        phone:
+          type: string
+        city_id:
+          type: integer
+        profile_image_id:
+          type: integer

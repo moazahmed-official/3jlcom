@@ -1,0 +1,132 @@
+openapi: 3.0.3
+info:
+  title: Smart Car Ads API - Combined OpenAPI
+  version: '1.0'
+  description: >-
+    Aggregated OpenAPI that references individual fragment files under
+    `api-catalog/openapi/`. Each path item is a $ref to the fragment so the
+    source files remain authoritative. This file preserves `/api/v1` server
+    base (each fragment also declares the same server).
+servers:
+  - url: /api/v1
+
+paths:
+  /auth/login:
+    $ref: './openapi/auth.yaml#/paths/~1auth~1login'
+  /auth/logout:
+    $ref: './openapi/auth.yaml#/paths/~1auth~1logout'
+  /auth/register:
+    $ref: './openapi/auth.yaml#/paths/~1auth~1register'
+  /auth/verify:
+    $ref: './openapi/auth.yaml#/paths/~1auth~1verify'
+  /auth/password/reset:
+    $ref: './openapi/auth.yaml#/paths/~1auth~1password~1reset'
+
+  /users:
+    $ref: './openapi/users.yaml#/paths/~1users'
+  /users/{userId}:
+    $ref: './openapi/users.yaml#/paths/~1users~1{userId}'
+  /users/{userId}/roles:
+    $ref: './openapi/users.yaml#/paths/~1users~1{userId}~1roles'
+  /users/{userId}/verify:
+    $ref: './openapi/users.yaml#/paths/~1users~1{userId}~1verify'
+
+  /normal-ads:
+    $ref: './openapi/normal_ad.yaml#/paths/~1normal-ads'
+  /normal-ads/{adId}:
+    $ref: './openapi/normal_ad.yaml#/paths/~1normal-ads~1{adId}'
+  /normal-ads/{adId}/actions/republish:
+    $ref: './openapi/normal_ad.yaml#/paths/~1normal-ads~1{adId}~1actions~1republish'
+
+  /unique-ads:
+    $ref: './openapi/unique_ad.yaml#/paths/~1unique-ads'
+  /unique-ads/{adId}:
+    $ref: './openapi/unique_ad.yaml#/paths/~1unique-ads~1{adId}'
+  /unique-ads/{adId}/actions/feature:
+    $ref: './openapi/unique_ad.yaml#/paths/~1unique-ads~1{adId}~1actions~1feature'
+
+  /caishha:
+    $ref: './openapi/caishha.yaml#/paths/~1caishha'
+  /caishha/{adId}:
+    $ref: './openapi/caishha.yaml#/paths/~1caishha~1{adId}'
+  /caishha/{adId}/offers:
+    $ref: './openapi/caishha.yaml#/paths/~1caishha~1{adId}~1offers'
+
+  /auctions:
+    $ref: './openapi/auction.yaml#/paths/~1auctions'
+  /auctions/{auctionId}:
+    $ref: './openapi/auction.yaml#/paths/~1auctions~1{auctionId}'
+  /auctions/{auctionId}/bids:
+    $ref: './openapi/auction.yaml#/paths/~1auctions~1{auctionId}~1bids'
+  /auctions/{auctionId}/actions/close:
+    $ref: './openapi/auction.yaml#/paths/~1auctions~1{auctionId}~1actions~1close'
+
+  /findit:
+    $ref: './openapi/findit.yaml#/paths/~1findit'
+  /findit/{id}:
+    $ref: './openapi/findit.yaml#/paths/~1findit~1{id}'
+  /findit/{id}/offers:
+    $ref: './openapi/findit.yaml#/paths/~1findit~1{id}~1offers'
+
+  /media:
+    $ref: './openapi/media.yaml#/paths/~1media'
+  /media/{mediaId}:
+    $ref: './openapi/media.yaml#/paths/~1media~1{mediaId}'
+
+  /offers:
+    $ref: './openapi/offers.yaml#/paths/~1offers'
+  /offers/{offerId}:
+    $ref: './openapi/offers.yaml#/paths/~1offers~1{offerId}'
+
+  /brands:
+    $ref: './openapi/brands_models.yaml#/paths/~1brands'
+  /brands/{brandId}/models:
+    $ref: './openapi/brands_models.yaml#/paths/~1brands~1{brandId}~1models'
+
+  /reviews:
+    $ref: './openapi/reviews.yaml#/paths/~1reviews'
+  /reviews/{reviewId}:
+    $ref: './openapi/reviews.yaml#/paths/~1reviews~1{reviewId}'
+
+  /reports:
+    $ref: './openapi/reports.yaml#/paths/~1reports'
+  /reports/{reportId}:
+    $ref: './openapi/reports.yaml#/paths/~1reports~1{reportId}'
+
+  /packages:
+    $ref: './openapi/packages.yaml#/paths/~1packages'
+  /packages/{packageId}:
+    $ref: './openapi/packages.yaml#/paths/~1packages~1{packageId}'
+  /users/{userId}/packages:
+    $ref: './openapi/packages.yaml#/paths/~1users~1{userId}~1packages'
+  /packages/{packageId}/assign:
+    $ref: './openapi/packages.yaml#/paths/~1packages~1{packageId}~1assign'
+
+  /notifications:
+    $ref: './openapi/notifications.yaml#/paths/~1notifications'
+  /notifications/{id}:
+    $ref: './openapi/notifications.yaml#/paths/~1notifications~1{id}'
+
+  /sliders:
+    $ref: './openapi/sliders.yaml#/paths/~1sliders'
+  /sliders/{sliderId}:
+    $ref: './openapi/sliders.yaml#/paths/~1sliders~1{sliderId}'
+  /sliders/{sliderId}/actions/activate:
+    $ref: './openapi/sliders.yaml#/paths/~1sliders~1{sliderId}~1actions~1activate'
+  /sliders/{sliderId}/actions/deactivate:
+    $ref: './openapi/sliders.yaml#/paths/~1sliders~1{sliderId}~1actions~1deactivate'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+x-api-bundle: true
+
+# Notes:
+# - This combined file references the fragment files under `openapi/`.
+# - Each fragment continues to own its local components/schemas. Tools that
+#   consume this bundle should support external $ref resolution (typical for
+#   OpenAPI bundlers and Swagger UI setups).

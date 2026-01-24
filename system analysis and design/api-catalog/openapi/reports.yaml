@@ -1,0 +1,114 @@
+openapi: 3.0.3
+info:
+  title: Smart Car Ads API - Reports
+  version: '1.0'
+servers:
+  - url: /api/v1
+paths:
+  /reports:
+    post:
+      summary: Create a report (ad/user/dealer)
+      security:
+        - bearerAuth: []
+      x-permissions:
+        roles: ["individual","dealer","showroom"]
+        scopes: ["reports.create"]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportCreate'
+            examples:
+              sample:
+                value:
+                  target_type: "ad"
+                  target_id: 3456
+                  reason: "fraud"
+                  details: "Price looks suspicious"
+      responses:
+        '201':
+          description: Report created
+    get:
+      summary: List reports (admin/moderator)
+      x-permissions:
+        roles: ["admin","moderator","country_manager"]
+        scopes: ["reports.read.any"]
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Paginated reports
+  /reports/{reportId}:
+    get:
+      summary: Get report details
+      x-permissions:
+        roles: ["admin","moderator"]
+        scopes: ["reports.read.any"]
+      parameters:
+        - in: path
+          name: reportId
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Report details
+    delete:
+      summary: Delete a report (admin)
+      security:
+        - bearerAuth: []
+      x-permissions:
+        roles: ["admin","moderator"]
+        scopes: ["reports.delete.any"]
+      responses:
+        '204':
+          description: Deleted
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    ReportCreate:
+      type: object
+      required: [target_type, target_id, reason]
+      properties:
+        target_type:
+          type: string
+          description: "ad|user|dealer"
+        target_id:
+          type: integer
+        reason:
+          type: string
+        details:
+          type: string
+    ReportResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            id:
+              type: integer
+            reported_by:
+              type: integer
+            target_type:
+              type: string
+            target_id:
+              type: integer
+            reason:
+              type: string
+            details:
+              type: string
+            status:
+              type: string
+            created_at:
+              type: string
+              format: date-time

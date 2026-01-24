@@ -1,0 +1,161 @@
+openapi: 3.0.3
+info:
+  title: Smart Car Ads API - Sliders
+  version: '1.0'
+servers:
+  - url: /api/v1
+paths:
+  /sliders:
+    get:
+      summary: List sliders (admin/public via filters)
+      parameters:
+        - in: query
+          name: location
+          schema:
+            type: string
+        - in: query
+          name: status
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sliders list
+    post:
+      summary: Create slider (admin)
+      security:
+        - bearerAuth: []
+      x-permissions:
+        roles: ["admin","super_admin"]
+        scopes: ["sliders.create"]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SliderCreate'
+            examples:
+              sample:
+                value:
+                  name: "Homepage Hero"
+                  image_media_id: 987
+                  location: "home"
+                  value: "https://example.com/promo"
+      responses:
+        '201':
+          description: Created
+  /sliders/{sliderId}:
+    get:
+      summary: Get slider details
+      parameters:
+        - in: path
+          name: sliderId
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Slider details
+    put:
+      summary: Update slider (admin)
+      security:
+        - bearerAuth: []
+      x-permissions:
+        roles: ["admin","super_admin"]
+        scopes: ["sliders.update"]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SliderUpdate'
+      responses:
+        '200':
+          description: Updated
+    delete:
+      summary: Delete slider (admin)
+      security:
+        - bearerAuth: []
+      x-permissions:
+        roles: ["admin","super_admin"]
+        scopes: ["sliders.delete"]
+      responses:
+        '204':
+          description: Deleted
+  /sliders/{sliderId}/actions/activate:
+    post:
+      summary: Activate slider
+      security:
+        - bearerAuth: []
+      x-permissions:
+        roles: ["admin"]
+        scopes: ["sliders.activate"]
+      responses:
+        '200':
+          description: Activated
+  /sliders/{sliderId}/actions/deactivate:
+    post:
+      summary: Deactivate slider
+      security:
+        - bearerAuth: []
+      x-permissions:
+        roles: ["admin"]
+        scopes: ["sliders.deactivate"]
+      responses:
+        '200':
+          description: Deactivated
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    SliderCreate:
+      type: object
+      required: [name, image_media_id, location]
+      properties:
+        name:
+          type: string
+        image_media_id:
+          type: integer
+        location:
+          type: string
+        value:
+          type: string
+        order:
+          type: integer
+        status:
+          type: string
+    SliderUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        image_media_id:
+          type: integer
+        location:
+          type: string
+        value:
+          type: string
+        order:
+          type: integer
+        status:
+          type: string
+    SliderResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        image_url:
+          type: string
+        location:
+          type: string
+        order:
+          type: integer
+        status:
+          type: string
+        created_at:
+          type: string
+          format: date-time

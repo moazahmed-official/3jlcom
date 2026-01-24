@@ -1,0 +1,170 @@
+openapi: 3.0.3
+info:
+  title: Smart Car Ads API - Reviews
+  version: '1.0'
+servers:
+  - url: /api/v1
+paths:
+  /reviews:
+    post:
+      summary: Create a review for a seller or ad
+      security:
+        - bearerAuth: []
+      x-permissions:
+        roles: ["individual","dealer","showroom"]
+        scopes: ["reviews.create"]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewCreate'
+            examples:
+              sample:
+                value:
+                  target_type: "seller"
+                  target_id: 123
+                  stars: 5
+                  title: "Great service"
+                  body: "Very helpful and honest"
+      responses:
+        '201':
+          description: Review created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewResponse'
+    get:
+      summary: List reviews (admin/moderator or filters)
+      x-permissions:
+        roles: ["admin","moderator"]
+        scopes: ["reviews.read.any"]
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+        - in: query
+          name: target_type
+          schema:
+            type: string
+        - in: query
+          name: target_id
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Paginated reviews
+  /reviews/{reviewId}:
+    get:
+      summary: Get review details
+      x-permissions:
+        roles: ["admin","moderator","individual","dealer","showroom"]
+        scopes: ["reviews.read.any","reviews.read.own"]
+      parameters:
+        - in: path
+          name: reviewId
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Review details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewResponse'
+    put:
+      summary: Update a review (owner)
+      security:
+        - bearerAuth: []
+      x-permissions:
+        roles: ["individual","dealer","showroom"]
+        scopes: ["reviews.update.own"]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewUpdate'
+            examples:
+              sample:
+                value:
+                  stars: 4
+                  title: "Updated title"
+                  body: "Updated comment"
+      responses:
+        '200':
+          description: Updated
+    delete:
+      summary: Delete a review (owner or admin)
+      security:
+        - bearerAuth: []
+      x-permissions:
+        roles: ["admin","moderator","individual","dealer","showroom"]
+        scopes: ["reviews.delete.own","reviews.delete.any"]
+      responses:
+        '204':
+          description: Deleted
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    ReviewCreate:
+      type: object
+      required: [target_type, target_id, stars]
+      properties:
+        target_type:
+          type: string
+          description: "seller|ad"
+        target_id:
+          type: integer
+        stars:
+          type: integer
+          minimum: 1
+          maximum: 5
+        title:
+          type: string
+        body:
+          type: string
+    ReviewUpdate:
+      type: object
+      properties:
+        stars:
+          type: integer
+        title:
+          type: string
+        body:
+          type: string
+    ReviewResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            id:
+              type: integer
+            user_id:
+              type: integer
+            target_type:
+              type: string
+            target_id:
+              type: integer
+            stars:
+              type: integer
+            title:
+              type: string
+            body:
+              type: string
+            created_at:
+              type: string
+              format: date-time

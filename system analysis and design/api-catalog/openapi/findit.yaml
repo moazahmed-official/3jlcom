@@ -1,0 +1,154 @@
+paths:
+  /findit:
+    post:
+      summary: Create a Findit ad (finding request)
+      tags: [Findit]
+      security:
+        - bearerAuth: []
+      x-permissions:
+        roles: ["individual","dealer","showroom"]
+        scopes: ["findit.create"]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FinditCreate'
+      responses:
+        '201':
+          description: Created
+    get:
+      summary: List Findit ads/requests
+      x-permissions:
+        roles: ["admin","moderator"]
+        scopes: ["findit.read.any"]
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Paginated list
+  /findit/{id}:
+    get:
+      summary: Get Findit ad/request details
+      x-permissions:
+        roles: ["admin","moderator","individual","dealer","showroom"]
+        scopes: ["findit.read.any","findit.read.own"]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Details
+    put:
+      summary: Update Findit request (owner/admin)
+      security:
+        - bearerAuth: []
+      x-permissions:
+        roles: ["individual","admin"]
+        scopes: ["findit.update.own","findit.update.any"]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FinditUpdate'
+      responses:
+        '200':
+          description: Updated
+    delete:
+      summary: Delete Findit request (owner/admin)
+      security:
+        - bearerAuth: []
+      x-permissions:
+        roles: ["individual","admin"]
+        scopes: ["findit.delete.own","findit.delete.any"]
+      responses:
+        '204':
+          description: Deleted
+  /findit/{id}/offers:
+    post:
+      summary: Submit an offer for a Findit request
+      security:
+        - bearerAuth: []
+      x-permissions:
+        roles: ["dealer","showroom","marketer"]
+        scopes: ["findit.offers.create"]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FinditOfferCreate'
+      responses:
+        '201':
+          description: Offer created
+    get:
+      summary: List offers for a Findit request
+      x-permissions:
+        roles: ["admin","individual","dealer","showroom"]
+        scopes: ["findit.offers.read"]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Offers list
+
+components:
+  schemas:
+    FinditCreate:
+      type: object
+      required: [title, description, city_id, country_id]
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        desired_price:
+          type: number
+        city_id:
+          type: integer
+        country_id:
+          type: integer
+        category_id:
+          type: integer
+        media_ids:
+          type: array
+          items:
+            type: integer
+    FinditUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        desired_price:
+          type: number
+        media_ids:
+          type: array
+          items:
+            type: integer
+    FinditOfferCreate:
+      type: object
+      required: [findit_id, price]
+      properties:
+        findit_id:
+          type: integer
+        price:
+          type: number
+        comment:
+          type: string

@@ -1,0 +1,143 @@
+openapi: 3.0.3
+info:
+  title: Smart Car Ads API - Auth
+  version: '1.0'
+servers:
+  - url: /api/v1
+paths:
+  /auth/login:
+    post:
+      summary: Authenticate user/admin and return JWT token
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone, password]
+              properties:
+                phone:
+                  type: string
+                password:
+                  type: string
+                remember_me:
+                  type: boolean
+      responses:
+        '200':
+          description: Successful login
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthSuccess'
+        '401':
+          description: Unauthorized
+  /auth/logout:
+    post:
+      summary: Invalidate current token
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Logged out
+  /auth/register:
+    post:
+      summary: Register a new user (OTP flow)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, phone, country_id]
+              properties:
+                name:
+                  type: string
+                phone:
+                  type: string
+                country_id:
+                  type: integer
+                account_type:
+                  type: string
+      responses:
+        '201':
+          description: Created
+  /auth/verify:
+    put:
+      summary: Verify OTP code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone, code]
+              properties:
+                phone:
+                  type: string
+                code:
+                  type: string
+      responses:
+        '200':
+          description: Verified
+  /auth/password/reset:
+    put:
+      summary: Reset password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone, new_password, code]
+              properties:
+                phone:
+                  type: string
+                new_password:
+                  type: string
+                code:
+                  type: string
+      responses:
+        '200':
+          description: Password reset
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    AuthSuccess:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            token:
+              type: string
+            token_type:
+              type: string
+            expires_in:
+              type: integer
+            user:
+              $ref: '#/components/schemas/User'
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        phone:
+          type: string
+        account_type:
+          type: string
+        is_verified:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time

@@ -1,0 +1,71 @@
+openapi: 3.0.3
+info:
+  title: Smart Car Ads API - Media
+  version: '1.0'
+servers:
+  - url: /api/v1
+paths:
+  /media:
+    post:
+      summary: Upload media (image/video)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                purpose:
+                  type: string
+                related_resource:
+                  type: string
+                related_id:
+                  type: integer
+      responses:
+        '201':
+          description: Media stored and returned
+  /media/{mediaId}:
+    get:
+      summary: Get media metadata / signed URL
+      parameters:
+        - in: path
+          name: mediaId
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Media metadata
+    delete:
+      summary: Delete media
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Deleted
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    MediaResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+        url:
+          type: string
+        thumbnail_url:
+          type: string
+        type:
+          type: string
+        status:
+          type: string
+          description: processing, ready, failed

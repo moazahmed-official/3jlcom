@@ -1,0 +1,87 @@
+openapi: 3.0.3
+info:
+  title: Smart Car Ads API - Offers
+  version: '1.0'
+servers:
+  - url: /api/v1
+paths:
+  /offers:
+    post:
+      summary: Create an offer (generic resource for Caishha/other offers)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OfferCreate'
+      responses:
+        '201':
+          description: Offer created
+    get:
+      summary: List offers (admin/owner)
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Paginated offers
+  /offers/{offerId}:
+    get:
+      summary: Get offer details
+      parameters:
+        - in: path
+          name: offerId
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Offer details
+    put:
+      summary: Update offer
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OfferUpdate'
+      responses:
+        '200':
+          description: Updated
+    delete:
+      summary: Delete offer
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Deleted
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    OfferCreate:
+      type: object
+      required: [ad_id, price]
+      properties:
+        ad_id:
+          type: integer
+        price:
+          type: number
+        comment:
+          type: string
+    OfferUpdate:
+      type: object
+      properties:
+        price:
+          type: number
+        comment:
+          type: string

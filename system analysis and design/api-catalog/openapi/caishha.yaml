@@ -1,0 +1,113 @@
+openapi: 3.0.3
+info:
+  title: Smart Car Ads API - Caishha
+  version: '1.0'
+servers:
+  - url: /api/v1
+paths:
+  /caishha:
+    post:
+      summary: Create a Caishha ad (offers-first)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CaishhaCreate'
+      responses:
+        '201':
+          description: Created
+    get:
+      summary: List Caishha ads
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Paginated list
+  /caishha/{adId}:
+    get:
+      summary: Get Caishha details
+      parameters:
+        - in: path
+          name: adId
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Details
+    put:
+      summary: Update Caishha ad
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Updated
+    delete:
+      summary: Delete Caishha ad
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Deleted
+  /caishha/{adId}/offers:
+    post:
+      summary: Create an offer on Caishha ad
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CaishhaOfferCreate'
+      responses:
+        '201':
+          description: Offer created
+    get:
+      summary: List offers for Caishha ad
+      parameters:
+        - in: path
+          name: adId
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Offers list
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    CaishhaCreate:
+      type: object
+      required: [title, description, city_id, country_id]
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        offers_window_period_days:
+          type: integer
+        media_ids:
+          type: array
+          items:
+            type: integer
+    CaishhaOfferCreate:
+      type: object
+      required: [ad_id, price]
+      properties:
+        ad_id:
+          type: integer
+        price:
+          type: number
+        comment:
+          type: string

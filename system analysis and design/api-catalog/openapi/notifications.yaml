@@ -1,0 +1,126 @@
+openapi: 3.0.3
+info:
+  title: Smart Car Ads API - Notifications
+  version: '1.0'
+servers:
+  - url: /api/v1
+paths:
+  /notifications:
+    get:
+      summary: List notifications for current user
+      security:
+        - bearerAuth: []
+      x-permissions:
+        roles: ["individual","dealer","showroom","marketer"]
+        scopes: ["notifications.read.own"]
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Notifications list
+    post:
+      summary: Send notification (admin)
+      security:
+        - bearerAuth: []
+      x-permissions:
+        roles: ["admin","super_admin"]
+        scopes: ["notifications.send"]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotificationSend'
+            examples:
+              sample:
+                value:
+                  target: "user"
+                  target_id: 123
+                  title: "Your ad was approved"
+                  body: "Congratulations!"
+      responses:
+        '202':
+          description: Notification queued
+  /notifications/{id}:
+    get:
+      summary: Get a notification
+      security:
+        - bearerAuth: []
+      x-permissions:
+        roles: ["individual","dealer","showroom","marketer","admin"]
+        scopes: ["notifications.read.own","notifications.read.any"]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Notification details
+    patch:
+      summary: Mark notification read/hide
+      security:
+        - bearerAuth: []
+      x-permissions:
+        roles: ["individual","dealer","showroom","marketer"]
+        scopes: ["notifications.update.own"]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                is_read:
+                  type: boolean
+                is_hidden:
+                  type: boolean
+            examples:
+              sample:
+                value:
+                  is_read: true
+      responses:
+        '200':
+          description: Updated
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    NotificationSend:
+      type: object
+      required: [target, title, body]
+      properties:
+        target:
+          type: string
+          description: "user|group|all|ad"
+        target_id:
+          type: integer
+        title:
+          type: string
+        body:
+          type: string
+        data:
+          type: object
+    NotificationResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        body:
+          type: string
+        is_read:
+          type: boolean
+        is_hidden:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time

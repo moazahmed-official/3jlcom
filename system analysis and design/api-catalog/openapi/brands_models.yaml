@@ -1,0 +1,78 @@
+openapi: 3.0.3
+info:
+  title: Smart Car Ads API - Brands & Models
+  version: '1.0'
+servers:
+  - url: /api/v1
+paths:
+  /brands:
+    get:
+      summary: List brands
+      responses:
+        '200':
+          description: Brands list
+    post:
+      summary: Create brand (admin)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BrandCreate'
+      responses:
+        '201':
+          description: Created
+  /brands/{brandId}/models:
+    get:
+      summary: List models for brand
+      parameters:
+        - in: path
+          name: brandId
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Models list
+    post:
+      summary: Create model for brand (admin)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModelCreate'
+      responses:
+        '201':
+          description: Created
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    BrandCreate:
+      type: object
+      required: [name_en, name_ar]
+      properties:
+        name_en:
+          type: string
+        name_ar:
+          type: string
+    ModelCreate:
+      type: object
+      required: [name_en, name_ar]
+      properties:
+        name_en:
+          type: string
+        name_ar:
+          type: string
+        year_from:
+          type: integer
+        year_to:
+          type: integer
