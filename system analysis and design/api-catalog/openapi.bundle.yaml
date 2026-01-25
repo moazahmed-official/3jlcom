@@ -108,6 +108,9 @@ paths:
       summary: List users (admin/country_manager)
       security:
         - bearerAuth: []
+      x-permissions:
+        roles: ["admin","country_manager"]
+        scopes: ["users.read.any"]
       parameters:
         - in: query
           name: page
@@ -124,6 +127,9 @@ paths:
       summary: Create user (admin)
       security:
         - bearerAuth: []
+      x-permissions:
+        roles: ["admin"]
+        scopes: ["users.create"]
       requestBody:
         required: true
         content:
@@ -138,6 +144,9 @@ paths:
       summary: Get user details
       security:
         - bearerAuth: []
+      x-permissions:
+        roles: ["admin","country_manager","individual","dealer","showroom"]
+        scopes: ["users.read.any","users.read.own"]
       parameters:
         - in: path
           name: userId
@@ -151,6 +160,9 @@ paths:
       summary: Update user
       security:
         - bearerAuth: []
+      x-permissions:
+        roles: ["admin","individual","dealer","showroom"]
+        scopes: ["users.update.own","users.update.any"]
       requestBody:
         required: true
         content:
@@ -164,6 +176,9 @@ paths:
       summary: Delete user
       security:
         - bearerAuth: []
+      x-permissions:
+        roles: ["admin"]
+        scopes: ["users.delete.any"]
       responses:
         '204':
           description: Deleted
@@ -172,6 +187,9 @@ paths:
       summary: Assign or change roles for a user
       security:
         - bearerAuth: []
+      x-permissions:
+        roles: ["admin","super_admin"]
+        scopes: ["users.roles.manage"]
       requestBody:
         required: true
         content:
@@ -191,6 +209,9 @@ paths:
       summary: Verify seller/showroom (admin)
       security:
         - bearerAuth: []
+      x-permissions:
+        roles: ["admin"]
+        scopes: ["users.verify"]
       requestBody:
         required: false
         content:
@@ -204,6 +225,9 @@ paths:
       summary: Create a normal ad
       security:
         - bearerAuth: []
+      x-permissions:
+        roles: ["individual","dealer","showroom"]
+        scopes: ["ads.create"]
       requestBody:
         required: true
         content:
@@ -215,6 +239,9 @@ paths:
           description: Created
     get:
       summary: List normal ads
+      x-permissions:
+        roles: ["public"]
+        scopes: ["ads.read"]
       parameters:
         - in: query
           name: page
@@ -238,6 +265,9 @@ paths:
   /normal-ads/{adId}:
     get:
       summary: Get normal ad details
+      x-permissions:
+        roles: ["public"]
+        scopes: ["ads.read"]
       parameters:
         - in: path
           name: adId
@@ -251,6 +281,9 @@ paths:
       summary: Update normal ad
       security:
         - bearerAuth: []
+      x-permissions:
+        roles: ["individual","dealer","showroom","admin"]
+        scopes: ["ads.update.own","ads.update.any"]
       requestBody:
         required: true
         content:
@@ -264,6 +297,9 @@ paths:
       summary: Delete normal ad
       security:
         - bearerAuth: []
+      x-permissions:
+        roles: ["individual","dealer","showroom","admin"]
+        scopes: ["ads.delete.own","ads.delete.any"]
       responses:
         '204':
           description: Deleted
@@ -272,6 +308,9 @@ paths:
       summary: Republish ad (trigger or schedule)
       security:
         - bearerAuth: []
+      x-permissions:
+        roles: ["individual","dealer","showroom","admin"]
+        scopes: ["ads.republish"]
       responses:
         '200':
           description: Republish queued
@@ -281,6 +320,9 @@ paths:
       summary: Create a unique ad
       security:
         - bearerAuth: []
+      x-permissions:
+        roles: ["individual","dealer","showroom"]
+        scopes: ["ads.create"]
       requestBody:
         required: true
         content:
@@ -292,6 +334,9 @@ paths:
           description: Created
     get:
       summary: List unique ads (owner/admin scope)
+      x-permissions:
+        roles: ["public","admin"]
+        scopes: ["ads.read"]
       parameters:
         - in: query
           name: page
@@ -303,6 +348,9 @@ paths:
   /unique-ads/{adId}:
     get:
       summary: Get unique ad details
+      x-permissions:
+        roles: ["public"]
+        scopes: ["ads.read"]
       parameters:
         - in: path
           name: adId
@@ -316,6 +364,9 @@ paths:
       summary: Update unique ad
       security:
         - bearerAuth: []
+      x-permissions:
+        roles: ["individual","dealer","showroom","admin"]
+        scopes: ["ads.update.own","ads.update.any"]
       requestBody:
         required: true
         content:
@@ -329,6 +380,9 @@ paths:
       summary: Delete unique ad
       security:
         - bearerAuth: []
+      x-permissions:
+        roles: ["individual","dealer","showroom","admin"]
+        scopes: ["ads.delete.own","ads.delete.any"]
       responses:
         '204':
           description: Deleted
@@ -337,6 +391,9 @@ paths:
       summary: Promote/feature a unique ad
       security:
         - bearerAuth: []
+      x-permissions:
+        roles: ["admin","marketer"]
+        scopes: ["ads.feature"]
       responses:
         '200':
           description: Featured
@@ -346,6 +403,9 @@ paths:
       summary: Create a Caishha ad (offers-first)
       security:
         - bearerAuth: []
+      x-permissions:
+        roles: ["individual","dealer","showroom"]
+        scopes: ["caishha.create"]
       requestBody:
         required: true
         content:
@@ -357,6 +417,9 @@ paths:
           description: Created
     get:
       summary: List Caishha ads
+      x-permissions:
+        roles: ["public"]
+        scopes: ["caishha.read"]
       parameters:
         - in: query
           name: page
@@ -368,6 +431,9 @@ paths:
   /caishha/{adId}:
     get:
       summary: Get Caishha details
+      x-permissions:
+        roles: ["public"]
+        scopes: ["caishha.read"]
       parameters:
         - in: path
           name: adId
@@ -381,6 +447,9 @@ paths:
       summary: Update Caishha ad
       security:
         - bearerAuth: []
+      x-permissions:
+        roles: ["individual","dealer","showroom","admin"]
+        scopes: ["caishha.update.own","caishha.update.any"]
       responses:
         '200':
           description: Updated
@@ -388,6 +457,9 @@ paths:
       summary: Delete Caishha ad
       security:
         - bearerAuth: []
+      x-permissions:
+        roles: ["individual","dealer","showroom","admin"]
+        scopes: ["caishha.delete.own","caishha.delete.any"]
       responses:
         '204':
           description: Deleted
@@ -396,6 +468,9 @@ paths:
       summary: Create an offer on Caishha ad
       security:
         - bearerAuth: []
+      x-permissions:
+        roles: ["dealer","showroom","marketer"]
+        scopes: ["caishha.offers.create"]
       requestBody:
         required: true
         content:
@@ -407,6 +482,9 @@ paths:
           description: Offer created
     get:
       summary: List offers for Caishha ad
+      x-permissions:
+        roles: ["admin","individual","dealer","showroom"]
+        scopes: ["caishha.offers.read"]
       parameters:
         - in: path
           name: adId
@@ -422,6 +500,9 @@ paths:
       summary: Create an auction ad
       security:
         - bearerAuth: []
+      x-permissions:
+        roles: ["individual","dealer","showroom"]
+        scopes: ["auctions.create"]
       requestBody:
         required: true
         content:
@@ -433,6 +514,9 @@ paths:
           description: Created
     get:
       summary: List auctions
+      x-permissions:
+        roles: ["public"]
+        scopes: ["auctions.read"]
       parameters:
         - in: query
           name: page
@@ -444,6 +528,9 @@ paths:
   /auctions/{auctionId}:
     get:
       summary: Get auction details
+      x-permissions:
+        roles: ["public"]
+        scopes: ["auctions.read"]
       parameters:
         - in: path
           name: auctionId
@@ -457,6 +544,9 @@ paths:
       summary: Update auction
       security:
         - bearerAuth: []
+      x-permissions:
+        roles: ["individual","dealer","showroom","admin"]
+        scopes: ["auctions.update.own","auctions.update.any"]
       responses:
         '200':
           description: Updated
@@ -464,6 +554,9 @@ paths:
       summary: Delete auction
       security:
         - bearerAuth: []
+      x-permissions:
+        roles: ["individual","dealer","showroom","admin"]
+        scopes: ["auctions.delete.own","auctions.delete.any"]
       responses:
         '204':
           description: Deleted
@@ -472,6 +565,9 @@ paths:
       summary: Place a bid
       security:
         - bearerAuth: []
+      x-permissions:
+        roles: ["individual","dealer","showroom"]
+        scopes: ["auctions.bids.create"]
       requestBody:
         required: true
         content:
@@ -483,6 +579,9 @@ paths:
           description: Bid accepted
     get:
       summary: List bids for auction
+      x-permissions:
+        roles: ["admin","owner"]
+        scopes: ["auctions.bids.read"]
       responses:
         '200':
           description: Bids list
@@ -491,6 +590,9 @@ paths:
       summary: Close auction (admin/owner)
       security:
         - bearerAuth: []
+      x-permissions:
+        roles: ["admin","owner"]
+        scopes: ["auctions.close"]
       responses:
         '200':
           description: Auction closed
@@ -607,6 +709,9 @@ paths:
       summary: Upload media (image/video)
       security:
         - bearerAuth: []
+      x-permissions:
+        roles: ["individual","dealer","showroom","admin"]
+        scopes: ["media.upload"]
       requestBody:
         required: true
         content:
@@ -642,6 +747,9 @@ paths:
       summary: Delete media
       security:
         - bearerAuth: []
+      x-permissions:
+        roles: ["owner","admin"]
+        scopes: ["media.delete.own","media.delete.any"]
       responses:
         '204':
           description: Deleted
@@ -651,6 +759,9 @@ paths:
       summary: Create an offer (generic resource for Caishha/other offers)
       security:
         - bearerAuth: []
+      x-permissions:
+        roles: ["dealer","showroom","marketer"]
+        scopes: ["offers.create"]
       requestBody:
         required: true
         content:
@@ -662,6 +773,9 @@ paths:
           description: Offer created
     get:
       summary: List offers (admin/owner)
+      x-permissions:
+        roles: ["admin","owner"]
+        scopes: ["offers.read"]
       parameters:
         - in: query
           name: page
@@ -686,6 +800,9 @@ paths:
       summary: Update offer
       security:
         - bearerAuth: []
+      x-permissions:
+        roles: ["dealer","showroom","admin"]
+        scopes: ["offers.update.own","offers.update.any"]
       requestBody:
         required: true
         content:
@@ -699,6 +816,9 @@ paths:
       summary: Delete offer
       security:
         - bearerAuth: []
+      x-permissions:
+        roles: ["dealer","showroom","admin"]
+        scopes: ["offers.delete.own","offers.delete.any"]
       responses:
         '204':
           description: Deleted
@@ -706,6 +826,9 @@ paths:
   /brands:
     get:
       summary: List brands
+      x-permissions:
+        roles: ["public"]
+        scopes: ["brands.read"]
       responses:
         '200':
           description: Brands list
@@ -713,6 +836,9 @@ paths:
       summary: Create brand (admin)
       security:
         - bearerAuth: []
+      x-permissions:
+        roles: ["admin"]
+        scopes: ["brands.create"]
       requestBody:
         required: true
         content:
@@ -725,6 +851,9 @@ paths:
   /brands/{brandId}/models:
     get:
       summary: List models for brand
+      x-permissions:
+        roles: ["public"]
+        scopes: ["models.read"]
       parameters:
         - in: path
           name: brandId
@@ -738,6 +867,9 @@ paths:
       summary: Create model for brand (admin)
       security:
         - bearerAuth: []
+      x-permissions:
+        roles: ["admin"]
+        scopes: ["models.create"]
       requestBody:
         required: true
         content:
