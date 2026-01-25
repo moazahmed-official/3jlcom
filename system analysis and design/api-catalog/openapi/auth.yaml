@@ -23,6 +23,11 @@ paths:
                   type: string
                 remember_me:
                   type: boolean
+            examples:
+              sample:
+                value:
+                  phone: "+201001234567"
+                  password: "secret-password"
       responses:
         '200':
           description: Successful login
@@ -30,6 +35,19 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AuthSuccess'
+              examples:
+                success:
+                  value:
+                    success: true
+                    message: "Authenticated"
+                    data:
+                      token: "eyJhbGci..."
+                      token_type: "Bearer"
+                      expires_in: 3600
+                      user:
+                        id: 123
+                        name: "John Doe"
+                        phone: "+201001234567"
         '401':
           description: Unauthorized
   /auth/logout:

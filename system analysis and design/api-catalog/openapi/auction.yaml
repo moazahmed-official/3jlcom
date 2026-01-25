@@ -19,6 +19,15 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/AuctionCreate'
+              examples:
+                sample:
+                  value:
+                    title: "Charity Auction - Classic Car"
+                    start_price: 5000
+                    reserve_price: 10000
+                    start_time: "2026-02-01T10:00:00Z"
+                    end_time: "2026-02-07T10:00:00Z"
+                    media_ids: [300]
       responses:
         '201':
           description: Created
@@ -84,6 +93,12 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/BidCreate'
+              examples:
+                sample:
+                  value:
+                    auction_id: 6666
+                    price: 5500
+                    comment: "My bid"
       responses:
         '201':
           description: Bid accepted

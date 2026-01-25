@@ -14,6 +14,16 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/FinditCreate'
+            examples:
+              sample:
+                value:
+                  title: "Looking for a 2018 Sedan"
+                  description: "Prefer automatic, under 80k km"
+                  desired_price: 12000
+                  city_id: 10
+                  country_id: 1
+                  category_id: 5
+                  media_ids: [450]
       responses:
         '201':
           description: Created
@@ -89,6 +99,12 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/FinditOfferCreate'
+            examples:
+              sample:
+                value:
+                  findit_id: 7777
+                  price: 11500
+                  comment: "Can arrange inspection"
       responses:
         '201':
           description: Offer created

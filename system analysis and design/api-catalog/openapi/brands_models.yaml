@@ -14,6 +14,16 @@ paths:
       responses:
         '200':
           description: Brands list
+          content:
+            application/json:
+              examples:
+                sample:
+                  value:
+                    success: true
+                    data:
+                      - id: 1
+                        name_en: "Toyota"
+                        name_ar: "تويوتا"
     post:
       summary: Create brand (admin)
       security:

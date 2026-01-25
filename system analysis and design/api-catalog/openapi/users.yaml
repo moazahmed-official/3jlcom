@@ -25,6 +25,23 @@ paths:
       responses:
         '200':
           description: Paginated users list
+          content:
+            application/json:
+              examples:
+                sample:
+                  value:
+                    success: true
+                    data:
+                      page: 1
+                      per_page: 20
+                      total: 2
+                      items:
+                        - id: 1
+                          name: "Alice"
+                          phone: "+201001111111"
+                        - id: 2
+                          name: "Bob"
+                          phone: "+201002222222"
     post:
       summary: Create user (admin)
       security:
@@ -71,6 +88,13 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/UserUpdate'
+            examples:
+              sample:
+                value:
+                  name: "Alice"
+                  phone: "+201001111111"
+                  country_id: 1
+                  account_type: "individual"
       responses:
         '200':
           description: Updated

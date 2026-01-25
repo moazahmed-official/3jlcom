@@ -19,9 +19,26 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CaishhaCreate'
+            examples:
+              sample:
+                value:
+                  title: "Looking for a 2016 SUV"
+                  description: "Need a family SUV with 3rd row"
+                  city_id: 10
+                  country_id: 1
+                  offers_window_period_days: 7
+                  media_ids: [150]
       responses:
         '201':
           description: Created
+          content:
+            application/json:
+              examples:
+                created:
+                  value:
+                    success: true
+                    data:
+                      id: 7777
     get:
       summary: List Caishha ads
       x-permissions:

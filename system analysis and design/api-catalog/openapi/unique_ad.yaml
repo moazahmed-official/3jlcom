@@ -19,9 +19,27 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/UniqueAdCreate'
+            examples:
+              sample:
+                value:
+                  title: "Limited Edition Sport Coupe"
+                  description: "Rare model, low mileage"
+                  category_id: 7
+                  city_id: 11
+                  country_id: 1
+                  banner_image_id: 201
+                  price_cash: 25000
       responses:
         '201':
           description: Created
+          content:
+            application/json:
+              examples:
+                created:
+                  value:
+                    success: true
+                    data:
+                      id: 8888
     get:
       summary: List unique ads (owner/admin scope)
       x-permissions:

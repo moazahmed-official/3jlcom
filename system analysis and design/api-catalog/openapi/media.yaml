@@ -24,6 +24,9 @@ paths:
                   type: string
                   format: binary
                 purpose:
+                  x-permissions:
+                    roles: ["individual","dealer","showroom","admin"]
+                    scopes: ["media.upload"]
                   type: string
                 related_resource:
                   type: string
@@ -40,9 +43,18 @@ paths:
           name: mediaId
           required: true
           schema:
-            type: integer
-      responses:
-        '200':
+                  responses:
+                    '201':
+                      description: Media stored and returned
+                      content:
+                        application/json:
+                          examples:
+                            success:
+                              value:
+                                success: true
+                                data:
+                                  id: 101
+                                  url: "https://cdn.example.com/media/101.jpg"
           description: Media metadata
     delete:
       summary: Delete media

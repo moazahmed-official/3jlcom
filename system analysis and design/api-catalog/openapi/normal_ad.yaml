@@ -19,9 +19,30 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/NormalAdCreate'
+            examples:
+              sample:
+                value:
+                  title: "2015 Toyota Corolla - Good condition"
+                  description: "Well maintained, single owner"
+                  category_id: 5
+                  city_id: 10
+                  country_id: 1
+                  brand_id: 3
+                  model_id: 12
+                  year: 2015
+                  price_cash: 8500
+                  media_ids: [101,102]
       responses:
         '201':
           description: Created
+          content:
+            application/json:
+              examples:
+                created:
+                  value:
+                    success: true
+                    data:
+                      id: 9991
     get:
       summary: List normal ads
       x-permissions:

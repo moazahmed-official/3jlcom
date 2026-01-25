@@ -22,6 +22,14 @@ paths:
       responses:
         '201':
           description: Offer created
+          content:
+            application/json:
+              examples:
+                sample:
+                  value:
+                    ad_id: 9991
+                    price: 8200
+                    comment: "Can deliver within 3 days"
     get:
       summary: List offers (admin/owner)
       x-permissions:
@@ -35,6 +43,20 @@ paths:
       responses:
         '200':
           description: Paginated offers
+          content:
+            application/json:
+              examples:
+                sample:
+                  value:
+                    success: true
+                    data:
+                      page: 1
+                      per_page: 20
+                      total: 1
+                      items:
+                        - id: 555
+                          ad_id: 9991
+                          price: 8200
   /offers/{offerId}:
     get:
       summary: Get offer details
