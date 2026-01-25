@@ -10,6 +10,9 @@ paths:
       summary: Upload media (image/video)
       security:
         - bearerAuth: []
+      x-permissions:
+        roles: ["individual","dealer","showroom","admin"]
+        scopes: ["media.upload"]
       requestBody:
         required: true
         content:
@@ -45,6 +48,9 @@ paths:
       summary: Delete media
       security:
         - bearerAuth: []
+      x-permissions:
+        roles: ["owner","admin"]
+        scopes: ["media.delete.own","media.delete.any"]
       responses:
         '204':
           description: Deleted

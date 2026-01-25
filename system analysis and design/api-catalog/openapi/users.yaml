@@ -10,6 +10,9 @@ paths:
       summary: List users (admin/country_manager)
       security:
         - bearerAuth: []
+      x-permissions:
+        roles: ["admin","country_manager"]
+        scopes: ["users.read.any"]
       parameters:
         - in: query
           name: page
@@ -26,6 +29,9 @@ paths:
       summary: Create user (admin)
       security:
         - bearerAuth: []
+      x-permissions:
+        roles: ["admin"]
+        scopes: ["users.create"]
       requestBody:
         required: true
         content:
@@ -40,6 +46,9 @@ paths:
       summary: Get user details
       security:
         - bearerAuth: []
+      x-permissions:
+        roles: ["admin","country_manager","individual","dealer","showroom"]
+        scopes: ["users.read.any","users.read.own"]
       parameters:
         - in: path
           name: userId
@@ -53,6 +62,9 @@ paths:
       summary: Update user
       security:
         - bearerAuth: []
+      x-permissions:
+        roles: ["admin","individual","dealer","showroom"]
+        scopes: ["users.update.own","users.update.any"]
       requestBody:
         required: true
         content:
@@ -66,6 +78,9 @@ paths:
       summary: Delete user
       security:
         - bearerAuth: []
+      x-permissions:
+        roles: ["admin"]
+        scopes: ["users.delete.any"]
       responses:
         '204':
           description: Deleted
@@ -74,6 +89,9 @@ paths:
       summary: Assign or change roles for a user
       security:
         - bearerAuth: []
+      x-permissions:
+        roles: ["admin","super_admin"]
+        scopes: ["users.roles.manage"]
       requestBody:
         required: true
         content:
@@ -93,6 +111,9 @@ paths:
       summary: Verify seller/showroom (admin)
       security:
         - bearerAuth: []
+      x-permissions:
+        roles: ["admin"]
+        scopes: ["users.verify"]
       requestBody:
         required: false
         content:

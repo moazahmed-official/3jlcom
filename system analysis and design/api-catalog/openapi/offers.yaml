@@ -10,6 +10,9 @@ paths:
       summary: Create an offer (generic resource for Caishha/other offers)
       security:
         - bearerAuth: []
+      x-permissions:
+        roles: ["dealer","showroom","marketer"]
+        scopes: ["offers.create"]
       requestBody:
         required: true
         content:
@@ -21,6 +24,9 @@ paths:
           description: Offer created
     get:
       summary: List offers (admin/owner)
+      x-permissions:
+        roles: ["admin","owner"]
+        scopes: ["offers.read"]
       parameters:
         - in: query
           name: page
@@ -45,6 +51,9 @@ paths:
       summary: Update offer
       security:
         - bearerAuth: []
+      x-permissions:
+        roles: ["dealer","showroom","admin"]
+        scopes: ["offers.update.own","offers.update.any"]
       requestBody:
         required: true
         content:
@@ -58,6 +67,9 @@ paths:
       summary: Delete offer
       security:
         - bearerAuth: []
+      x-permissions:
+        roles: ["dealer","showroom","admin"]
+        scopes: ["offers.delete.own","offers.delete.any"]
       responses:
         '204':
           description: Deleted

@@ -10,6 +10,9 @@ paths:
       summary: Create a unique ad
       security:
         - bearerAuth: []
+      x-permissions:
+        roles: ["individual","dealer","showroom"]
+        scopes: ["ads.create"]
       requestBody:
         required: true
         content:
@@ -21,6 +24,9 @@ paths:
           description: Created
     get:
       summary: List unique ads (owner/admin scope)
+      x-permissions:
+        roles: ["public","admin"]
+        scopes: ["ads.read"]
       parameters:
         - in: query
           name: page
@@ -32,6 +38,9 @@ paths:
   /unique-ads/{adId}:
     get:
       summary: Get unique ad details
+      x-permissions:
+        roles: ["public"]
+        scopes: ["ads.read"]
       parameters:
         - in: path
           name: adId
@@ -45,6 +54,9 @@ paths:
       summary: Update unique ad
       security:
         - bearerAuth: []
+      x-permissions:
+        roles: ["individual","dealer","showroom","admin"]
+        scopes: ["ads.update.own","ads.update.any"]
       requestBody:
         required: true
         content:
@@ -58,6 +70,9 @@ paths:
       summary: Delete unique ad
       security:
         - bearerAuth: []
+      x-permissions:
+        roles: ["individual","dealer","showroom","admin"]
+        scopes: ["ads.delete.own","ads.delete.any"]
       responses:
         '204':
           description: Deleted
@@ -66,6 +81,9 @@ paths:
       summary: Promote/feature a unique ad
       security:
         - bearerAuth: []
+      x-permissions:
+        roles: ["admin","marketer"]
+        scopes: ["ads.feature"]
       responses:
         '200':
           description: Featured

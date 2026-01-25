@@ -10,6 +10,9 @@ paths:
       summary: Create an auction ad
       security:
         - bearerAuth: []
+      x-permissions:
+        roles: ["individual","dealer","showroom"]
+        scopes: ["auctions.create"]
       requestBody:
         required: true
         content:
@@ -21,6 +24,9 @@ paths:
           description: Created
     get:
       summary: List auctions
+      x-permissions:
+        roles: ["public"]
+        scopes: ["auctions.read"]
       parameters:
         - in: query
           name: page
@@ -32,6 +38,9 @@ paths:
   /auctions/{auctionId}:
     get:
       summary: Get auction details
+      x-permissions:
+        roles: ["public"]
+        scopes: ["auctions.read"]
       parameters:
         - in: path
           name: auctionId
@@ -45,6 +54,9 @@ paths:
       summary: Update auction
       security:
         - bearerAuth: []
+      x-permissions:
+        roles: ["individual","dealer","showroom","admin"]
+        scopes: ["auctions.update.own","auctions.update.any"]
       responses:
         '200':
           description: Updated
@@ -52,6 +64,9 @@ paths:
       summary: Delete auction
       security:
         - bearerAuth: []
+      x-permissions:
+        roles: ["individual","dealer","showroom","admin"]
+        scopes: ["auctions.delete.own","auctions.delete.any"]
       responses:
         '204':
           description: Deleted
@@ -60,6 +75,9 @@ paths:
       summary: Place a bid
       security:
         - bearerAuth: []
+      x-permissions:
+        roles: ["individual","dealer","showroom"]
+        scopes: ["auctions.bids.create"]
       requestBody:
         required: true
         content:
@@ -71,6 +89,9 @@ paths:
           description: Bid accepted
     get:
       summary: List bids for auction
+      x-permissions:
+        roles: ["admin","owner"]
+        scopes: ["auctions.bids.read"]
       responses:
         '200':
           description: Bids list
@@ -79,6 +100,9 @@ paths:
       summary: Close auction (admin/owner)
       security:
         - bearerAuth: []
+      x-permissions:
+        roles: ["admin","owner"]
+        scopes: ["auctions.close"]
       responses:
         '200':
           description: Auction closed

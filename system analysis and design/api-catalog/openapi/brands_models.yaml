@@ -8,6 +8,9 @@ paths:
   /brands:
     get:
       summary: List brands
+      x-permissions:
+        roles: ["public"]
+        scopes: ["brands.read"]
       responses:
         '200':
           description: Brands list
@@ -15,6 +18,9 @@ paths:
       summary: Create brand (admin)
       security:
         - bearerAuth: []
+      x-permissions:
+        roles: ["admin"]
+        scopes: ["brands.create"]
       requestBody:
         required: true
         content:
@@ -27,6 +33,9 @@ paths:
   /brands/{brandId}/models:
     get:
       summary: List models for brand
+      x-permissions:
+        roles: ["public"]
+        scopes: ["models.read"]
       parameters:
         - in: path
           name: brandId
@@ -40,6 +49,9 @@ paths:
       summary: Create model for brand (admin)
       security:
         - bearerAuth: []
+      x-permissions:
+        roles: ["admin"]
+        scopes: ["models.create"]
       requestBody:
         required: true
         content:

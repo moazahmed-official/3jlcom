@@ -10,6 +10,9 @@ paths:
       summary: Create a Caishha ad (offers-first)
       security:
         - bearerAuth: []
+      x-permissions:
+        roles: ["individual","dealer","showroom"]
+        scopes: ["caishha.create"]
       requestBody:
         required: true
         content:
@@ -21,6 +24,9 @@ paths:
           description: Created
     get:
       summary: List Caishha ads
+      x-permissions:
+        roles: ["public"]
+        scopes: ["caishha.read"]
       parameters:
         - in: query
           name: page
@@ -32,6 +38,9 @@ paths:
   /caishha/{adId}:
     get:
       summary: Get Caishha details
+      x-permissions:
+        roles: ["public"]
+        scopes: ["caishha.read"]
       parameters:
         - in: path
           name: adId
@@ -45,6 +54,9 @@ paths:
       summary: Update Caishha ad
       security:
         - bearerAuth: []
+      x-permissions:
+        roles: ["individual","dealer","showroom","admin"]
+        scopes: ["caishha.update.own","caishha.update.any"]
       responses:
         '200':
           description: Updated
@@ -52,6 +64,9 @@ paths:
       summary: Delete Caishha ad
       security:
         - bearerAuth: []
+      x-permissions:
+        roles: ["individual","dealer","showroom","admin"]
+        scopes: ["caishha.delete.own","caishha.delete.any"]
       responses:
         '204':
           description: Deleted
@@ -60,6 +75,9 @@ paths:
       summary: Create an offer on Caishha ad
       security:
         - bearerAuth: []
+      x-permissions:
+        roles: ["dealer","showroom","marketer"]
+        scopes: ["caishha.offers.create"]
       requestBody:
         required: true
         content:
@@ -71,6 +89,9 @@ paths:
           description: Offer created
     get:
       summary: List offers for Caishha ad
+      x-permissions:
+        roles: ["admin","individual","dealer","showroom"]
+        scopes: ["caishha.offers.read"]
       parameters:
         - in: path
           name: adId

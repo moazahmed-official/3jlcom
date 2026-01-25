@@ -10,6 +10,9 @@ paths:
       summary: Create a normal ad
       security:
         - bearerAuth: []
+      x-permissions:
+        roles: ["individual","dealer","showroom"]
+        scopes: ["ads.create"]
       requestBody:
         required: true
         content:
@@ -21,6 +24,9 @@ paths:
           description: Created
     get:
       summary: List normal ads
+      x-permissions:
+        roles: ["public"]
+        scopes: ["ads.read"]
       parameters:
         - in: query
           name: page
@@ -44,6 +50,9 @@ paths:
   /normal-ads/{adId}:
     get:
       summary: Get normal ad details
+      x-permissions:
+        roles: ["public"]
+        scopes: ["ads.read"]
       parameters:
         - in: path
           name: adId
@@ -57,6 +66,9 @@ paths:
       summary: Update normal ad
       security:
         - bearerAuth: []
+      x-permissions:
+        roles: ["individual","dealer","showroom","admin"]
+        scopes: ["ads.update.own","ads.update.any"]
       requestBody:
         required: true
         content:
@@ -70,6 +82,9 @@ paths:
       summary: Delete normal ad
       security:
         - bearerAuth: []
+      x-permissions:
+        roles: ["individual","dealer","showroom","admin"]
+        scopes: ["ads.delete.own","ads.delete.any"]
       responses:
         '204':
           description: Deleted
@@ -78,6 +93,9 @@ paths:
       summary: Republish ad (trigger or schedule)
       security:
         - bearerAuth: []
+      x-permissions:
+        roles: ["individual","dealer","showroom","admin"]
+        scopes: ["ads.republish"]
       responses:
         '200':
           description: Republish queued
