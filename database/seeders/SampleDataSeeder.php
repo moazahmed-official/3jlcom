@@ -42,9 +42,16 @@ class SampleDataSeeder extends Seeder
                 'description' => 'Sample seeded ad',
                 'brand_id' => $brandId,
                 'model_id' => $modelId,
-                'price_cash' => 8500.00,
                 'status' => 'published',
                 'created_at' => now(),
+            ]);
+
+            // Insert type-specific data into normal_ads (price moved to type table)
+            DB::table('normal_ads')->insert([
+                'ad_id' => $adId,
+                'price_cash' => 8500.00,
+                'created_at' => now(),
+                'updated_at' => now(),
             ]);
 
             DB::table('ad_media')->insert([
