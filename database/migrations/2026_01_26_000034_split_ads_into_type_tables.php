@@ -121,7 +121,7 @@ class SplitAdsIntoTypeTables extends Migration
         }
 
         // Remove moved columns from ads table where present - drop foreign keys first using direct ALTER statements
-        $cols = ['price_cash','installment_id','start_time','update_time','banner_image_id','banner_color','is_auto_republished','offers_window_period','offers_count','sellers_visibility_period'];
+        $cols = ['price_cash', 'installment_id', 'start_time', 'update_time', 'banner_image_id', 'banner_color', 'is_auto_republished', 'offers_window_period', 'offers_count', 'sellers_visibility_period'];
         foreach ($cols as $c) {
             if (! Schema::hasColumn('ads', $c)) {
                 continue;

@@ -20,7 +20,7 @@ trait CreatesApplication
         // Ensure APP_KEY is set for testing environment
         if (empty($app['config']->get('app.key'))) {
             $random = base64_encode(random_bytes(32));
-            $app['config']->set('app.key', 'base64:'.$random);
+            $app['config']->set('app.key', 'base64:' . $random);
         }
 
         return $app;
