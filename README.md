@@ -1,59 +1,118 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="300" alt="Laravel Logo"></a></p>
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+# 3jlcom
 
-## About Laravel
+A Laravel-based classifieds/ads platform prototype used for API design, marketplace flows and integration experiments.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+> [!note]
+> This repository is an application scaffold and working reference for features such as multi-type ads (normal, unique, caishha), media handling, packages/subscriptions, and admin tooling.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Quick links
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- Docs: `system analysis and design/api-catalog/README.md` and `docs/README.md`
+- Migrations: `database/migrations/`
+- Seeders: `database/seeders/`
+- Models: `app/Models/`
 
-## Learning Laravel
+## Features
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+- Multiple ad types split into type-specific tables (`normal_ads`, `unique_ads`, `caishha_ads`)
+- Media management and ad media linking
+- Roles and packages/subscriptions
+- API-first design with OpenAPI specs (see `system analysis and design/api-catalog/openapi.bundle.yaml`)
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## Getting started (development)
 
-## Laravel Sponsors
+1. Install dependencies
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+```bash
+composer install
+npm install
+```
 
-### Premium Partners
+2. Copy environment and set secrets
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+```bash
+# Linux / macOS
+cp .env.example .env
+# Windows (PowerShell)
+copy .env.example .env
+php artisan key:generate
+```
 
-## Contributing
+3. Run migrations and seed sample data
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+```bash
+php artisan migrate:fresh --seed
+```
 
-## Code of Conduct
+4. Start dev server
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+```bash
+php artisan serve
+# or use Valet / Sail depending on your setup
+```
 
-## Security Vulnerabilities
+## Running tests
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+Run the test suite with:
 
-## License
+```bash
+php artisan test
+# or
+./vendor/bin/phpunit
+```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+## Project structure (high level)
+
+- `app/Models/` — Eloquent models (Ads, Media, Users, type-specific models)
+- `database/migrations/` — schema and migration scripts
+- `database/seeders/` — seed data used in development
+- `routes/` — API and web route definitions
+- `system analysis and design/` — design docs, OpenAPI specs, and API catalog
+- `docs/` — writing guidelines, ADR template and project docs
+
+## Architecture notes
+
+- Ads are normalized: common fields live on `ads` while price and type-specific attributes live in type tables (`normal_ads`, etc.). See `database/migrations/2026_01_26_000034_split_ads_into_type_tables.php` for migration logic that performs this split.
+- API is described in OpenAPI yaml files under `system analysis and design/api-catalog/openapi/`.
+
+## Troubleshooting
+
+> [!warning]
+> If seeding fails with a missing column error for `price_cash`, the fix is to ensure seeders insert type-specific data into the correct type table. The project already contains migrations that move `price_cash` into `normal_ads`.
+
+Common commands:
+
+```bash
+# Recreate database and seed
+php artisan migrate:fresh --seed
+
+# Run only seeder
+php artisan db:seed --class=SampleDataSeeder
+```
+
+## Documentation and ADRs
+
+Project docs and API design are stored under:
+
+- `docs/` — writing guidelines and ADR template
+- `system analysis and design/` — API catalog, OpenAPI specs, and architecture documents
+
+## Next steps you might want to run
+
+```bash
+# Start dev server and watch frontend assets
+npm run dev
+php artisan serve
+```
+
+---
+
+If you'd like, I can also:
+
+- Add an example ADR in `docs/` using the ADR template
+- Convert the `SampleDataSeeder` to use Eloquent relations for clarity
+- Expand `docs/technical-writing-guidelines.md` with examples
+
+Tell me which of the above you'd like me to do next.
