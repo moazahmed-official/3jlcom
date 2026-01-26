@@ -149,6 +149,15 @@ class SplitAdsIntoTypeTables extends Migration
         }
 
         // Now drop the columns
+        // SQLite (in-memory) does not support dropping columns via ALTER; skip in tests
+        try {
+            if (DB::getDriverName() === 'sqlite') {
+                return;
+            }
+        } catch (\Exception $e) {
+            // If unable to detect driver, proceed cautiously and attempt drop
+        }
+
         Schema::table('ads', function (Blueprint $table) use ($cols) {
             foreach ($cols as $c) {
                 if (Schema::hasColumn('ads', $c)) {
