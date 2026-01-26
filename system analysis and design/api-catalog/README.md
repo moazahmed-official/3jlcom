@@ -1,3 +1,38 @@
+# API Catalog — README
+
+Location: `system analysis and design/api-catalog/`
+
+Overview
+- This folder contains the OpenAPI specs and endpoint guides for the project's REST API.
+- API version: v1
+
+Base URL (local)
+- `http://localhost/v1`
+
+Authentication (login)
+- Endpoint: `POST /v1/auth/login`
+- Body (JSON): `{ "phone": "+201001234567", "password": "secret-password" }`
+- Returns a `Bearer` token in `data.token`.
+
+Quick curl (login)
+```bash
+curl -X POST 'http://localhost/v1/auth/login' \
+  -H 'Content-Type: application/json' \
+  -d '{"phone":"+201001234567","password":"secret-password"}'
+```
+
+Logout
+```bash
+curl -X POST 'http://localhost/v1/auth/logout' \
+  -H 'Authorization: Bearer <token>'
+```
+
+Running the auth tests
+```bash
+php artisan test --filter=AuthLoginTest
+```
+
+See the `openapi/` folder for per-endpoint documentation (curl examples and request/response schemas).
 # API Catalog - usage and CI
 
 This folder contains the OpenAPI fragments and two entrypoints:
