@@ -28,6 +28,8 @@ class User extends Authenticatable
         'account_type',
         'profile_image_id',
         'is_verified',
+        'seller_verified',
+        'seller_verified_at',
         'email_verified_at',
         'otp',
         'otp_expires_at',
@@ -103,6 +105,8 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'seller_verified_at' => 'datetime',
+            'seller_verified' => 'boolean',
             'otp_expires_at' => 'datetime',
             'password' => 'hashed',
         ];

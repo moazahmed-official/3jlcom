@@ -14,6 +14,8 @@ class UserResource extends JsonResource
             'phone' => $this->phone,
             'account_type' => $this->account_type ?? null,
             'is_verified' => (bool) ($this->is_verified ?? false),
+            'seller_verified' => (bool) ($this->seller_verified ?? false),
+            'seller_verified_at' => $this->seller_verified_at?->toDateTimeString(),
             'created_at' => $this->created_at?->toDateTimeString(),
         ];
     }

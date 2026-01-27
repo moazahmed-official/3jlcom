@@ -123,11 +123,20 @@ class SellerVerificationController extends BaseApiController
                 'verified_at' => Carbon::now(),
             ]);
 
-            // If approved, update user's verification status
+            // Update user's verification flags depending on admin decision
+            $user = $verificationRequest->user;
             if ($request->input('status') === 'approved') {
-                $verificationRequest->user->update([
-                    'email_verified_at' => $verificationRequest->user->email_verified_at ?? Carbon::now(),
+                $user->update([
+                    'email_verified_at' => $user->email_verified_at ?? Carbon::now(),
                     'is_verified' => true,
+                    'seller_verified' => true,
+                    'seller_verified_at' => Carbon::now(),
+                ]);
+            } else {
+                // Rejected: clear seller-specific flags
+                $user->update([
+                    'seller_verified' => false,
+                    'seller_verified_at' => null,
                 ]);
             }
 

@@ -148,11 +148,18 @@ class UserController extends BaseApiController
                 ]);
             }
 
-            // If approved, mark user as verified
+            // Update user's verification flags depending on admin decision
             if ($request->input('status') === 'approved') {
                 $user->update([
                     'email_verified_at' => $user->email_verified_at ?? Carbon::now(),
                     'is_verified' => true,
+                    'seller_verified' => true,
+                    'seller_verified_at' => Carbon::now(),
+                ]);
+            } else {
+                $user->update([
+                    'seller_verified' => false,
+                    'seller_verified_at' => null,
                 ]);
             }
 
