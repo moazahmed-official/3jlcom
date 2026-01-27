@@ -24,17 +24,13 @@ class UserController extends Controller
     {
         $validated = $request->validated();
 
-        // Generate a random password for the new user
-        // In production, this would typically be sent via SMS or email
-        $randomPassword = Str::random(12);
-
         $user = User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
             'phone' => $validated['phone'],
             'country_id' => $validated['country_id'],
             'account_type' => $validated['account_type'] ?? 'individual',
-            'password' => Hash::make($randomPassword),
+            'password' => Hash::make($validated['password']),
             'is_verified' => false,
         ]);
 

@@ -39,6 +39,7 @@ class StoreUserRequest extends FormRequest
             'phone' => ['required', 'string', 'max:50', 'unique:users,phone'],
             'country_id' => ['required', 'integer', 'exists:countries,id'],
             'account_type' => ['sometimes', 'nullable', 'string', 'in:individual,dealer,showroom,marketer,moderator,country_manager'],
+            'password' => ['required', 'string', 'min:8', 'max:72'],
         ];
     }
 
@@ -59,6 +60,8 @@ class StoreUserRequest extends FormRequest
             'country_id.required' => 'The country field is required.',
             'country_id.exists' => 'The selected country does not exist.',
             'account_type.in' => 'The selected account type is invalid.',
+            'password.required' => 'The password field is required.',
+            'password.min' => 'The password must be at least 8 characters.',
         ];
     }
 

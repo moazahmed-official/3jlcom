@@ -102,6 +102,7 @@ class CreateUserTest extends TestCase
             'phone' => '+962791234567',
             'country_id' => 1,
             'account_type' => 'individual',
+            'password' => 'password123',
         ];
 
         $response = $this->postJson('/api/v1/users', $payload);
@@ -148,6 +149,7 @@ class CreateUserTest extends TestCase
             'email' => 'jane.doe@example.com',
             'phone' => '+962793456789',
             'country_id' => 1,
+            'password' => 'password123',
         ];
 
         $response = $this->postJson('/api/v1/users', $payload);
