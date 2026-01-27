@@ -127,6 +127,7 @@ class AuthController extends BaseApiController
             // Verify user and clear OTP
             $user->update([
                 'email_verified_at' => Carbon::now(),
+                'is_verified' => true,
                 'otp' => null,
                 'otp_expires_at' => null,
             ]);

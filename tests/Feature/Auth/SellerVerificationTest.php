@@ -299,4 +299,106 @@ class SellerVerificationTest extends TestCase
 
         $response->assertStatus(403); // Forbidden
     }
+
+    public function test_admin_can_verify_user_by_id_when_no_request_exists()
+    {
+        // Create admin user
+        $admin = User::factory()->create();
+        $admin->roles()->attach(Role::where('name', 'admin')->first());
+
+        // Create seller user with no verification requests
+        $seller = User::factory()->create([
+            'account_type' => 'seller',
+        ]);
+
+        $this->assertDatabaseMissing('seller_verification_requests', [
+            'user_id' => $seller->id,
+        ]);
+
+        Sanctum::actingAs($admin);
+
+        $response = $this->postJson("/api/v1/users/{$seller->id}/verify", [
+            'status' => 'approved',
+            'admin_comments' => 'Admin verified directly by id.'
+        ]);
+
+        $response->assertStatus(200)
+                 ->assertJson([ 'status' => 'success' ]);
+
+        // Assert a verification request was created and processed
+        $this->assertDatabaseHas('seller_verification_requests', [
+            'user_id' => $seller->id,
+            'status' => 'approved',
+            'verified_by' => $admin->id,
+        ]);
+
+        // Assert user marked as verified
+        $this->assertDatabaseHas('users', [
+            'id' => $seller->id,
+            'is_verified' => true,
+        ]);
+    }
+
+    public function test_admin_verify_by_id_creates_request_even_if_previous_processed_exists()
+    {
+        // Create admin user
+        $admin = User::factory()->create();
+        $admin->roles()->attach(Role::where('name', 'admin')->first());
+
+        // Create seller and a previous processed request
+        $seller = User::factory()->create([
+            'account_type' => 'seller',
+        ]);
+
+        SellerVerificationRequest::create([
+            'user_id' => $seller->id,
+            'documents' => [],
+            'status' => 'rejected',
+            'admin_comments' => 'Previously rejected',
+            'verified_by' => $admin->id,
+            'verified_at' => now(),
+        ]);
+
+        $initialCount = SellerVerificationRequest::where('user_id', $seller->id)->count();
+
+        Sanctum::actingAs($admin);
+
+        $response = $this->postJson("/api/v1/users/{$seller->id}/verify", [
+            'status' => 'approved',
+            'admin_comments' => 'Second admin verification.'
+        ]);
+
+        $response->assertStatus(200)->assertJson([ 'status' => 'success' ]);
+
+        $newCount = SellerVerificationRequest::where('user_id', $seller->id)->count();
+        $this->assertGreaterThan($initialCount, $newCount);
+
+        $this->assertDatabaseHas('users', [
+            'id' => $seller->id,
+            'is_verified' => true,
+        ]);
+    }
+
+    public function test_non_admin_cannot_verify_user_by_id()
+    {
+        // Create regular user and target seller
+        $user = User::factory()->create();
+
+        $seller = User::factory()->create([
+            'account_type' => 'seller',
+        ]);
+
+        Sanctum::actingAs($user);
+
+        $response = $this->postJson("/api/v1/users/{$seller->id}/verify", [
+            'status' => 'approved',
+        ]);
+
+        $response->assertStatus(403);
+
+        $this->assertDatabaseMissing('seller_verification_requests', [
+            'user_id' => $seller->id,
+            'status' => 'approved',
+        ]);
+    }
 }

@@ -62,6 +62,11 @@ class User extends Authenticatable
      */
     public function hasRole(string $role): bool
     {
+        // Super-admin should have all roles implicitly
+        if ($this->roles()->where('name', 'super-admin')->exists()) {
+            return true;
+        }
+
         return $this->roles()->where('name', $role)->exists();
     }
 
@@ -70,6 +75,11 @@ class User extends Authenticatable
      */
     public function hasAnyRole(array $roles): bool
     {
+        // Super-admin should have all roles implicitly
+        if ($this->roles()->where('name', 'super-admin')->exists()) {
+            return true;
+        }
+
         return $this->roles()->whereIn('name', $roles)->exists();
     }
 

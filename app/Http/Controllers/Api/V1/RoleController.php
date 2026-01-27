@@ -134,9 +134,9 @@ class RoleController extends BaseApiController
         $roleToAccount = [
             'super_admin' => 'admin',
             'admin' => 'admin',
-            'company' => 'business',
-            'dealer' => 'business',
-            'marketer' => 'business',
+            'seller' => 'seller',
+            'showroom' => 'showroom',
+            'marketer' => 'marketing',
             'user' => 'individual',
             'individual' => 'individual',
         ];

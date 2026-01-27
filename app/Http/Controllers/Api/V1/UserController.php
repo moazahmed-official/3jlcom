@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Models\SellerVerificationRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
 class UserController extends BaseApiController
@@ -119,33 +120,47 @@ class UserController extends BaseApiController
     public function verify(UserVerificationRequest $request, int $userId): JsonResponse
     {
         $user = User::findOrFail($userId);
-
-        // Check if user has seller verification request
-        $verificationRequest = SellerVerificationRequest::where('user_id', $user->id)
-            ->where('status', 'pending')
-            ->first();
-
-        if (!$verificationRequest) {
-            return $this->error(
-                404,
-                'No pending verification request found for this user'
-            );
-        }
-
         try {
-            $verificationRequest->update([
-                'status' => $request->input('status'),
-                'admin_comments' => $request->input('admin_comments'),
-                'verified_by' => $request->user()->id,
-                'verified_at' => Carbon::now(),
-            ]);
+            // Try to find an existing pending verification request
+            $verificationRequest = SellerVerificationRequest::where('user_id', $user->id)
+                ->where('status', 'pending')
+                ->first();
+
+            DB::beginTransaction();
+
+            // If no pending request exists, create one (admin-initiated)
+            if (! $verificationRequest) {
+                $verificationRequest = SellerVerificationRequest::create([
+                    'user_id' => $user->id,
+                    'documents' => [],
+                    'status' => $request->input('status'),
+                    'admin_comments' => $request->input('admin_comments'),
+                    'verified_by' => $request->user()->id,
+                    'verified_at' => Carbon::now(),
+                ]);
+            } else {
+                // Process existing pending request
+                $verificationRequest->update([
+                    'status' => $request->input('status'),
+                    'admin_comments' => $request->input('admin_comments'),
+                    'verified_by' => $request->user()->id,
+                    'verified_at' => Carbon::now(),
+                ]);
+            }
 
             // If approved, mark user as verified
             if ($request->input('status') === 'approved') {
                 $user->update([
                     'email_verified_at' => $user->email_verified_at ?? Carbon::now(),
+                    'is_verified' => true,
                 ]);
             }
+
+
+            DB::commit();
+
+            // Ensure we have latest values
+            $verificationRequest->refresh()->load('verifiedBy');
 
             return $this->success([
                 'user_id' => $user->id,
@@ -155,6 +170,7 @@ class UserController extends BaseApiController
             ], 'User verification processed successfully');
 
         } catch (\Exception $e) {
+            DB::rollBack();
             return $this->error(500, 'Verification failed: ' . $e->getMessage());
         }
     }

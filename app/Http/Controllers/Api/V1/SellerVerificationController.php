@@ -127,17 +127,21 @@ class SellerVerificationController extends BaseApiController
             if ($request->input('status') === 'approved') {
                 $verificationRequest->user->update([
                     'email_verified_at' => $verificationRequest->user->email_verified_at ?? Carbon::now(),
+                    'is_verified' => true,
                 ]);
             }
 
             DB::commit();
+
+            // Refresh to ensure latest values and eager load verifier
+            $verificationRequest->refresh()->load('verifiedBy');
 
             return $this->success([
                 'request_id' => $verificationRequest->id,
                 'status' => $verificationRequest->status,
                 'admin_comments' => $verificationRequest->admin_comments,
                 'verified_at' => $verificationRequest->verified_at,
-                'verified_by' => $verificationRequest->verifiedBy->name,
+                'verified_by' => $verificationRequest->verifiedBy?->name,
             ], 'Verification request processed successfully.');
 
         } catch (\Exception $e) {
