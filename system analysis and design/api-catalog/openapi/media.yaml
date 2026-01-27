@@ -6,6 +6,52 @@ servers:
   - url: /api/v1
 paths:
   /media:
+    get:
+      summary: List user's media with pagination and filtering
+      security:
+        - bearerAuth: []
+      x-permissions:
+        roles: ["individual","dealer","showroom","admin"]
+        scopes: ["media.list.own"]
+      parameters:
+        - in: query
+          name: type
+          schema:
+            type: string
+            enum: [image, video]
+          description: Filter by media type
+        - in: query
+          name: related_resource
+          schema:
+            type: string
+          description: Filter by related resource (e.g., ads, users)
+        - in: query
+          name: related_id
+          schema:
+            type: integer
+          description: Filter by related resource ID
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          description: Page number for pagination
+      responses:
+        '200':
+          description: Paginated list of user's media
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MediaResponse'
+                  links:
+                    type: object
+                  meta:
+                    type: object
     post:
       summary: Upload media (image/video)
       security:
@@ -19,43 +65,105 @@ paths:
           multipart/form-data:
             schema:
               type: object
+              required:
+                - file
               properties:
                 file:
                   type: string
                   format: binary
+                  description: Image or video file to upload
                 purpose:
-                  x-permissions:
-                    roles: ["individual","dealer","showroom","admin"]
-                    scopes: ["media.upload"]
                   type: string
+                  enum: [ad, profile, general, brand, model]
+                  description: Purpose of the media upload
                 related_resource:
                   type: string
+                  description: Resource type this media is related to
                 related_id:
                   type: integer
+                  description: ID of the related resource
       responses:
         '201':
           description: Media stored and returned
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/MediaResponse'
   /media/{mediaId}:
     get:
-      summary: Get media metadata / signed URL
+      summary: Get media metadata
+      security:
+        - bearerAuth: []
+      x-permissions:
+        roles: ["owner","admin"]
+        scopes: ["media.view.own","media.view.any"]
       parameters:
         - in: path
           name: mediaId
           required: true
           schema:
-                  responses:
-                    '201':
-                      description: Media stored and returned
-                      content:
-                        application/json:
-                          examples:
-                            success:
-                              value:
-                                success: true
-                                data:
-                                  id: 101
-                                  url: "https://cdn.example.com/media/101.jpg"
+            type: integer
+          description: Media ID
+      responses:
+        '200':
           description: Media metadata
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/MediaResponse'
+        '403':
+          description: Unauthorized access to media
+        '404':
+          description: Media not found
+    patch:
+      summary: Update media metadata
+      security:
+        - bearerAuth: []
+      x-permissions:
+        roles: ["owner","admin"]
+        scopes: ["media.update.own","media.update.any"]
+      parameters:
+        - in: path
+          name: mediaId
+          required: true
+          schema:
+            type: integer
+          description: Media ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                related_resource:
+                  type: string
+                  nullable: true
+                  description: Resource type this media is related to
+                related_id:
+                  type: integer
+                  nullable: true
+                  description: ID of the related resource
+      responses:
+        '200':
+          description: Media updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/MediaResponse'
+        '403':
+          description: Unauthorized access to media
+        '422':
+          description: Validation error
     delete:
       summary: Delete media
       security:
@@ -63,9 +171,28 @@ paths:
       x-permissions:
         roles: ["owner","admin"]
         scopes: ["media.delete.own","media.delete.any"]
+      parameters:
+        - in: path
+          name: mediaId
+          required: true
+          schema:
+            type: integer
+          description: Media ID
       responses:
-        '204':
-          description: Deleted
+        '200':
+          description: Media deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Media deleted successfully"
+        '403':
+          description: Unauthorized access to media
+        '404':
+          description: Media not found
 components:
   securitySchemes:
     bearerAuth:
@@ -78,12 +205,45 @@ components:
       properties:
         id:
           type: integer
+          example: 42
+        filename:
+          type: string
+          example: "1700000000_ab12cd34ef.jpg"
+        path:
+          type: string
+          example: "profile/2026/01/1700000000_ab12cd34ef.jpg"
         url:
           type: string
+          example: "http://your-cdn-or-site/storage/profile/2026/01/1700000000_ab12cd34ef.jpg"
         thumbnail_url:
           type: string
+          nullable: true
+          example: "http://your-cdn-or-site/storage/thumbnails/abc123_thumb.jpg"
         type:
           type: string
+          enum: [image, video]
+          example: "image"
         status:
           type: string
-          description: processing, ready, failed
+          enum: [processing, ready, failed]
+          description: Processing status of the media
+          example: "ready"
+        user_id:
+          type: integer
+          example: 7
+        related_resource:
+          type: string
+          nullable: true
+          example: "users"
+        related_id:
+          type: integer
+          nullable: true
+          example: 123
+        created_at:
+          type: string
+          format: date-time
+          example: "2026-01-28T10:00:00.000Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2026-01-28T10:00:00.000Z"

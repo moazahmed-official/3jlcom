@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\V1\RoleController;
 use App\Http\Controllers\Api\V1\UserController;
 use App\Http\Controllers\Api\V1\SellerVerificationController;
 use App\Http\Controllers\Api\V1\BrandController;
+use App\Http\Controllers\MediaController;
 
 Route::prefix('v1')->group(function () {
     // Public authentication routes
@@ -54,6 +55,13 @@ Route::prefix('v1')->group(function () {
         Route::post('/brands/{brand}/models', [BrandController::class, 'storeModel']);
         Route::put('/brands/{brand}/models/{model}', [BrandController::class, 'updateModel']);
         Route::delete('/brands/{brand}/models/{model}', [BrandController::class, 'destroyModel']);
+        
+        // Media management routes
+        Route::get('/media', [MediaController::class, 'index']);
+        Route::post('/media', [MediaController::class, 'store']);
+        Route::get('/media/{media}', [MediaController::class, 'show']);
+        Route::patch('/media/{media}', [MediaController::class, 'update']);
+        Route::delete('/media/{media}', [MediaController::class, 'destroy']);
     });
 
     // Public brand routes
