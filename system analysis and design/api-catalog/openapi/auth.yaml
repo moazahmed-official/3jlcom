@@ -98,6 +98,26 @@ paths:
       responses:
         '200':
           description: Verified
+  /auth/password/reset-request:
+    post:
+      summary: Request password reset OTP
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone]
+              properties:
+                phone:
+                  type: string
+            examples:
+              sample:
+                value:
+                  phone: "+201001234567"
+      responses:
+        '200':
+          description: Password reset OTP sent
   /auth/password/reset:
     put:
       summary: Reset password

@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\RoleController;
 use App\Http\Controllers\Api\V1\UserController;
 use App\Http\Controllers\Api\V1\SellerVerificationController;
+use App\Http\Controllers\Api\V1\BrandController;
 
 Route::prefix('v1')->group(function () {
     // Public authentication routes
@@ -45,7 +46,19 @@ Route::prefix('v1')->group(function () {
         Route::get('/seller-verification', [SellerVerificationController::class, 'show']);
         Route::get('/seller-verification/admin', [SellerVerificationController::class, 'index']);
         Route::put('/seller-verification/{verificationRequest}', [SellerVerificationController::class, 'update']);
+        
+        // Brand management routes (admin only for creation)
+        Route::post('/brands', [BrandController::class, 'store']);
+        Route::put('/brands/{brand}', [BrandController::class, 'update']);
+        Route::delete('/brands/{brand}', [BrandController::class, 'destroy']);
+        Route::post('/brands/{brand}/models', [BrandController::class, 'storeModel']);
+        Route::put('/brands/{brand}/models/{model}', [BrandController::class, 'updateModel']);
+        Route::delete('/brands/{brand}/models/{model}', [BrandController::class, 'destroyModel']);
     });
+
+    // Public brand routes
+    Route::get('/brands', [BrandController::class, 'index']);
+    Route::get('/brands/{brand}/models', [BrandController::class, 'models']);
 
     Route::apiResource('normal-ads', NormalAdsController::class);
     Route::post('normal-ads/{ad}/actions/republish', [NormalAdsController::class, 'republish']);

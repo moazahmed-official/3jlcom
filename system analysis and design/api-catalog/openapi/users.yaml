@@ -145,6 +145,207 @@ paths:
       responses:
         '200':
           description: Verification status updated
+  /seller-verification:
+    post:
+      summary: Submit seller/showroom verification request
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [documents]
+              properties:
+                documents:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      type:
+                        type: string
+                      url:
+                        type: string
+                      description:
+                        type: string
+      responses:
+        '200':
+          description: Verification request submitted
+    get:
+      summary: Get current user's latest verification request
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User verification request
+
+  /seller-verification/admin:
+    get:
+      summary: List all seller verification requests (admin)
+      security:
+        - bearerAuth: []
+      x-permissions:
+        roles: ["admin"]
+        scopes: ["seller_verification.read"]
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Paginated verification requests
+
+  /seller-verification/{requestId}:
+    put:
+      summary: Process a seller verification request (admin)
+      security:
+        - bearerAuth: []
+      x-permissions:
+        roles: ["admin"]
+        scopes: ["seller_verification.update"]
+      parameters:
+        - in: path
+          name: requestId
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [approved, rejected]
+                admin_comments:
+                  type: string
+      responses:
+        '200':
+          description: Verification request processed
+
+  /roles:
+    get:
+      summary: List roles
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Roles list
+    post:
+      summary: Create role
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                display_name:
+                  type: string
+                permissions:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '201':
+          description: Role created
+
+  /roles/{role}:
+    get:
+      summary: Get role
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: role
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Role details
+    put:
+      summary: Update role
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: role
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                display_name:
+                  type: string
+                permissions:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: Role updated
+    delete:
+      summary: Delete role
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: role
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Role deleted
+
+  /users/{userId}/roles:
+    post:
+      summary: Assign or change roles for a user
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                roles:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: Roles updated
+    get:
+      summary: Get roles assigned to a user
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User roles
 components:
   securitySchemes:
     bearerAuth:
