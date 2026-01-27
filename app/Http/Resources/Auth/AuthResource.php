@@ -11,14 +11,10 @@ class AuthResource extends JsonResource
         $data = $this->resource;
 
         return [
-            'success' => true,
-            'message' => $data['message'] ?? 'Authenticated',
-            'data' => [
-                'token' => $data['token'] ?? null,
-                'token_type' => $data['token_type'] ?? 'Bearer',
-                'expires_in' => $data['expires_in'] ?? null,
-                'user' => new \App\Http\Resources\UserResource($data['user']),
-            ],
+            'token' => $data['token'] ?? null,
+            'token_type' => $data['token_type'] ?? 'Bearer',
+            'expires_in' => $data['expires_in'] ?? null,
+            'user' => new \App\Http\Resources\UserResource($data['user']),
         ];
     }
 }

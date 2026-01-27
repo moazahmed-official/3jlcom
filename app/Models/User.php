@@ -22,7 +22,21 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'phone',
+        'country_id',
+        'city_id',
+        'account_type',
+        'profile_image_id',
+        'is_verified',
     ];
+
+    /**
+     * Get the roles associated with the user.
+     */
+    public function roles()
+    {
+        return $this->belongsToMany(\App\Models\Role::class, 'user_role');
+    }
 
     /**
      * The attributes that should be hidden for serialization.

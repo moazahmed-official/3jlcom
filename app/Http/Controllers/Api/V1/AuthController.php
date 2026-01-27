@@ -13,7 +13,13 @@ class AuthController extends Controller
 {
     public function login(LoginRequest $request)
     {
-        $user = User::where('phone', $request->input('phone'))->first();
+        // Allow login by phone OR email
+        $user = null;
+        if ($request->filled('email')) {
+            $user = User::where('email', $request->input('email'))->first();
+        } elseif ($request->filled('phone')) {
+            $user = User::where('phone', $request->input('phone'))->first();
+        }
 
         if (! $user || ! Hash::check($request->input('password'), $user->password)) {
             return response()->json([
@@ -34,7 +40,10 @@ class AuthController extends Controller
             'token_type' => 'Bearer',
             'expires_in' => $expiresIn,
             'user' => $user,
-        ]))->additional(['status' => 'success', 'message' => 'Authenticated']);
+        ]))->additional([
+            'status' => 'success',
+            'message' => 'Authenticated',
+        ]);
     }
 
     public function logout(Request $request)
