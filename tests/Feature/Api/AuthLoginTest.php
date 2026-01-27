@@ -17,7 +17,7 @@ class AuthLoginTest extends TestCase
             'password' => bcrypt('secret-password'),
         ]);
 
-        $response = $this->postJson('/v1/auth/login', [
+        $response = $this->postJson('/api/v1/auth/login', [
             'phone' => $user->phone,
             'password' => 'secret-password',
         ]);
@@ -41,7 +41,7 @@ class AuthLoginTest extends TestCase
 
     public function test_login_validation_error()
     {
-        $response = $this->postJson('/v1/auth/login', [
+        $response = $this->postJson('/api/v1/auth/login', [
             'phone' => '',
         ]);
 
@@ -59,7 +59,7 @@ class AuthLoginTest extends TestCase
             'password' => bcrypt('right-password'),
         ]);
 
-        $response = $this->postJson('/v1/auth/login', [
+        $response = $this->postJson('/api/v1/auth/login', [
             'phone' => $user->phone,
             'password' => 'wrong-password',
         ]);

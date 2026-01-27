@@ -2,15 +2,15 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\User\StoreUserRequest;
+use App\Http\Requests\User\UpdateUserRequest;
 use App\Http\Resources\UserResource;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 
-class UserController extends Controller
+class UserController extends BaseApiController
 {
     /**
      * Store a newly created user in storage.
@@ -34,13 +34,11 @@ class UserController extends Controller
             'is_verified' => false,
         ]);
 
-        return (new UserResource($user))
-            ->additional([
-                'status' => 'success',
-                'message' => 'User created successfully',
-            ])
-            ->response()
-            ->setStatusCode(201);
+        return $this->success(
+            new UserResource($user),
+            'User created successfully',
+            201
+        );
     }
 
     /**
@@ -56,16 +54,10 @@ class UserController extends Controller
         // This would include pagination and filtering
         $users = User::paginate(20);
 
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Users retrieved successfully',
-            'data' => [
-                'page' => $users->currentPage(),
-                'per_page' => $users->perPage(),
-                'total' => $users->total(),
-                'items' => UserResource::collection($users->items()),
-            ],
-        ], 200);
+        return $this->successPaginated(
+            $users->through(fn($user) => new UserResource($user)),
+            'Users retrieved successfully'
+        );
     }
 
     /**
@@ -80,50 +72,89 @@ class UserController extends Controller
     {
         $user = User::findOrFail($userId);
 
-        return (new UserResource($user))
-            ->additional([
-                'status' => 'success',
-                'message' => 'User retrieved successfully',
-            ])
-            ->response()
-            ->setStatusCode(200);
+        return $this->success(
+            new UserResource($user),
+            'User retrieved successfully'
+        );
     }
 
     /**
      * Update the specified user in storage.
      *
-     * PUT /api/v1/users/{userId}
+     * PUT /api/v1/users/{user}
      *
-     * @param  int  $userId
+     * @param  \App\Http\Requests\User\UpdateUserRequest  $request
+     * @param  \App\Models\User  $user
      * @return \Illuminate\Http\JsonResponse
      */
-    public function update(int $userId): JsonResponse
+    public function update(UpdateUserRequest $request, User $user): JsonResponse
     {
-        // Placeholder for future implementation
-        return response()->json([
-            'status' => 'error',
-            'code' => 501,
-            'message' => 'Not implemented yet',
-            'errors' => (object) [],
-        ], 501);
+        $validated = $request->validated();
+
+        // Hash password if provided
+        if (isset($validated['password'])) {
+            $validated['password'] = Hash::make($validated['password']);
+        }
+
+        $user->update($validated);
+
+        return $this->success(
+            new UserResource($user->fresh()),
+            'User updated successfully'
+        );
     }
 
     /**
      * Remove the specified user from storage.
      *
-     * DELETE /api/v1/users/{userId}
+     * DELETE /api/v1/users/{user}
      *
-     * @param  int  $userId
+     * @param  \App\Models\User  $user
      * @return \Illuminate\Http\JsonResponse
      */
-    public function destroy(int $userId): JsonResponse
+    public function destroy(User $user): JsonResponse
     {
-        // Placeholder for future implementation
-        return response()->json([
-            'status' => 'error',
-            'code' => 501,
-            'message' => 'Not implemented yet',
-            'errors' => (object) [],
-        ], 501);
+        $currentUser = request()->user();
+        
+        // Prevent self-deletion
+        if ($currentUser->id === $user->id) {
+            return $this->error(
+                403,
+                'You cannot delete your own account',
+                ['user' => ['Self-deletion is not allowed']]
+            );
+        }
+
+        // Only admin/super_admin can delete users
+        if (! $currentUser->roles()->whereIn('name', ['admin', 'super_admin'])->exists()) {
+            return $this->error(
+                403,
+                'You do not have permission to delete users',
+                ['user' => ['Insufficient permissions to delete users']]
+            );
+        }
+
+        // Prevent deletion of super_admin users by regular admins
+        $userRoles = $user->roles()->pluck('name');
+        $currentUserRoles = $currentUser->roles()->pluck('name');
+        
+        if ($userRoles->contains('super_admin') && !$currentUserRoles->contains('super_admin')) {
+            return $this->error(
+                403,
+                'Cannot delete super admin user',
+                ['user' => ['Only super admins can delete super admin users']]
+            );
+        }
+
+        // Detach all roles before deletion to avoid foreign key constraints
+        $user->roles()->detach();
+        
+        // Delete the user
+        $user->delete();
+
+        return $this->success(
+            null,
+            'User deleted successfully'
+        );
     }
 }
