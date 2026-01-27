@@ -38,7 +38,7 @@ class StoreUserRequest extends FormRequest
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'phone' => ['required', 'string', 'max:50', 'unique:users,phone'],
             'country_id' => ['required', 'integer', 'exists:countries,id'],
-            'account_type' => ['sometimes', 'nullable', 'string', 'in:individual,dealer,showroom,marketer,moderator,country_manager'],
+            'account_type' => ['sometimes', 'nullable', 'string', 'in:individual,dealer,showroom,marketer,moderator,country_manager,admin,business'],
             'password' => ['required', 'string', 'min:8', 'max:72'],
         ];
     }

@@ -46,7 +46,7 @@ class UpdateUserRequest extends FormRequest
             'phone' => ['sometimes', 'string', 'max:50', Rule::unique('users', 'phone')->ignore($targetUser->id)],
             'country_id' => ['sometimes', 'integer', 'exists:countries,id'],
             'city_id' => ['sometimes', 'nullable', 'integer', 'exists:cities,id'],
-            'account_type' => ['sometimes', 'string', 'in:individual,dealer,showroom,marketer,moderator,country_manager'],
+            'account_type' => ['sometimes', 'string', 'in:individual,dealer,showroom,marketer,moderator,country_manager,admin,business'],
             'profile_image_id' => ['sometimes', 'nullable', 'integer', 'exists:media,id'],
             'password' => ['sometimes', 'string', 'min:8', 'max:72'],
         ];

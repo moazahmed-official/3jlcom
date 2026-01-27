@@ -330,6 +330,7 @@ class RoleManagementTest extends TestCase
                 'message' => 'Roles assigned successfully',
                 'data' => [
                     'user_id' => $user->id,
+                    'account_type' => 'admin',
                 ],
             ])
             ->assertJsonCount(2, 'data.roles');

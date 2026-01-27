@@ -122,14 +122,6 @@ class RoleController extends BaseApiController
         
         // Get role IDs from role names
         $roles = Role::whereIn('name', $validated['roles'])->get();
-        
-        if ($roles->count() !== count($validated['roles'])) {
-            return $this->error(
-                400,
-                'Some roles do not exist',
-                ['roles' => ['One or more specified roles do not exist']]
-            );
-        }
 
 
         // Sync roles (replace all existing roles with new ones)
@@ -159,8 +151,24 @@ class RoleController extends BaseApiController
         }
 
         if ($accountType !== null) {
+            $old = $user->account_type;
             $user->account_type = $accountType;
             $user->save();
+
+            // Record audit log for account_type change
+            if ($old !== $accountType) {
+                try {
+                    \App\Models\AccountTypeChange::create([
+                        'user_id' => $user->id,
+                        'old_account_type' => $old,
+                        'new_account_type' => $accountType,
+                        'changed_by' => $request->user()?->id,
+                    ]);
+                } catch (\Throwable $e) {
+                    // Do not fail the request if audit logging fails; just log the exception
+                    logger()->error('Failed to record account_type change: ' . $e->getMessage());
+                }
+            }
         }
 
         // Load fresh user with roles for response
@@ -169,6 +177,7 @@ class RoleController extends BaseApiController
         return $this->success(
             [
                 'user_id' => $user->id,
+                'account_type' => $user->account_type,
                 'roles' => RoleResource::collection($user->roles)
             ],
             'Roles assigned successfully'
