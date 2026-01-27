@@ -28,6 +28,9 @@ class User extends Authenticatable
         'account_type',
         'profile_image_id',
         'is_verified',
+        'email_verified_at',
+        'otp',
+        'otp_expires_at',
     ];
 
     /**
@@ -39,6 +42,38 @@ class User extends Authenticatable
     }
 
     /**
+     * Get the seller verification requests for the user.
+     */
+    public function sellerVerificationRequests()
+    {
+        return $this->hasMany(SellerVerificationRequest::class);
+    }
+
+    /**
+     * Get the latest seller verification request for the user.
+     */
+    public function latestSellerVerificationRequest()
+    {
+        return $this->hasOne(SellerVerificationRequest::class)->latest();
+    }
+
+    /**
+     * Check if the user has a specific role.
+     */
+    public function hasRole(string $role): bool
+    {
+        return $this->roles()->where('name', $role)->exists();
+    }
+
+    /**
+     * Check if the user has any of the specified roles.
+     */
+    public function hasAnyRole(array $roles): bool
+    {
+        return $this->roles()->whereIn('name', $roles)->exists();
+    }
+
+    /**
      * The attributes that should be hidden for serialization.
      *
      * @var list<string>
@@ -46,6 +81,7 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        'otp',
     ];
 
     /**
@@ -57,6 +93,7 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'otp_expires_at' => 'datetime',
             'password' => 'hashed',
         ];
     }

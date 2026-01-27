@@ -5,10 +5,13 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\User\StoreUserRequest;
 use App\Http\Requests\User\UpdateUserRequest;
+use App\Http\Requests\UserVerificationRequest;
 use App\Http\Resources\UserResource;
 use App\Models\User;
+use App\Models\SellerVerificationRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Hash;
+use Carbon\Carbon;
 
 class UserController extends BaseApiController
 {
@@ -102,6 +105,58 @@ class UserController extends BaseApiController
             new UserResource($user->fresh()),
             'User updated successfully'
         );
+    }
+
+    /**
+     * Verify a user (seller/showroom)
+     *
+     * POST /api/v1/users/{userId}/verify
+     *
+     * @param  UserVerificationRequest  $request
+     * @param  int  $userId
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function verify(UserVerificationRequest $request, int $userId): JsonResponse
+    {
+        $user = User::findOrFail($userId);
+
+        // Check if user has seller verification request
+        $verificationRequest = SellerVerificationRequest::where('user_id', $user->id)
+            ->where('status', 'pending')
+            ->first();
+
+        if (!$verificationRequest) {
+            return $this->error(
+                404,
+                'No pending verification request found for this user'
+            );
+        }
+
+        try {
+            $verificationRequest->update([
+                'status' => $request->input('status'),
+                'admin_comments' => $request->input('admin_comments'),
+                'verified_by' => $request->user()->id,
+                'verified_at' => Carbon::now(),
+            ]);
+
+            // If approved, mark user as verified
+            if ($request->input('status') === 'approved') {
+                $user->update([
+                    'email_verified_at' => $user->email_verified_at ?? Carbon::now(),
+                ]);
+            }
+
+            return $this->success([
+                'user_id' => $user->id,
+                'verification_status' => $verificationRequest->status,
+                'admin_comments' => $verificationRequest->admin_comments,
+                'verified_at' => $verificationRequest->verified_at,
+            ], 'User verification processed successfully');
+
+        } catch (\Exception $e) {
+            return $this->error(500, 'Verification failed: ' . $e->getMessage());
+        }
     }
 
     /**
