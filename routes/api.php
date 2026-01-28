@@ -86,6 +86,18 @@ Route::prefix('v1')->group(function () {
         Route::post('normal-ads/{ad}/favorite', [NormalAdsController::class, 'favorite']);
         Route::delete('normal-ads/{ad}/favorite', [NormalAdsController::class, 'unfavorite']);
         Route::post('normal-ads/{ad}/contact', [NormalAdsController::class, 'contactSeller']);
+
+        // Unique Ads routes (authenticated)
+        Route::get('unique-ads/my-ads', [UniqueAdsController::class, 'myAds']); // User's ads with all statuses
+        Route::get('unique-ads/admin', [UniqueAdsController::class, 'adminIndex']); // Admin: all ads with all statuses
+        Route::post('unique-ads', [UniqueAdsController::class, 'store']);
+        Route::put('unique-ads/{ad}', [UniqueAdsController::class, 'update']);
+        Route::delete('unique-ads/{ad}', [UniqueAdsController::class, 'destroy']);
+        
+        // Unique Ad actions
+        Route::post('unique-ads/{ad}/actions/republish', [UniqueAdsController::class, 'republish']);
+        Route::post('unique-ads/{ad}/actions/feature', [UniqueAdsController::class, 'feature']);
+        Route::delete('unique-ads/{ad}/actions/feature', [UniqueAdsController::class, 'unfeature']);
     });
 
     // Public brand routes
@@ -97,6 +109,9 @@ Route::prefix('v1')->group(function () {
     Route::get('normal-ads/{ad}', [NormalAdsController::class, 'show']);
     Route::get('users/{user}/normal-ads', [NormalAdsController::class, 'listByUser']); // Public ads by user
 
-    Route::apiResource('unique-ads', UniqueAdsController::class);
+    // Public Unique Ads routes (no authentication required)
+    Route::get('unique-ads', [UniqueAdsController::class, 'index']);
+    Route::get('unique-ads/{ad}', [UniqueAdsController::class, 'show']);
+
     Route::apiResource('caishha-ads', CaishhaAdsController::class);
 });
