@@ -918,4 +918,588 @@ class NormalAdApiTest extends TestCase
 
         $response->assertStatus(401);
     }
+
+    // Tests for new endpoints
+
+    public function test_owner_can_publish_ad(): void
+    {
+        $user = User::factory()->create();
+        $ad = Ad::factory()->create([
+            'user_id' => $user->id,
+            'type' => 'normal',
+            'status' => 'draft'
+        ]);
+        NormalAd::factory()->create(['ad_id' => $ad->id]);
+        
+        $this->actingAs($user, 'sanctum');
+
+        $response = $this->postJson("/api/v1/normal-ads/{$ad->id}/actions/publish");
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'status' => 'success',
+                'message' => 'Ad published successfully'
+            ]);
+
+        $ad->refresh();
+        $this->assertEquals('published', $ad->status);
+    }
+
+    public function test_admin_can_publish_any_ad(): void
+    {
+        $adminRole = Role::factory()->create(['name' => 'admin']);
+        $admin = User::factory()->create();
+        $admin->roles()->attach($adminRole);
+        
+        $user = User::factory()->create();
+        $ad = Ad::factory()->create([
+            'user_id' => $user->id,
+            'type' => 'normal',
+            'status' => 'draft'
+        ]);
+        NormalAd::factory()->create(['ad_id' => $ad->id]);
+        
+        $this->actingAs($admin, 'sanctum');
+
+        $response = $this->postJson("/api/v1/normal-ads/{$ad->id}/actions/publish");
+
+        $response->assertStatus(200);
+        
+        $ad->refresh();
+        $this->assertEquals('published', $ad->status);
+    }
+
+    public function test_non_owner_cannot_publish_ad(): void
+    {
+        $user = User::factory()->create();
+        $otherUser = User::factory()->create();
+        $ad = Ad::factory()->create([
+            'user_id' => $otherUser->id,
+            'type' => 'normal',
+            'status' => 'draft'
+        ]);
+        
+        $this->actingAs($user, 'sanctum');
+
+        $response = $this->postJson("/api/v1/normal-ads/{$ad->id}/actions/publish");
+
+        $response->assertStatus(403);
+    }
+
+    public function test_owner_can_unpublish_ad(): void
+    {
+        $user = User::factory()->create();
+        $ad = Ad::factory()->create([
+            'user_id' => $user->id,
+            'type' => 'normal',
+            'status' => 'published'
+        ]);
+        NormalAd::factory()->create(['ad_id' => $ad->id]);
+        
+        $this->actingAs($user, 'sanctum');
+
+        $response = $this->postJson("/api/v1/normal-ads/{$ad->id}/actions/unpublish");
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'status' => 'success',
+                'message' => 'Ad unpublished successfully'
+            ]);
+
+        $ad->refresh();
+        $this->assertEquals('draft', $ad->status);
+    }
+
+    public function test_owner_can_expire_ad(): void
+    {
+        $user = User::factory()->create();
+        $ad = Ad::factory()->create([
+            'user_id' => $user->id,
+            'type' => 'normal',
+            'status' => 'published'
+        ]);
+        NormalAd::factory()->create(['ad_id' => $ad->id]);
+        
+        $this->actingAs($user, 'sanctum');
+
+        $response = $this->postJson("/api/v1/normal-ads/{$ad->id}/actions/expire");
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'status' => 'success',
+                'message' => 'Ad expired successfully'
+            ]);
+
+        $ad->refresh();
+        $this->assertEquals('expired', $ad->status);
+    }
+
+    public function test_owner_can_archive_ad(): void
+    {
+        $user = User::factory()->create();
+        $ad = Ad::factory()->create([
+            'user_id' => $user->id,
+            'type' => 'normal',
+            'status' => 'published'
+        ]);
+        NormalAd::factory()->create(['ad_id' => $ad->id]);
+        
+        $this->actingAs($user, 'sanctum');
+
+        $response = $this->postJson("/api/v1/normal-ads/{$ad->id}/actions/archive");
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'status' => 'success',
+                'message' => 'Ad archived successfully'
+            ]);
+
+        $ad->refresh();
+        $this->assertEquals('removed', $ad->status);
+    }
+
+    public function test_owner_can_restore_ad(): void
+    {
+        $user = User::factory()->create();
+        $ad = Ad::factory()->create([
+            'user_id' => $user->id,
+            'type' => 'normal',
+            'status' => 'removed'
+        ]);
+        NormalAd::factory()->create(['ad_id' => $ad->id]);
+        
+        $this->actingAs($user, 'sanctum');
+
+        $response = $this->postJson("/api/v1/normal-ads/{$ad->id}/actions/restore");
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'status' => 'success',
+                'message' => 'Ad restored successfully'
+            ]);
+
+        $ad->refresh();
+        $this->assertEquals('draft', $ad->status);
+    }
+
+    public function test_owner_can_view_ad_stats(): void
+    {
+        $user = User::factory()->create();
+        $ad = Ad::factory()->create([
+            'user_id' => $user->id,
+            'type' => 'normal',
+            'views_count' => 50
+        ]);
+        
+        $this->actingAs($user, 'sanctum');
+
+        $response = $this->getJson("/api/v1/normal-ads/{$ad->id}/stats");
+
+        $response->assertStatus(200)
+            ->assertJsonStructure([
+                'status',
+                'message',
+                'data' => [
+                    'views',
+                    'contacts',
+                    'impressions',
+                    'created_at',
+                    'last_updated',
+                    'status'
+                ]
+            ])
+            ->assertJson([
+                'status' => 'success',
+                'data' => [
+                    'views' => 50,
+                    'status' => $ad->status
+                ]
+            ]);
+    }
+
+    public function test_non_owner_cannot_view_ad_stats(): void
+    {
+        $user = User::factory()->create();
+        $otherUser = User::factory()->create();
+        $ad = Ad::factory()->create([
+            'user_id' => $otherUser->id,
+            'type' => 'normal'
+        ]);
+        
+        $this->actingAs($user, 'sanctum');
+
+        $response = $this->getJson("/api/v1/normal-ads/{$ad->id}/stats");
+
+        $response->assertStatus(403);
+    }
+
+    public function test_admin_can_view_global_stats(): void
+    {
+        $adminRole = Role::factory()->create(['name' => 'admin']);
+        $admin = User::factory()->create();
+        $admin->roles()->attach($adminRole);
+        
+        // Create some test data
+        Ad::factory()->count(3)->create(['type' => 'normal', 'status' => 'published']);
+        Ad::factory()->count(2)->create(['type' => 'normal', 'status' => 'draft']);
+        
+        $this->actingAs($admin, 'sanctum');
+
+        $response = $this->getJson('/api/v1/normal-ads/stats');
+
+        $response->assertStatus(200)
+            ->assertJsonStructure([
+                'status',
+                'message',
+                'data' => [
+                    'total_ads',
+                    'published_ads',
+                    'draft_ads',
+                    'pending_ads',
+                    'expired_ads',
+                    'removed_ads',
+                    'total_views',
+                    'ads_today',
+                    'ads_this_week',
+                    'ads_this_month'
+                ]
+            ])
+            ->assertJson([
+                'status' => 'success',
+                'data' => [
+                    'total_ads' => 5,
+                    'published_ads' => 3,
+                    'draft_ads' => 2
+                ]
+            ]);
+    }
+
+    public function test_regular_user_cannot_view_global_stats(): void
+    {
+        $user = User::factory()->create();
+        $this->actingAs($user, 'sanctum');
+
+        $response = $this->getJson('/api/v1/normal-ads/stats');
+
+        $response->assertStatus(403);
+    }
+
+    public function test_can_list_public_ads_by_user(): void
+    {
+        $user = User::factory()->create();
+        
+        // Create published ads (should be visible)
+        $publishedAds = Ad::factory()->count(3)->create([
+            'user_id' => $user->id,
+            'type' => 'normal',
+            'status' => 'published'
+        ]);
+        
+        // Create draft ads (should not be visible)
+        Ad::factory()->count(2)->create([
+            'user_id' => $user->id,
+            'type' => 'normal',
+            'status' => 'draft'
+        ]);
+
+        $response = $this->getJson("/api/v1/users/{$user->id}/normal-ads");
+
+        $response->assertStatus(200)
+            ->assertJsonCount(3, 'data');
+    }
+
+    public function test_user_can_favorite_ad(): void
+    {
+        $user = User::factory()->create();
+        $ad = Ad::factory()->create([
+            'type' => 'normal',
+            'status' => 'published'
+        ]);
+        
+        $this->actingAs($user, 'sanctum');
+
+        $response = $this->postJson("/api/v1/normal-ads/{$ad->id}/favorite");
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'status' => 'success',
+                'message' => 'Ad added to favorites successfully'
+            ]);
+
+        $this->assertDatabaseHas('user_favorites', [
+            'user_id' => $user->id,
+            'ad_id' => $ad->id
+        ]);
+    }
+
+    public function test_user_cannot_favorite_ad_twice(): void
+    {
+        $user = User::factory()->create();
+        $ad = Ad::factory()->create(['type' => 'normal']);
+        
+        // Add to favorites first
+        $user->favorites()->attach($ad->id);
+        
+        $this->actingAs($user, 'sanctum');
+
+        $response = $this->postJson("/api/v1/normal-ads/{$ad->id}/favorite");
+
+        $response->assertStatus(409)
+            ->assertJson([
+                'status' => 'error',
+                'message' => 'Ad already in favorites'
+            ]);
+    }
+
+    public function test_user_can_unfavorite_ad(): void
+    {
+        $user = User::factory()->create();
+        $ad = Ad::factory()->create(['type' => 'normal']);
+        
+        // Add to favorites first
+        $user->favorites()->attach($ad->id);
+        
+        $this->actingAs($user, 'sanctum');
+
+        $response = $this->deleteJson("/api/v1/normal-ads/{$ad->id}/favorite");
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'status' => 'success',
+                'message' => 'Ad removed from favorites successfully'
+            ]);
+
+        $this->assertDatabaseMissing('user_favorites', [
+            'user_id' => $user->id,
+            'ad_id' => $ad->id
+        ]);
+    }
+
+    public function test_user_cannot_unfavorite_non_favorited_ad(): void
+    {
+        $user = User::factory()->create();
+        $ad = Ad::factory()->create(['type' => 'normal']);
+        
+        $this->actingAs($user, 'sanctum');
+
+        $response = $this->deleteJson("/api/v1/normal-ads/{$ad->id}/favorite");
+
+        $response->assertStatus(404)
+            ->assertJson([
+                'status' => 'error',
+                'message' => 'Ad not in favorites'
+            ]);
+    }
+
+    public function test_user_can_contact_seller(): void
+    {
+        $user = User::factory()->create();
+        $seller = User::factory()->create(['name' => 'John Doe']);
+        $ad = Ad::factory()->create([
+            'user_id' => $seller->id,
+            'type' => 'normal',
+            'status' => 'published',
+            'title' => 'Test Car',
+            'contact_phone' => '1234567890',
+            'whatsapp_number' => '1234567890'
+        ]);
+        
+        $this->actingAs($user, 'sanctum');
+
+        $response = $this->postJson("/api/v1/normal-ads/{$ad->id}/contact");
+
+        $response->assertStatus(200)
+            ->assertJsonStructure([
+                'status',
+                'message',
+                'data' => [
+                    'seller_name',
+                    'contact_phone',
+                    'whatsapp_number',
+                    'ad_title'
+                ]
+            ])
+            ->assertJson([
+                'status' => 'success',
+                'data' => [
+                    'seller_name' => 'John Doe',
+                    'contact_phone' => '1234567890',
+                    'ad_title' => 'Test Car'
+                ]
+            ]);
+    }
+
+    public function test_cannot_contact_seller_of_unpublished_ad(): void
+    {
+        $user = User::factory()->create();
+        $ad = Ad::factory()->create([
+            'type' => 'normal',
+            'status' => 'draft'
+        ]);
+        
+        $this->actingAs($user, 'sanctum');
+
+        $response = $this->postJson("/api/v1/normal-ads/{$ad->id}/contact");
+
+        $response->assertStatus(403)
+            ->assertJson([
+                'status' => 'error',
+                'message' => 'Ad not available for contact'
+            ]);
+    }
+
+    public function test_admin_can_perform_bulk_publish(): void
+    {
+        $adminRole = Role::factory()->create(['name' => 'admin']);
+        $admin = User::factory()->create();
+        $admin->roles()->attach($adminRole);
+        
+        $ads = Ad::factory()->count(3)->create([
+            'type' => 'normal',
+            'status' => 'draft'
+        ]);
+        
+        foreach ($ads as $ad) {
+            NormalAd::factory()->create(['ad_id' => $ad->id]);
+        }
+        
+        $this->actingAs($admin, 'sanctum');
+
+        $response = $this->postJson('/api/v1/normal-ads/actions/bulk', [
+            'action' => 'publish',
+            'ad_ids' => $ads->pluck('id')->toArray()
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'status' => 'success',
+                'data' => [
+                    'action' => 'publish',
+                    'updated_count' => 3
+                ]
+            ]);
+
+        foreach ($ads as $ad) {
+            $ad->refresh();
+            $this->assertEquals('published', $ad->status);
+        }
+    }
+
+    public function test_admin_can_perform_bulk_delete(): void
+    {
+        $adminRole = Role::factory()->create(['name' => 'admin']);
+        $admin = User::factory()->create();
+        $admin->roles()->attach($adminRole);
+        
+        $ads = Ad::factory()->count(3)->create(['type' => 'normal']);
+        
+        $this->actingAs($admin, 'sanctum');
+
+        $response = $this->postJson('/api/v1/normal-ads/actions/bulk', [
+            'action' => 'delete',
+            'ad_ids' => $ads->pluck('id')->toArray()
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'status' => 'success',
+                'data' => [
+                    'action' => 'delete',
+                    'updated_count' => 3
+                ]
+            ]);
+
+        foreach ($ads as $ad) {
+            $this->assertSoftDeleted('ads', ['id' => $ad->id]);
+        }
+    }
+
+    public function test_regular_user_cannot_perform_bulk_actions(): void
+    {
+        $user = User::factory()->create();
+        $ads = Ad::factory()->count(2)->create(['type' => 'normal']);
+        
+        $this->actingAs($user, 'sanctum');
+
+        $response = $this->postJson('/api/v1/normal-ads/actions/bulk', [
+            'action' => 'publish',
+            'ad_ids' => $ads->pluck('id')->toArray()
+        ]);
+
+        $response->assertStatus(403);
+    }
+
+    public function test_bulk_action_validates_required_fields(): void
+    {
+        $adminRole = Role::factory()->create(['name' => 'admin']);
+        $admin = User::factory()->create();
+        $admin->roles()->attach($adminRole);
+        
+        $this->actingAs($admin, 'sanctum');
+
+        $response = $this->postJson('/api/v1/normal-ads/actions/bulk', []);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['action', 'ad_ids']);
+    }
+
+    public function test_bulk_action_validates_action_values(): void
+    {
+        $adminRole = Role::factory()->create(['name' => 'admin']);
+        $admin = User::factory()->create();
+        $admin->roles()->attach($adminRole);
+        
+        $this->actingAs($admin, 'sanctum');
+
+        $response = $this->postJson('/api/v1/normal-ads/actions/bulk', [
+            'action' => 'invalid_action',
+            'ad_ids' => [1, 2]
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['action']);
+    }
+
+    public function test_action_endpoints_return_404_for_non_existent_ad(): void
+    {
+        $user = User::factory()->create();
+        $this->actingAs($user, 'sanctum');
+
+        $actions = ['publish', 'unpublish', 'expire', 'archive', 'restore'];
+        
+        foreach ($actions as $action) {
+            $response = $this->postJson("/api/v1/normal-ads/99999/actions/{$action}");
+            $response->assertStatus(404);
+        }
+    }
+
+    public function test_unauthenticated_user_cannot_access_action_endpoints(): void
+    {
+        $ad = Ad::factory()->create(['type' => 'normal']);
+        
+        $actions = ['publish', 'unpublish', 'expire', 'archive', 'restore'];
+        
+        foreach ($actions as $action) {
+            $response = $this->postJson("/api/v1/normal-ads/{$ad->id}/actions/{$action}");
+            $response->assertStatus(401);
+        }
+    }
+
+    public function test_user_can_list_favorite_ads(): void
+    {
+        $user = User::factory()->create();
+
+        $ads = Ad::factory()->count(3)->create(['type' => 'normal', 'status' => 'published']);
+        foreach ($ads as $ad) {
+            NormalAd::factory()->create(['ad_id' => $ad->id]);
+            $user->favorites()->attach($ad->id);
+        }
+
+        $this->actingAs($user, 'sanctum');
+
+        $response = $this->getJson('/api/v1/normal-ads/favorites');
+
+        $response->assertStatus(200)
+            ->assertJsonCount(3, 'data');
+    }
 }

@@ -60,6 +60,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Get the user's favorited ads.
+     */
+    public function favorites()
+    {
+        return $this->belongsToMany(Ad::class, 'user_favorites', 'user_id', 'ad_id')->withTimestamps();
+    }
+
+    /**
      * Check if the user has a specific role.
      */
     public function hasRole(string $role): bool

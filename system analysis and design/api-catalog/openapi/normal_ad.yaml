@@ -120,6 +120,301 @@ paths:
       responses:
         '200':
           description: Republish queued
+  /normal-ads/{adId}/actions/publish:
+    post:
+      summary: Publish ad (change status to published)
+      security:
+        - bearerAuth: []
+      x-permissions:
+        roles: ["individual","dealer","showroom","admin"]
+        scopes: ["ads.update.own","ads.update.any"]
+      responses:
+        '200':
+          description: Ad published successfully
+  /normal-ads/{adId}/actions/unpublish:
+    post:
+      summary: Unpublish ad (change status to draft)
+      security:
+        - bearerAuth: []
+      x-permissions:
+        roles: ["individual","dealer","showroom","admin"]
+        scopes: ["ads.update.own","ads.update.any"]
+      responses:
+        '200':
+          description: Ad unpublished successfully
+  /normal-ads/{adId}/actions/expire:
+    post:
+      summary: Expire ad (change status to expired)
+      security:
+        - bearerAuth: []
+      x-permissions:
+        roles: ["individual","dealer","showroom","admin"]
+        scopes: ["ads.update.own","ads.update.any"]
+      responses:
+        '200':
+          description: Ad expired successfully
+  /normal-ads/{adId}/actions/archive:
+    post:
+      summary: Archive ad (change status to removed)
+      security:
+        - bearerAuth: []
+      x-permissions:
+        roles: ["individual","dealer","showroom","admin"]
+        scopes: ["ads.update.own","ads.update.any"]
+      responses:
+        '200':
+          description: Ad archived successfully
+  /normal-ads/{adId}/actions/restore:
+    post:
+      summary: Restore ad (change status to draft)
+      security:
+        - bearerAuth: []
+      x-permissions:
+        roles: ["individual","dealer","showroom","admin"]
+        scopes: ["ads.update.own","ads.update.any"]
+      responses:
+        '200':
+          description: Ad restored successfully
+  /normal-ads/{adId}/stats:
+    get:
+      summary: Get ad statistics
+      security:
+        - bearerAuth: []
+      x-permissions:
+        roles: ["individual","dealer","showroom","admin"]
+        scopes: ["ads.stats.own","ads.stats.any"]
+      parameters:
+        - in: path
+          name: adId
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Ad statistics
+          content:
+            application/json:
+              examples:
+                stats:
+                  value:
+                    status: success
+                    data:
+                      views: 150
+                      contacts: 12
+                      impressions: 500
+                      created_at: "2024-01-01T00:00:00Z"
+                      last_updated: "2024-01-15T12:30:00Z"
+                      status: "published"
+  /normal-ads/{adId}/favorite:
+    post:
+      summary: Add ad to favorites
+      security:
+        - bearerAuth: []
+      x-permissions:
+        roles: ["individual","dealer","showroom"]
+        scopes: ["ads.favorite"]
+      parameters:
+        - in: path
+          name: adId
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Ad added to favorites
+        '409':
+          description: Ad already in favorites
+    delete:
+      summary: Remove ad from favorites
+      security:
+        - bearerAuth: []
+      x-permissions:
+        roles: ["individual","dealer","showroom"]
+        scopes: ["ads.favorite"]
+      parameters:
+        - in: path
+          name: adId
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Ad removed from favorites
+        '404':
+          description: Ad not in favorites
+  /normal-ads/{adId}/contact:
+    post:
+      summary: Contact seller (get contact information)
+      security:
+        - bearerAuth: []
+      x-permissions:
+        roles: ["individual","dealer","showroom"]
+        scopes: ["ads.contact"]
+      parameters:
+        - in: path
+          name: adId
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Seller contact information
+          content:
+            application/json:
+              examples:
+                contact:
+                  value:
+                    status: success
+                    data:
+                      seller_name: "John Doe"
+                      contact_phone: "1234567890"
+                      whatsapp_number: "1234567890"
+                      ad_title: "2015 Toyota Corolla"
+  /normal-ads/my-ads:
+    get:
+      summary: Get user's own ads
+      security:
+        - bearerAuth: []
+      x-permissions:
+        roles: ["individual","dealer","showroom"]
+        scopes: ["ads.read.own"]
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [published,draft,pending,expired,removed]
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: User's ads with all statuses
+  /normal-ads/admin:
+    get:
+      summary: Admin view of all ads
+      security:
+        - bearerAuth: []
+      x-permissions:
+        roles: ["admin","super-admin"]
+        scopes: ["ads.read.any"]
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [published,draft,pending,expired,removed]
+        - in: query
+          name: user_id
+          schema:
+            type: integer
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: All ads with admin filtering
+  /normal-ads/stats:
+    get:
+      summary: Global ad statistics (admin only)
+      security:
+        - bearerAuth: []
+      x-permissions:
+        roles: ["admin","super-admin"]
+        scopes: ["ads.stats.global"]
+      responses:
+        '200':
+          description: Global statistics
+          content:
+            application/json:
+              examples:
+                global_stats:
+                  value:
+                    status: success
+                    data:
+                      total_ads: 1250
+                      published_ads: 850
+                      draft_ads: 200
+                      pending_ads: 100
+                      expired_ads: 75
+                      removed_ads: 25
+                      total_views: 45000
+                      ads_today: 15
+                      ads_this_week: 85
+                      ads_this_month: 320
+  /normal-ads/actions/bulk:
+    post:
+      summary: Bulk operations on ads (admin only)
+      security:
+        - bearerAuth: []
+      x-permissions:
+        roles: ["admin","super-admin"]
+        scopes: ["ads.bulk"]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action, ad_ids]
+              properties:
+                action:
+                  type: string
+                  enum: [publish,unpublish,expire,archive,restore,delete]
+                ad_ids:
+                  type: array
+                  items:
+                    type: integer
+            examples:
+              bulk_publish:
+                value:
+                  action: "publish"
+                  ad_ids: [1001, 1002, 1003]
+      responses:
+        '200':
+          description: Bulk action completed
+          content:
+            application/json:
+              examples:
+                bulk_result:
+                  value:
+                    status: success
+                    data:
+                      action: "publish"
+                      updated_count: 3
+  /users/{userId}/normal-ads:
+    get:
+      summary: List public ads by user
+      x-permissions:
+        roles: ["public"]
+        scopes: ["ads.read"]
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: integer
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Published ads by user
 components:
   securitySchemes:
     bearerAuth:

@@ -545,4 +545,620 @@ class NormalAdsController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Publish ad (set status to published)
+     */
+    public function publish($id): JsonResponse
+    {
+        $ad = Ad::find($id);
+        
+        if (!$ad || $ad->type !== 'normal') {
+            return response()->json([
+                'status' => 'error',
+                'code' => 404,
+                'message' => 'Ad not found',
+                'errors' => ['ad' => ['Ad not found or is not a normal ad']]
+            ], 404);
+        }
+
+        // Authorization check - owner or admin can publish
+        if (auth()->id() !== $ad->user_id && !auth()->user()->isAdmin()) {
+            return response()->json([
+                'status' => 'error',
+                'code' => 403,
+                'message' => 'Unauthorized',
+                'errors' => ['authorization' => ['You do not have permission to publish this ad']]
+            ], 403);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $ad->update([
+                'status' => 'published',
+                'updated_at' => now()
+            ]);
+
+            $ad->normalAd()->update([
+                'update_time' => now()
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Ad published successfully',
+                'data' => new NormalAdResource($ad->load(['normalAd', 'user', 'brand', 'model', 'city', 'country', 'category', 'media']))
+            ], 200);
+        } catch (Exception $e) {
+            Log::error('Error publishing ad: ' . $e->getMessage());
+            DB::rollBack();
+            
+            return response()->json([
+                'status' => 'error',
+                'code' => 500,
+                'message' => 'Failed to publish ad',
+                'errors' => ['server' => ['An error occurred while publishing the ad']]
+            ], 500);
+        }
+    }
+
+    /**
+     * Unpublish ad (set status to draft)
+     */
+    public function unpublish($id): JsonResponse
+    {
+        $ad = Ad::find($id);
+        
+        if (!$ad || $ad->type !== 'normal') {
+            return response()->json([
+                'status' => 'error',
+                'code' => 404,
+                'message' => 'Ad not found',
+                'errors' => ['ad' => ['Ad not found or is not a normal ad']]
+            ], 404);
+        }
+
+        // Authorization check - owner or admin can unpublish
+        if (auth()->id() !== $ad->user_id && !auth()->user()->isAdmin()) {
+            return response()->json([
+                'status' => 'error',
+                'code' => 403,
+                'message' => 'Unauthorized',
+                'errors' => ['authorization' => ['You do not have permission to unpublish this ad']]
+            ], 403);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $ad->update([
+                'status' => 'draft',
+                'updated_at' => now()
+            ]);
+
+            $ad->normalAd()->update([
+                'update_time' => now()
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Ad unpublished successfully',
+                'data' => new NormalAdResource($ad->load(['normalAd', 'user', 'brand', 'model', 'city', 'country', 'category', 'media']))
+            ], 200);
+        } catch (Exception $e) {
+            Log::error('Error unpublishing ad: ' . $e->getMessage());
+            DB::rollBack();
+            
+            return response()->json([
+                'status' => 'error',
+                'code' => 500,
+                'message' => 'Failed to unpublish ad',
+                'errors' => ['server' => ['An error occurred while unpublishing the ad']]
+            ], 500);
+        }
+    }
+
+    /**
+     * Expire ad (set status to expired)
+     */
+    public function expire($id): JsonResponse
+    {
+        $ad = Ad::find($id);
+        
+        if (!$ad || $ad->type !== 'normal') {
+            return response()->json([
+                'status' => 'error',
+                'code' => 404,
+                'message' => 'Ad not found',
+                'errors' => ['ad' => ['Ad not found or is not a normal ad']]
+            ], 404);
+        }
+
+        // Authorization check - owner or admin can expire
+        if (auth()->id() !== $ad->user_id && !auth()->user()->isAdmin()) {
+            return response()->json([
+                'status' => 'error',
+                'code' => 403,
+                'message' => 'Unauthorized',
+                'errors' => ['authorization' => ['You do not have permission to expire this ad']]
+            ], 403);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $ad->update([
+                'status' => 'expired',
+                'updated_at' => now()
+            ]);
+
+            $ad->normalAd()->update([
+                'update_time' => now()
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Ad expired successfully',
+                'data' => new NormalAdResource($ad->load(['normalAd', 'user', 'brand', 'model', 'city', 'country', 'category', 'media']))
+            ], 200);
+        } catch (Exception $e) {
+            Log::error('Error expiring ad: ' . $e->getMessage());
+            DB::rollBack();
+            
+            return response()->json([
+                'status' => 'error',
+                'code' => 500,
+                'message' => 'Failed to expire ad',
+                'errors' => ['server' => ['An error occurred while expiring the ad']]
+            ], 500);
+        }
+    }
+
+    /**
+     * Archive ad (set status to removed)
+     */
+    public function archive($id): JsonResponse
+    {
+        $ad = Ad::find($id);
+        
+        if (!$ad || $ad->type !== 'normal') {
+            return response()->json([
+                'status' => 'error',
+                'code' => 404,
+                'message' => 'Ad not found',
+                'errors' => ['ad' => ['Ad not found or is not a normal ad']]
+            ], 404);
+        }
+
+        // Authorization check - owner or admin can archive
+        if (auth()->id() !== $ad->user_id && !auth()->user()->isAdmin()) {
+            return response()->json([
+                'status' => 'error',
+                'code' => 403,
+                'message' => 'Unauthorized',
+                'errors' => ['authorization' => ['You do not have permission to archive this ad']]
+            ], 403);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $ad->update([
+                'status' => 'removed',
+                'updated_at' => now()
+            ]);
+
+            $ad->normalAd()->update([
+                'update_time' => now()
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Ad archived successfully',
+                'data' => new NormalAdResource($ad->load(['normalAd', 'user', 'brand', 'model', 'city', 'country', 'category', 'media']))
+            ], 200);
+        } catch (Exception $e) {
+            Log::error('Error archiving ad: ' . $e->getMessage());
+            DB::rollBack();
+            
+            return response()->json([
+                'status' => 'error',
+                'code' => 500,
+                'message' => 'Failed to archive ad',
+                'errors' => ['server' => ['An error occurred while archiving the ad']]
+            ], 500);
+        }
+    }
+
+    /**
+     * Restore ad (set status to draft)
+     */
+    public function restore($id): JsonResponse
+    {
+        $ad = Ad::withTrashed()->find($id);
+        
+        if (!$ad || $ad->type !== 'normal') {
+            return response()->json([
+                'status' => 'error',
+                'code' => 404,
+                'message' => 'Ad not found',
+                'errors' => ['ad' => ['Ad not found or is not a normal ad']]
+            ], 404);
+        }
+
+        // Authorization check - owner or admin can restore
+        if (auth()->id() !== $ad->user_id && !auth()->user()->isAdmin()) {
+            return response()->json([
+                'status' => 'error',
+                'code' => 403,
+                'message' => 'Unauthorized',
+                'errors' => ['authorization' => ['You do not have permission to restore this ad']]
+            ], 403);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            // If soft deleted, restore it
+            if ($ad->trashed()) {
+                $ad->restore();
+            }
+
+            $ad->update([
+                'status' => 'draft',
+                'updated_at' => now()
+            ]);
+
+            $ad->normalAd()->update([
+                'update_time' => now()
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Ad restored successfully',
+                'data' => new NormalAdResource($ad->load(['normalAd', 'user', 'brand', 'model', 'city', 'country', 'category', 'media']))
+            ], 200);
+        } catch (Exception $e) {
+            Log::error('Error restoring ad: ' . $e->getMessage());
+            DB::rollBack();
+            
+            return response()->json([
+                'status' => 'error',
+                'code' => 500,
+                'message' => 'Failed to restore ad',
+                'errors' => ['server' => ['An error occurred while restoring the ad']]
+            ], 500);
+        }
+    }
+
+    /**
+     * Get ad statistics
+     */
+    public function stats($id): JsonResponse
+    {
+        $ad = Ad::find($id);
+        
+        if (!$ad || $ad->type !== 'normal') {
+            return response()->json([
+                'status' => 'error',
+                'code' => 404,
+                'message' => 'Ad not found',
+                'errors' => ['ad' => ['Ad not found or is not a normal ad']]
+            ], 404);
+        }
+
+        // Authorization check - owner or admin can view stats
+        if (auth()->id() !== $ad->user_id && !auth()->user()->isAdmin()) {
+            return response()->json([
+                'status' => 'error',
+                'code' => 403,
+                'message' => 'Unauthorized',
+                'errors' => ['authorization' => ['You do not have permission to view this ad\'s statistics']]
+            ], 403);
+        }
+
+        $stats = [
+            'views' => $ad->views_count ?? 0,
+            'contacts' => 0, // TODO: Implement contact tracking
+            'impressions' => 0, // TODO: Implement impression tracking
+            'created_at' => $ad->created_at,
+            'last_updated' => $ad->updated_at,
+            'status' => $ad->status
+        ];
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Ad statistics retrieved successfully',
+            'data' => $stats
+        ], 200);
+    }
+
+    /**
+     * Get global ad statistics (admin only)
+     */
+    public function globalStats(): JsonResponse
+    {
+        // Check if user is admin
+        if (!auth()->user()->isAdmin()) {
+            return response()->json([
+                'status' => 'error',
+                'code' => 403,
+                'message' => 'Unauthorized',
+                'errors' => ['authorization' => ['Only admins can access global statistics']]
+            ], 403);
+        }
+
+        $stats = [
+            'total_ads' => Ad::where('type', 'normal')->count(),
+            'published_ads' => Ad::where('type', 'normal')->where('status', 'published')->count(),
+            'draft_ads' => Ad::where('type', 'normal')->where('status', 'draft')->count(),
+            'pending_ads' => Ad::where('type', 'normal')->where('status', 'pending')->count(),
+            'expired_ads' => Ad::where('type', 'normal')->where('status', 'expired')->count(),
+            'removed_ads' => Ad::where('type', 'normal')->where('status', 'removed')->count(),
+            'total_views' => Ad::where('type', 'normal')->sum('views_count'),
+            'ads_today' => Ad::where('type', 'normal')->whereDate('created_at', today())->count(),
+            'ads_this_week' => Ad::where('type', 'normal')->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()])->count(),
+            'ads_this_month' => Ad::where('type', 'normal')->whereMonth('created_at', now()->month)->whereYear('created_at', now()->year)->count()
+        ];
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Global statistics retrieved successfully',
+            'data' => $stats
+        ], 200);
+    }
+
+    /**
+     * List public ads by user
+     */
+    public function listByUser($userId): AnonymousResourceCollection
+    {
+        $query = Ad::where('type', 'normal')
+            ->where('user_id', $userId)
+            ->where('status', 'published') // Only show published ads publicly
+            ->with(['normalAd', 'user', 'brand', 'model', 'city', 'country', 'category', 'media']);
+
+        // Sort by created_at desc by default
+        $query->orderBy('created_at', 'desc');
+
+        $limit = min(request()->get('limit', 15), 50);
+        $ads = $query->paginate($limit);
+
+        return NormalAdResource::collection($ads);
+    }
+
+    /**
+     * Add ad to favorites
+     */
+    public function favorite($id): JsonResponse
+    {
+        $ad = Ad::find($id);
+        
+        if (!$ad || $ad->type !== 'normal') {
+            return response()->json([
+                'status' => 'error',
+                'code' => 404,
+                'message' => 'Ad not found',
+                'errors' => ['ad' => ['Ad not found or is not a normal ad']]
+            ], 404);
+        }
+
+        $user = auth()->user();
+
+        // Check if already favorited
+        if ($user->favorites()->where('ad_id', $ad->id)->exists()) {
+            return response()->json([
+                'status' => 'error',
+                'code' => 409,
+                'message' => 'Ad already in favorites',
+                'errors' => ['favorite' => ['This ad is already in your favorites']]
+            ], 409);
+        }
+
+        $user->favorites()->attach($ad->id, ['created_at' => now(), 'updated_at' => now()]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Ad added to favorites successfully'
+        ], 200);
+    }
+
+    /**
+     * Remove ad from favorites
+     */
+    public function unfavorite($id): JsonResponse
+    {
+        $ad = Ad::find($id);
+        
+        if (!$ad || $ad->type !== 'normal') {
+            return response()->json([
+                'status' => 'error',
+                'code' => 404,
+                'message' => 'Ad not found',
+                'errors' => ['ad' => ['Ad not found or is not a normal ad']]
+            ], 404);
+        }
+
+        $user = auth()->user();
+
+        // Check if not favorited
+        if (!$user->favorites()->where('ad_id', $ad->id)->exists()) {
+            return response()->json([
+                'status' => 'error',
+                'code' => 404,
+                'message' => 'Ad not in favorites',
+                'errors' => ['favorite' => ['This ad is not in your favorites']]
+            ], 404);
+        }
+
+        $user->favorites()->detach($ad->id);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Ad removed from favorites successfully'
+        ], 200);
+    }
+
+    /**
+     * Contact seller
+     */
+    public function contactSeller($id): JsonResponse
+    {
+        $ad = Ad::find($id);
+        
+        if (!$ad || $ad->type !== 'normal') {
+            return response()->json([
+                'status' => 'error',
+                'code' => 404,
+                'message' => 'Ad not found',
+                'errors' => ['ad' => ['Ad not found or is not a normal ad']]
+            ], 404);
+        }
+
+        if ($ad->status !== 'published') {
+            return response()->json([
+                'status' => 'error',
+                'code' => 403,
+                'message' => 'Ad not available for contact',
+                'errors' => ['ad' => ['This ad is not published and cannot be contacted']]
+            ], 403);
+        }
+
+        // TODO: Implement contact tracking and rate limiting
+        // TODO: Send notification to seller
+
+        $contactInfo = [
+            'seller_name' => $ad->user->name,
+            'contact_phone' => $ad->contact_phone,
+            'whatsapp_number' => $ad->whatsapp_number,
+            'ad_title' => $ad->title
+        ];
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Contact information retrieved successfully',
+            'data' => $contactInfo
+        ], 200);
+    }
+
+    /**
+     * Bulk operations (admin only)
+     */
+    public function bulkAction(Request $request): JsonResponse
+    {
+        // Check if user is admin
+        if (!auth()->user()->isAdmin()) {
+            return response()->json([
+                'status' => 'error',
+                'code' => 403,
+                'message' => 'Unauthorized',
+                'errors' => ['authorization' => ['Only admins can perform bulk operations']]
+            ], 403);
+        }
+
+        $request->validate([
+            'action' => 'required|in:publish,unpublish,expire,archive,restore,delete',
+            'ad_ids' => 'required|array|min:1',
+            'ad_ids.*' => 'integer|exists:ads,id'
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $ads = Ad::whereIn('id', $request->ad_ids)->where('type', 'normal')->get();
+            
+            if ($ads->isEmpty()) {
+                return response()->json([
+                    'status' => 'error',
+                    'code' => 404,
+                    'message' => 'No valid ads found',
+                    'errors' => ['ads' => ['No valid normal ads found for the provided IDs']]
+                ], 404);
+            }
+
+            $updated = 0;
+            foreach ($ads as $ad) {
+                switch ($request->action) {
+                    case 'publish':
+                        $ad->update(['status' => 'published']);
+                        break;
+                    case 'unpublish':
+                        $ad->update(['status' => 'draft']);
+                        break;
+                    case 'expire':
+                        $ad->update(['status' => 'expired']);
+                        break;
+                    case 'archive':
+                        $ad->update(['status' => 'removed']);
+                        break;
+                    case 'restore':
+                        if ($ad->trashed()) {
+                            $ad->restore();
+                        }
+                        $ad->update(['status' => 'draft']);
+                        break;
+                    case 'delete':
+                        $ad->delete();
+                        break;
+                }
+                
+                if (in_array($request->action, ['publish', 'unpublish', 'expire', 'archive', 'restore'])) {
+                    $ad->normalAd()->update(['update_time' => now()]);
+                }
+                
+                $updated++;
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => "Bulk {$request->action} completed successfully",
+                'data' => [
+                    'action' => $request->action,
+                    'updated_count' => $updated
+                ]
+            ], 200);
+        } catch (Exception $e) {
+            Log::error('Error in bulk action: ' . $e->getMessage());
+            DB::rollBack();
+            
+            return response()->json([
+                'status' => 'error',
+                'code' => 500,
+                'message' => 'Failed to perform bulk action',
+                'errors' => ['server' => ['An error occurred while performing the bulk action']]
+            ], 500);
+        }
+    }
+
+    /**
+     * List authenticated user's favorite normal ads
+     */
+    public function favorites(Request $request)
+    {
+        $user = auth()->user();
+
+        $favoriteIds = $user->favorites()->pluck('ad_id')->toArray();
+
+        $query = Ad::where('type', 'normal')
+            ->whereIn('id', $favoriteIds)
+            ->with(['normalAd', 'user', 'brand', 'model', 'city', 'country', 'category', 'media'])
+            ->orderBy('created_at', 'desc');
+
+        $limit = min($request->get('limit', 15), 50);
+        $ads = $query->paginate($limit);
+
+        return NormalAdResource::collection($ads);
+    }
 }

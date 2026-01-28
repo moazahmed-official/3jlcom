@@ -66,10 +66,26 @@ Route::prefix('v1')->group(function () {
         // Normal Ads routes (authenticated)
         Route::get('normal-ads/my-ads', [NormalAdsController::class, 'myAds']); // User's ads with all statuses
         Route::get('normal-ads/admin', [NormalAdsController::class, 'adminIndex']); // Admin: all ads with all statuses
+        Route::get('normal-ads/stats', [NormalAdsController::class, 'globalStats']); // Admin: global statistics
+        Route::get('normal-ads/favorites', [NormalAdsController::class, 'favorites']); // Authenticated user's favorites
+        Route::post('normal-ads/actions/bulk', [NormalAdsController::class, 'bulkAction']); // Admin: bulk operations
         Route::post('normal-ads', [NormalAdsController::class, 'store']);
         Route::put('normal-ads/{ad}', [NormalAdsController::class, 'update']);
         Route::delete('normal-ads/{ad}', [NormalAdsController::class, 'destroy']);
+        
+        // Ad lifecycle actions
         Route::post('normal-ads/{ad}/actions/republish', [NormalAdsController::class, 'republish']);
+        Route::post('normal-ads/{ad}/actions/publish', [NormalAdsController::class, 'publish']);
+        Route::post('normal-ads/{ad}/actions/unpublish', [NormalAdsController::class, 'unpublish']);
+        Route::post('normal-ads/{ad}/actions/expire', [NormalAdsController::class, 'expire']);
+        Route::post('normal-ads/{ad}/actions/archive', [NormalAdsController::class, 'archive']);
+        Route::post('normal-ads/{ad}/actions/restore', [NormalAdsController::class, 'restore']);
+        
+        // Ad statistics and interactions
+        Route::get('normal-ads/{ad}/stats', [NormalAdsController::class, 'stats']);
+        Route::post('normal-ads/{ad}/favorite', [NormalAdsController::class, 'favorite']);
+        Route::delete('normal-ads/{ad}/favorite', [NormalAdsController::class, 'unfavorite']);
+        Route::post('normal-ads/{ad}/contact', [NormalAdsController::class, 'contactSeller']);
     });
 
     // Public brand routes
@@ -79,6 +95,7 @@ Route::prefix('v1')->group(function () {
     // Public Normal Ads routes (no authentication required)
     Route::get('normal-ads', [NormalAdsController::class, 'index']);
     Route::get('normal-ads/{ad}', [NormalAdsController::class, 'show']);
+    Route::get('users/{user}/normal-ads', [NormalAdsController::class, 'listByUser']); // Public ads by user
 
     Route::apiResource('unique-ads', UniqueAdsController::class);
     Route::apiResource('caishha-ads', CaishhaAdsController::class);
