@@ -3,71 +3,546 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use App\Http\Requests\StoreNormalAdRequest;
+use App\Http\Requests\UpdateNormalAdRequest;
+use App\Http\Resources\NormalAdResource;
 use App\Models\Ad;
 use App\Models\NormalAd;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class NormalAdsController extends Controller
 {
-    public function index(Request $request)
+    public function index(Request $request): AnonymousResourceCollection
     {
-        $query = Ad::where('type', 'normal')->with('normalAd');
+        $query = Ad::where('type', 'normal')
+            ->with(['normalAd', 'user', 'brand', 'model', 'city', 'country', 'category', 'media'])
+            ->where('status', 'published'); // Only show published ads
+
+        // Filter by brand
         if ($request->filled('brand_id')) {
             $query->where('brand_id', $request->brand_id);
         }
-        $ads = $query->paginate($request->get('limit', 15));
-        return response()->json($ads);
+
+        // Filter by model
+        if ($request->filled('model_id')) {
+            $query->where('model_id', $request->model_id);
+        }
+
+        // Filter by city
+        if ($request->filled('city_id')) {
+            $query->where('city_id', $request->city_id);
+        }
+
+        // Filter by country
+        if ($request->filled('country_id')) {
+            $query->where('country_id', $request->country_id);
+        }
+
+        // Filter by price range
+        if ($request->filled('min_price')) {
+            $query->whereHas('normalAd', function ($q) use ($request) {
+                $q->where('price_cash', '>=', $request->min_price);
+            });
+        }
+
+        if ($request->filled('max_price')) {
+            $query->whereHas('normalAd', function ($q) use ($request) {
+                $q->where('price_cash', '<=', $request->max_price);
+            });
+        }
+
+        // Filter by year range
+        if ($request->filled('min_year')) {
+            $query->where('year', '>=', $request->min_year);
+        }
+
+        if ($request->filled('max_year')) {
+            $query->where('year', '<=', $request->max_year);
+        }
+
+        // Search by title or description
+        if ($request->filled('search')) {
+            $searchTerm = $request->search;
+            $query->where(function ($q) use ($searchTerm) {
+                $q->where('title', 'like', "%{$searchTerm}%")
+                  ->orWhere('description', 'like', "%{$searchTerm}%");
+            });
+        }
+
+        // Sort options
+        $sortBy = $request->get('sort_by', 'created_at');
+        $sortDirection = $request->get('sort_direction', 'desc');
+
+        if (in_array($sortBy, ['created_at', 'updated_at', 'views_count', 'title'])) {
+            $query->orderBy($sortBy, $sortDirection);
+        } else {
+            $query->orderBy('created_at', 'desc');
+        }
+
+        $limit = min($request->get('limit', 15), 50); // Max 50 per page
+        $ads = $query->paginate($limit);
+
+        return NormalAdResource::collection($ads);
     }
 
-    public function store(Request $request)
+    /**
+     * Get all ads for the authenticated user (all statuses)
+     */
+    public function myAds(Request $request)
     {
-        $ad = Ad::create(array_merge($request->only(['user_id','title','description','category_id','city_id','country_id','brand_id','model_id','year']), ['type' => 'normal']));
-        NormalAd::create(array_merge(['ad_id' => $ad->id], $request->only(['price_cash','installment_id','start_time','update_time'])));
-        return response()->json(['success' => true, 'data' => $ad], 201);
+        $query = Ad::where('type', 'normal')
+            ->where('user_id', auth()->id())
+            ->with(['normalAd', 'user', 'brand', 'model', 'city', 'country', 'category', 'media']);
+
+        // Filter by status if provided
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        // Filter by brand
+        if ($request->filled('brand_id')) {
+            $query->where('brand_id', $request->brand_id);
+        }
+
+        // Search by title or description
+        if ($request->filled('search')) {
+            $searchTerm = $request->search;
+            $query->where(function ($q) use ($searchTerm) {
+                $q->where('title', 'like', "%{$searchTerm}%")
+                  ->orWhere('description', 'like', "%{$searchTerm}%");
+            });
+        }
+
+        // Sort options
+        $sortBy = $request->get('sort_by', 'created_at');
+        $sortDirection = $request->get('sort_direction', 'desc');
+
+        if (in_array($sortBy, ['created_at', 'updated_at', 'views_count', 'title', 'status'])) {
+            $query->orderBy($sortBy, $sortDirection);
+        } else {
+            $query->orderBy('created_at', 'desc');
+        }
+
+        $limit = min($request->get('limit', 15), 50);
+        $ads = $query->paginate($limit);
+
+        return NormalAdResource::collection($ads);
     }
 
-    public function show($id)
+    /**
+     * Get all ads for admin (all statuses, all users)
+     */
+    public function adminIndex(Request $request)
     {
-        $ad = Ad::with('normalAd','media')->findOrFail($id);
-        if ($ad->type !== 'normal') {
-            return response()->json(['error' => 'Ad is not a normal ad'], 400);
+        // Check if user is admin
+        if (!auth()->user()->isAdmin()) {
+            return response()->json([
+                'status' => 'error',
+                'code' => 403,
+                'message' => 'Unauthorized',
+                'errors' => ['authorization' => ['Only admins can access this endpoint']]
+            ], 403);
         }
-        return response()->json($ad);
+
+        $query = Ad::where('type', 'normal')
+            ->with(['normalAd', 'user', 'brand', 'model', 'city', 'country', 'category', 'media']);
+
+        // Filter by status if provided
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        // Filter by user
+        if ($request->filled('user_id')) {
+            $query->where('user_id', $request->user_id);
+        }
+
+        // Filter by brand
+        if ($request->filled('brand_id')) {
+            $query->where('brand_id', $request->brand_id);
+        }
+
+        // Filter by model
+        if ($request->filled('model_id')) {
+            $query->where('model_id', $request->model_id);
+        }
+
+        // Filter by city
+        if ($request->filled('city_id')) {
+            $query->where('city_id', $request->city_id);
+        }
+
+        // Filter by country
+        if ($request->filled('country_id')) {
+            $query->where('country_id', $request->country_id);
+        }
+
+        // Search by title or description
+        if ($request->filled('search')) {
+            $searchTerm = $request->search;
+            $query->where(function ($q) use ($searchTerm) {
+                $q->where('title', 'like', "%{$searchTerm}%")
+                  ->orWhere('description', 'like', "%{$searchTerm}%");
+            });
+        }
+
+        // Sort options
+        $sortBy = $request->get('sort_by', 'created_at');
+        $sortDirection = $request->get('sort_direction', 'desc');
+
+        if (in_array($sortBy, ['created_at', 'updated_at', 'views_count', 'title', 'status', 'user_id'])) {
+            $query->orderBy($sortBy, $sortDirection);
+        } else {
+            $query->orderBy('created_at', 'desc');
+        }
+
+        $limit = min($request->get('limit', 15), 50);
+        $ads = $query->paginate($limit);
+
+        return NormalAdResource::collection($ads);
     }
 
-    public function update(Request $request, $id)
+    public function store(StoreNormalAdRequest $request): JsonResponse
     {
-        $ad = Ad::findOrFail($id);
-        if ($ad->type !== 'normal') {
-            return response()->json(['error' => 'Ad is not a normal ad'], 400);
+        try {
+            DB::beginTransaction();
+
+            // Determine user_id - admin can create for other users, regular user only for themselves
+            $userId = $request->user_id ?? auth()->id();
+            
+            // Authorization check - only admins can create ads for other users
+            if ($userId !== auth()->id() && !auth()->user()->isAdmin()) {
+                return response()->json([
+                    'status' => 'error',
+                    'code' => 403,
+                    'message' => 'Unauthorized',
+                    'errors' => ['authorization' => ['Only admins can create ads for other users']]
+                ], 403);
+            }
+
+            // Create the main ad record
+            $ad = Ad::create([
+                'user_id' => $userId,
+                'type' => 'normal',
+                'title' => $request->title,
+                'description' => $request->description,
+                'category_id' => $request->category_id,
+                'city_id' => $request->city_id,
+                'country_id' => $request->country_id,
+                'brand_id' => $request->brand_id,
+                'model_id' => $request->model_id,
+                'year' => $request->year,
+                'contact_phone' => $request->contact_phone,
+                'whatsapp_number' => $request->whatsapp_number,
+                'status' => 'published', // Publish immediately
+                'period_days' => 30, // Default period
+            ]);
+
+            // Create the normal ad specific record
+            NormalAd::create([
+                'ad_id' => $ad->id,
+                'price_cash' => $request->price_cash,
+                'installment_id' => $request->installment_id,
+                'start_time' => now(),
+                'update_time' => now(),
+            ]);
+
+            // Attach media if provided
+            if ($request->has('media_ids') && !empty($request->media_ids)) {
+                $ad->media()->sync($request->media_ids);
+                
+                // Update media to mark them as associated with ads
+                \App\Models\Media::whereIn('id', $request->media_ids)
+                    ->update([
+                        'related_resource' => 'ads',
+                        'related_id' => $ad->id
+                    ]);
+            }
+
+            DB::commit();
+
+            // Load relationships for response
+            $ad->load(['normalAd', 'user', 'brand', 'model', 'city', 'country', 'category', 'media']);
+
+            Log::info('Normal ad created successfully', [
+                'ad_id' => $ad->id,
+                'user_id' => auth()->id(),
+                'title' => $ad->title
+            ]);
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Ad created successfully',
+                'data' => new NormalAdResource($ad)
+            ], 201);
+
+        } catch (\Exception $e) {
+            DB::rollback();
+
+            Log::error('Normal ad creation failed', [
+                'error' => $e->getMessage(),
+                'user_id' => auth()->id(),
+                'request_data' => $request->validated()
+            ]);
+
+            return response()->json([
+                'status' => 'error',
+                'code' => 500,
+                'message' => 'Failed to create ad',
+                'errors' => ['general' => ['An unexpected error occurred while creating the ad']]
+            ], 500);
         }
-        $ad->update($request->only(['title','description','brand_id','model_id','year']));
-        $normal = $ad->normalAd;
-        if ($normal) {
-            $normal->update($request->only(['price_cash','installment_id']));
-        }
-        return response()->json($ad->fresh());
     }
 
-    public function destroy($id)
+    public function show($id): JsonResponse
     {
-        $ad = Ad::findOrFail($id);
-        if ($ad->type !== 'normal') {
-            return response()->json(['error' => 'Ad is not a normal ad'], 400);
+        $ad = Ad::where('type', 'normal')
+            ->with(['normalAd', 'user', 'brand', 'model', 'city', 'country', 'category', 'media'])
+            ->find($id);
+
+        if (!$ad) {
+            return response()->json([
+                'status' => 'error',
+                'code' => 404,
+                'message' => 'Ad not found',
+                'errors' => ['ad' => ['The requested ad does not exist']]
+            ], 404);
         }
-        $ad->delete();
-        return response()->noContent();
+
+        // Increment view count if not viewing own ad
+        if (!auth()->check() || auth()->id() !== $ad->user_id) {
+            $ad->increment('views_count');
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'data' => new NormalAdResource($ad)
+        ]);
     }
 
-    public function republish($id)
+    public function update(UpdateNormalAdRequest $request, $id): JsonResponse
     {
-        // enqueue republish job or update timestamps — placeholder
-        $ad = Ad::findOrFail($id);
-        if ($ad->type !== 'normal') {
-            return response()->json(['error' => 'Ad is not a normal ad'], 400);
+        $ad = Ad::where('type', 'normal')->find($id);
+
+        if (!$ad) {
+            return response()->json([
+                'status' => 'error',
+                'code' => 404,
+                'message' => 'Ad not found',
+                'errors' => ['ad' => ['The requested ad does not exist']]
+            ], 404);
         }
-        // simple action: touch updated_at
-        $ad->touch();
-        return response()->json(['success' => true]);
+
+        // Authorization check - owner or admin can update
+        if (auth()->id() !== $ad->user_id && !auth()->user()->isAdmin()) {
+            return response()->json([
+                'status' => 'error',
+                'code' => 403,
+                'message' => 'Unauthorized',
+                'errors' => ['authorization' => ['You do not have permission to update this ad']]
+            ], 403);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            // Update main ad fields
+            $adData = $request->only([
+                'title', 'description', 'brand_id', 'model_id', 'year', 
+                'contact_phone', 'whatsapp_number', 'status'
+            ]);
+            
+            if (!empty($adData)) {
+                $ad->update($adData);
+            }
+
+            // Update normal ad specific fields
+            $normalAdData = $request->only(['price_cash', 'installment_id']);
+            if (!empty($normalAdData)) {
+                $normalAdData['update_time'] = now();
+                $ad->normalAd->update($normalAdData);
+            }
+
+            // Update media associations if provided
+            if ($request->has('media_ids')) {
+                // Remove old media associations
+                $ad->media()->sync([]);
+                
+                // Add new media associations
+                if (!empty($request->media_ids)) {
+                    $ad->media()->sync($request->media_ids);
+                    
+                    // Update media to mark them as associated with this ad
+                    \App\Models\Media::whereIn('id', $request->media_ids)
+                        ->update([
+                            'related_resource' => 'ads',
+                            'related_id' => $ad->id
+                        ]);
+                }
+            }
+
+            DB::commit();
+
+            // Load relationships for response
+            $ad->load(['normalAd', 'user', 'brand', 'model', 'city', 'country', 'category', 'media']);
+
+            Log::info('Normal ad updated successfully', [
+                'ad_id' => $ad->id,
+                'user_id' => auth()->id(),
+                'updated_fields' => array_keys($request->validated())
+            ]);
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Ad updated successfully',
+                'data' => new NormalAdResource($ad)
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollback();
+
+            Log::error('Normal ad update failed', [
+                'error' => $e->getMessage(),
+                'ad_id' => $ad->id,
+                'user_id' => auth()->id(),
+                'request_data' => $request->validated()
+            ]);
+
+            return response()->json([
+                'status' => 'error',
+                'code' => 500,
+                'message' => 'Failed to update ad',
+                'errors' => ['general' => ['An unexpected error occurred while updating the ad']]
+            ], 500);
+        }
+    }
+
+    public function destroy($id): JsonResponse
+    {
+        $ad = Ad::where('type', 'normal')->find($id);
+
+        if (!$ad) {
+            return response()->json([
+                'status' => 'error',
+                'code' => 404,
+                'message' => 'Ad not found',
+                'errors' => ['ad' => ['The requested ad does not exist']]
+            ], 404);
+        }
+
+        // Authorization check - owner or admin can delete
+        if (auth()->id() !== $ad->user_id && !auth()->user()->isAdmin()) {
+            return response()->json([
+                'status' => 'error',
+                'code' => 403,
+                'message' => 'Unauthorized',
+                'errors' => ['authorization' => ['You do not have permission to delete this ad']]
+            ], 403);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            // Remove media associations
+            $ad->media()->detach();
+
+            // Delete related normal ad record
+            $ad->normalAd?->delete();
+
+            // Delete the main ad record
+            $ad->delete();
+
+            DB::commit();
+
+            Log::info('Normal ad deleted successfully', [
+                'ad_id' => $ad->id,
+                'user_id' => auth()->id()
+            ]);
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Ad deleted successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollback();
+
+            Log::error('Normal ad deletion failed', [
+                'error' => $e->getMessage(),
+                'ad_id' => $ad->id,
+                'user_id' => auth()->id()
+            ]);
+
+            return response()->json([
+                'status' => 'error',
+                'code' => 500,
+                'message' => 'Failed to delete ad',
+                'errors' => ['general' => ['An unexpected error occurred while deleting the ad']]
+            ], 500);
+        }
+    }
+
+    public function republish($id): JsonResponse
+    {
+        $ad = Ad::where('type', 'normal')->find($id);
+
+        if (!$ad) {
+            return response()->json([
+                'status' => 'error',
+                'code' => 404,
+                'message' => 'Ad not found',
+                'errors' => ['ad' => ['The requested ad does not exist']]
+            ], 404);
+        }
+
+        // Authorization check - owner or admin can republish
+        if (auth()->id() !== $ad->user_id && !auth()->user()->isAdmin()) {
+            return response()->json([
+                'status' => 'error',
+                'code' => 403,
+                'message' => 'Unauthorized',
+                'errors' => ['authorization' => ['You do not have permission to republish this ad']]
+            ], 403);
+        }
+
+        try {
+            // Update timestamps to push ad to top
+            $ad->touch();
+            $ad->normalAd?->update(['update_time' => now()]);
+
+            // Set status to published if it was expired or draft
+            if (in_array($ad->status, ['expired', 'draft', 'removed'])) {
+                $ad->update(['status' => 'published']);
+            }
+
+            Log::info('Normal ad republished successfully', [
+                'ad_id' => $ad->id,
+                'user_id' => auth()->id()
+            ]);
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Ad republished successfully',
+                'data' => ['republished_at' => now()->toISOString()]
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Normal ad republish failed', [
+                'error' => $e->getMessage(),
+                'ad_id' => $ad->id,
+                'user_id' => auth()->id()
+            ]);
+
+            return response()->json([
+                'status' => 'error',
+                'code' => 500,
+                'message' => 'Failed to republish ad',
+                'errors' => ['general' => ['An unexpected error occurred while republishing the ad']]
+            ], 500);
+        }
     }
 }

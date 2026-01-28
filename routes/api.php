@@ -62,14 +62,23 @@ Route::prefix('v1')->group(function () {
         Route::get('/media/{media}', [MediaController::class, 'show']);
         Route::patch('/media/{media}', [MediaController::class, 'update']);
         Route::delete('/media/{media}', [MediaController::class, 'destroy']);
+        
+        // Normal Ads routes (authenticated)
+        Route::get('normal-ads/my-ads', [NormalAdsController::class, 'myAds']); // User's ads with all statuses
+        Route::get('normal-ads/admin', [NormalAdsController::class, 'adminIndex']); // Admin: all ads with all statuses
+        Route::post('normal-ads', [NormalAdsController::class, 'store']);
+        Route::put('normal-ads/{ad}', [NormalAdsController::class, 'update']);
+        Route::delete('normal-ads/{ad}', [NormalAdsController::class, 'destroy']);
+        Route::post('normal-ads/{ad}/actions/republish', [NormalAdsController::class, 'republish']);
     });
 
     // Public brand routes
     Route::get('/brands', [BrandController::class, 'index']);
     Route::get('/brands/{brand}/models', [BrandController::class, 'models']);
 
-    Route::apiResource('normal-ads', NormalAdsController::class);
-    Route::post('normal-ads/{ad}/actions/republish', [NormalAdsController::class, 'republish']);
+    // Public Normal Ads routes (no authentication required)
+    Route::get('normal-ads', [NormalAdsController::class, 'index']);
+    Route::get('normal-ads/{ad}', [NormalAdsController::class, 'show']);
 
     Route::apiResource('unique-ads', UniqueAdsController::class);
     Route::apiResource('caishha-ads', CaishhaAdsController::class);
