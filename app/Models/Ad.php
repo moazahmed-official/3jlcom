@@ -14,13 +14,18 @@ class Ad extends Model
 
     protected $fillable = [
         'user_id', 'type', 'title', 'description', 'category_id', 'brand_id', 'model_id', 
-        'city_id', 'country_id', 'year', 'status', 'views_count', 'contact_phone', 
-        'whatsapp_number', 'media_count', 'period_days', 'is_pushed_facebook'
+        'city_id', 'country_id', 'year', 'status', 'views_count', 'contact_count',
+        'contact_phone', 'whatsapp_number', 'media_count', 'period_days', 'is_pushed_facebook',
+        'published_at', 'expired_at', 'archived_at'
     ];
 
     protected $casts = [
         'views_count' => 'integer',
+        'contact_count' => 'integer',
         'year' => 'integer',
+        'published_at' => 'datetime',
+        'expired_at' => 'datetime',
+        'archived_at' => 'datetime',
     ];
 
     public function normalAd()

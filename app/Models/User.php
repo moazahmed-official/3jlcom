@@ -68,6 +68,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Alias for favorites() - Get the user's favorited ads.
+     */
+    public function favoriteAds()
+    {
+        return $this->favorites();
+    }
+
+    /**
      * Check if the user has a specific role.
      */
     public function hasRole(string $role): bool

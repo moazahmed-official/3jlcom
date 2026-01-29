@@ -86,18 +86,42 @@ Route::prefix('v1')->group(function () {
         Route::post('normal-ads/{ad}/favorite', [NormalAdsController::class, 'favorite']);
         Route::delete('normal-ads/{ad}/favorite', [NormalAdsController::class, 'unfavorite']);
         Route::post('normal-ads/{ad}/contact', [NormalAdsController::class, 'contactSeller']);
+        
+        // Convert normal ad to unique ad
+        Route::post('normal-ads/{ad}/actions/convert-to-unique', [NormalAdsController::class, 'convertToUnique']);
 
         // Unique Ads routes (authenticated)
         Route::get('unique-ads/my-ads', [UniqueAdsController::class, 'myAds']); // User's ads with all statuses
         Route::get('unique-ads/admin', [UniqueAdsController::class, 'adminIndex']); // Admin: all ads with all statuses
+        Route::get('unique-ads/stats', [UniqueAdsController::class, 'globalStats']); // Admin: global statistics
+        Route::get('unique-ads/favorites', [UniqueAdsController::class, 'favorites']); // Authenticated user's favorites
+        Route::post('unique-ads/actions/bulk', [UniqueAdsController::class, 'bulkAction']); // Admin: bulk operations
         Route::post('unique-ads', [UniqueAdsController::class, 'store']);
         Route::put('unique-ads/{ad}', [UniqueAdsController::class, 'update']);
         Route::delete('unique-ads/{ad}', [UniqueAdsController::class, 'destroy']);
         
-        // Unique Ad actions
+        // Unique Ad lifecycle actions
         Route::post('unique-ads/{ad}/actions/republish', [UniqueAdsController::class, 'republish']);
+        Route::post('unique-ads/{ad}/actions/publish', [UniqueAdsController::class, 'publish']);
+        Route::post('unique-ads/{ad}/actions/unpublish', [UniqueAdsController::class, 'unpublish']);
+        Route::post('unique-ads/{ad}/actions/expire', [UniqueAdsController::class, 'expire']);
+        Route::post('unique-ads/{ad}/actions/archive', [UniqueAdsController::class, 'archive']);
+        Route::post('unique-ads/{ad}/actions/restore', [UniqueAdsController::class, 'restore']);
+        
+        // Unique Ad feature/verification actions
         Route::post('unique-ads/{ad}/actions/feature', [UniqueAdsController::class, 'feature']);
         Route::delete('unique-ads/{ad}/actions/feature', [UniqueAdsController::class, 'unfeature']);
+        Route::post('unique-ads/{ad}/actions/verify', [UniqueAdsController::class, 'requestVerification']);
+        Route::post('unique-ads/{ad}/actions/approve-verification', [UniqueAdsController::class, 'approveVerification']);
+        Route::post('unique-ads/{ad}/actions/reject-verification', [UniqueAdsController::class, 'rejectVerification']);
+        Route::post('unique-ads/{ad}/actions/auto-republish', [UniqueAdsController::class, 'toggleAutoRepublish']);
+        Route::post('unique-ads/{ad}/actions/convert-to-normal', [UniqueAdsController::class, 'convertToNormal']);
+        
+        // Unique Ad statistics and interactions
+        Route::get('unique-ads/{ad}/stats', [UniqueAdsController::class, 'stats']);
+        Route::post('unique-ads/{ad}/favorite', [UniqueAdsController::class, 'favorite']);
+        Route::delete('unique-ads/{ad}/favorite', [UniqueAdsController::class, 'unfavorite']);
+        Route::post('unique-ads/{ad}/contact', [UniqueAdsController::class, 'contactSeller']);
     });
 
     // Public brand routes
@@ -112,6 +136,7 @@ Route::prefix('v1')->group(function () {
     // Public Unique Ads routes (no authentication required)
     Route::get('unique-ads', [UniqueAdsController::class, 'index']);
     Route::get('unique-ads/{ad}', [UniqueAdsController::class, 'show']);
+    Route::get('users/{user}/unique-ads', [UniqueAdsController::class, 'listByUser']); // Public unique ads by user
 
     Route::apiResource('caishha-ads', CaishhaAdsController::class);
 });

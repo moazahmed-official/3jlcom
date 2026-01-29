@@ -20,6 +20,11 @@ class UniqueAd extends Model
         'is_verified_ad',
         'is_featured',
         'featured_at',
+        'verification_status',
+        'verification_requested_at',
+        'verified_at',
+        'verified_by',
+        'verification_rejection_reason',
     ];
 
     protected $casts = [
@@ -27,6 +32,8 @@ class UniqueAd extends Model
         'is_verified_ad' => 'boolean',
         'is_featured' => 'boolean',
         'featured_at' => 'datetime',
+        'verification_requested_at' => 'datetime',
+        'verified_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];

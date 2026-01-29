@@ -653,4 +653,897 @@ class UniqueAdsController extends Controller
             'data' => new UniqueAdResource($ad)
         ]);
     }
+
+    /**
+     * Request verification for a unique ad (owner only)
+     */
+    public function requestVerification($id): JsonResponse
+    {
+        $ad = Ad::where('type', 'unique')->find($id);
+
+        if (!$ad) {
+            return response()->json([
+                'status' => 'error',
+                'code' => 404,
+                'message' => 'Ad not found',
+                'errors' => ['ad' => ['The requested unique ad does not exist']]
+            ], 404);
+        }
+
+        // Only owner can request verification
+        if (auth()->id() !== $ad->user_id) {
+            return response()->json([
+                'status' => 'error',
+                'code' => 403,
+                'message' => 'Unauthorized',
+                'errors' => ['authorization' => ['Only ad owner can request verification']]
+            ], 403);
+        }
+
+        // Check if already verified
+        if ($ad->uniqueAd?->is_verified_ad) {
+            return response()->json([
+                'status' => 'error',
+                'code' => 422,
+                'message' => 'Ad is already verified',
+                'errors' => ['verification' => ['This ad is already verified']]
+            ], 422);
+        }
+
+        // Check if already pending verification
+        if ($ad->uniqueAd?->verification_status === 'pending') {
+            return response()->json([
+                'status' => 'error',
+                'code' => 422,
+                'message' => 'Verification already requested',
+                'errors' => ['verification' => ['A verification request is already pending']]
+            ], 422);
+        }
+
+        if ($ad->uniqueAd) {
+            $ad->uniqueAd->update([
+                'verification_status' => 'pending',
+                'verification_requested_at' => now()
+            ]);
+        }
+
+        Log::info('Unique ad verification requested', [
+            'ad_id' => $ad->id,
+            'user_id' => auth()->id()
+        ]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Verification request submitted successfully',
+            'data' => ['verification_status' => 'pending', 'requested_at' => now()->toISOString()]
+        ]);
+    }
+
+    /**
+     * Approve verification request (admin only)
+     */
+    public function approveVerification($id): JsonResponse
+    {
+        $ad = Ad::where('type', 'unique')->find($id);
+
+        if (!$ad) {
+            return response()->json([
+                'status' => 'error',
+                'code' => 404,
+                'message' => 'Ad not found',
+                'errors' => ['ad' => ['The requested unique ad does not exist']]
+            ], 404);
+        }
+
+        if (!auth()->user()->isAdmin()) {
+            return response()->json([
+                'status' => 'error',
+                'code' => 403,
+                'message' => 'Unauthorized',
+                'errors' => ['authorization' => ['Only admins can approve verification']]
+            ], 403);
+        }
+
+        if ($ad->uniqueAd) {
+            $ad->uniqueAd->update([
+                'is_verified_ad' => true,
+                'verification_status' => 'approved',
+                'verified_at' => now(),
+                'verified_by' => auth()->id()
+            ]);
+        }
+
+        $ad->load(['uniqueAd', 'uniqueAd.bannerImage', 'user', 'brand', 'model', 'city', 'country', 'category', 'media']);
+
+        Log::info('Unique ad verification approved', [
+            'ad_id' => $ad->id,
+            'approved_by' => auth()->id()
+        ]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Ad verification approved successfully',
+            'data' => new UniqueAdResource($ad)
+        ]);
+    }
+
+    /**
+     * Reject verification request (admin only)
+     */
+    public function rejectVerification(Request $request, $id): JsonResponse
+    {
+        $ad = Ad::where('type', 'unique')->find($id);
+
+        if (!$ad) {
+            return response()->json([
+                'status' => 'error',
+                'code' => 404,
+                'message' => 'Ad not found',
+                'errors' => ['ad' => ['The requested unique ad does not exist']]
+            ], 404);
+        }
+
+        if (!auth()->user()->isAdmin()) {
+            return response()->json([
+                'status' => 'error',
+                'code' => 403,
+                'message' => 'Unauthorized',
+                'errors' => ['authorization' => ['Only admins can reject verification']]
+            ], 403);
+        }
+
+        if ($ad->uniqueAd) {
+            $ad->uniqueAd->update([
+                'is_verified_ad' => false,
+                'verification_status' => 'rejected',
+                'verification_rejection_reason' => $request->get('reason')
+            ]);
+        }
+
+        $ad->load(['uniqueAd', 'uniqueAd.bannerImage', 'user', 'brand', 'model', 'city', 'country', 'category', 'media']);
+
+        Log::info('Unique ad verification rejected', [
+            'ad_id' => $ad->id,
+            'rejected_by' => auth()->id(),
+            'reason' => $request->get('reason')
+        ]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Ad verification rejected',
+            'data' => new UniqueAdResource($ad)
+        ]);
+    }
+
+    /**
+     * Toggle auto-republish setting
+     */
+    public function toggleAutoRepublish($id): JsonResponse
+    {
+        $ad = Ad::where('type', 'unique')->find($id);
+
+        if (!$ad) {
+            return response()->json([
+                'status' => 'error',
+                'code' => 404,
+                'message' => 'Ad not found',
+                'errors' => ['ad' => ['The requested unique ad does not exist']]
+            ], 404);
+        }
+
+        // Authorization check - owner or admin
+        if (auth()->id() !== $ad->user_id && !auth()->user()->isAdmin()) {
+            return response()->json([
+                'status' => 'error',
+                'code' => 403,
+                'message' => 'Unauthorized',
+                'errors' => ['authorization' => ['You do not have permission to modify this ad']]
+            ], 403);
+        }
+
+        $newState = !($ad->uniqueAd?->is_auto_republished ?? false);
+        
+        if ($ad->uniqueAd) {
+            $ad->uniqueAd->update(['is_auto_republished' => $newState]);
+        }
+
+        Log::info('Unique ad auto-republish toggled', [
+            'ad_id' => $ad->id,
+            'user_id' => auth()->id(),
+            'is_auto_republished' => $newState
+        ]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => $newState ? 'Auto-republish enabled' : 'Auto-republish disabled',
+            'data' => ['is_auto_republished' => $newState]
+        ]);
+    }
+
+    /**
+     * Add unique ad to favorites
+     */
+    public function favorite($id): JsonResponse
+    {
+        $ad = Ad::where('type', 'unique')->find($id);
+
+        if (!$ad) {
+            return response()->json([
+                'status' => 'error',
+                'code' => 404,
+                'message' => 'Ad not found',
+                'errors' => ['ad' => ['The requested unique ad does not exist']]
+            ], 404);
+        }
+
+        $user = auth()->user();
+        
+        // Check if already favorited
+        if ($user->favoriteAds()->where('ad_id', $ad->id)->exists()) {
+            return response()->json([
+                'status' => 'error',
+                'code' => 422,
+                'message' => 'Already in favorites',
+                'errors' => ['favorite' => ['This ad is already in your favorites']]
+            ], 422);
+        }
+
+        $user->favoriteAds()->attach($ad->id);
+
+        Log::info('Unique ad added to favorites', [
+            'ad_id' => $ad->id,
+            'user_id' => auth()->id()
+        ]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Ad added to favorites'
+        ]);
+    }
+
+    /**
+     * Remove unique ad from favorites
+     */
+    public function unfavorite($id): JsonResponse
+    {
+        $ad = Ad::where('type', 'unique')->find($id);
+
+        if (!$ad) {
+            return response()->json([
+                'status' => 'error',
+                'code' => 404,
+                'message' => 'Ad not found',
+                'errors' => ['ad' => ['The requested unique ad does not exist']]
+            ], 404);
+        }
+
+        $user = auth()->user();
+        
+        // Check if not favorited
+        if (!$user->favoriteAds()->where('ad_id', $ad->id)->exists()) {
+            return response()->json([
+                'status' => 'error',
+                'code' => 422,
+                'message' => 'Not in favorites',
+                'errors' => ['favorite' => ['This ad is not in your favorites']]
+            ], 422);
+        }
+
+        $user->favoriteAds()->detach($ad->id);
+
+        Log::info('Unique ad removed from favorites', [
+            'ad_id' => $ad->id,
+            'user_id' => auth()->id()
+        ]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Ad removed from favorites'
+        ]);
+    }
+
+    /**
+     * List user's favorite unique ads
+     */
+    public function favorites(Request $request): AnonymousResourceCollection
+    {
+        $query = auth()->user()
+            ->favoriteAds()
+            ->where('type', 'unique')
+            ->with(['uniqueAd', 'uniqueAd.bannerImage', 'user', 'brand', 'model', 'city', 'country', 'category', 'media']);
+
+        $limit = min($request->get('limit', 15), 50);
+        $ads = $query->paginate($limit);
+
+        return UniqueAdResource::collection($ads);
+    }
+
+    /**
+     * Track contact seller action
+     */
+    public function contactSeller($id, Request $request): JsonResponse
+    {
+        $ad = Ad::where('type', 'unique')->find($id);
+
+        if (!$ad) {
+            return response()->json([
+                'status' => 'error',
+                'code' => 404,
+                'message' => 'Ad not found',
+                'errors' => ['ad' => ['The requested unique ad does not exist']]
+            ], 404);
+        }
+
+        $contactType = $request->get('type', 'phone'); // phone, whatsapp
+
+        // Increment contact count
+        $ad->increment('contact_count');
+
+        // Log the contact action for analytics
+        Log::info('Unique ad contact action', [
+            'ad_id' => $ad->id,
+            'contact_type' => $contactType,
+            'user_id' => auth()->id()
+        ]);
+
+        $contactInfo = [
+            'phone' => $ad->contact_phone,
+            'whatsapp' => $ad->whatsapp_number
+        ];
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Contact recorded',
+            'data' => [
+                'contact_type' => $contactType,
+                'contact_info' => $contactInfo[$contactType] ?? $contactInfo['phone']
+            ]
+        ]);
+    }
+
+    /**
+     * Get statistics for a specific unique ad
+     */
+    public function stats($id): JsonResponse
+    {
+        $ad = Ad::where('type', 'unique')->find($id);
+
+        if (!$ad) {
+            return response()->json([
+                'status' => 'error',
+                'code' => 404,
+                'message' => 'Ad not found',
+                'errors' => ['ad' => ['The requested unique ad does not exist']]
+            ], 404);
+        }
+
+        // Authorization check - owner or admin
+        if (auth()->id() !== $ad->user_id && !auth()->user()->isAdmin()) {
+            return response()->json([
+                'status' => 'error',
+                'code' => 403,
+                'message' => 'Unauthorized',
+                'errors' => ['authorization' => ['You do not have permission to view stats for this ad']]
+            ], 403);
+        }
+
+        $favoriteCount = DB::table('favorites')->where('ad_id', $ad->id)->count();
+
+        return response()->json([
+            'status' => 'success',
+            'data' => [
+                'ad_id' => $ad->id,
+                'views_count' => $ad->views_count ?? 0,
+                'contact_count' => $ad->contact_count ?? 0,
+                'favorite_count' => $favoriteCount,
+                'is_featured' => $ad->uniqueAd?->is_featured ?? false,
+                'is_verified' => $ad->uniqueAd?->is_verified_ad ?? false,
+                'created_at' => $ad->created_at,
+                'updated_at' => $ad->updated_at
+            ]
+        ]);
+    }
+
+    /**
+     * Get global unique ads statistics (admin only)
+     */
+    public function globalStats(): JsonResponse
+    {
+        if (!auth()->user()->isAdmin()) {
+            return response()->json([
+                'status' => 'error',
+                'code' => 403,
+                'message' => 'Unauthorized',
+                'errors' => ['authorization' => ['Only admins can view global statistics']]
+            ], 403);
+        }
+
+        $stats = [
+            'total_unique_ads' => Ad::where('type', 'unique')->count(),
+            'published' => Ad::where('type', 'unique')->where('status', 'published')->count(),
+            'draft' => Ad::where('type', 'unique')->where('status', 'draft')->count(),
+            'pending' => Ad::where('type', 'unique')->where('status', 'pending')->count(),
+            'expired' => Ad::where('type', 'unique')->where('status', 'expired')->count(),
+            'archived' => Ad::where('type', 'unique')->where('status', 'archived')->count(),
+            'featured' => Ad::where('type', 'unique')
+                ->whereHas('uniqueAd', fn($q) => $q->where('is_featured', true))
+                ->count(),
+            'verified' => Ad::where('type', 'unique')
+                ->whereHas('uniqueAd', fn($q) => $q->where('is_verified_ad', true))
+                ->count(),
+            'pending_verification' => Ad::where('type', 'unique')
+                ->whereHas('uniqueAd', fn($q) => $q->where('verification_status', 'pending'))
+                ->count(),
+            'total_views' => Ad::where('type', 'unique')->sum('views_count'),
+            'total_contacts' => Ad::where('type', 'unique')->sum('contact_count'),
+            'ads_created_today' => Ad::where('type', 'unique')->whereDate('created_at', today())->count(),
+            'ads_created_this_week' => Ad::where('type', 'unique')->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()])->count(),
+            'ads_created_this_month' => Ad::where('type', 'unique')->whereMonth('created_at', now()->month)->whereYear('created_at', now()->year)->count(),
+        ];
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $stats
+        ]);
+    }
+
+    /**
+     * List unique ads by user (public profile)
+     */
+    public function listByUser($userId): AnonymousResourceCollection
+    {
+        $query = Ad::where('type', 'unique')
+            ->where('user_id', $userId)
+            ->where('status', 'published')
+            ->with(['uniqueAd', 'uniqueAd.bannerImage', 'user', 'brand', 'model', 'city', 'country', 'category', 'media'])
+            ->orderBy('created_at', 'desc');
+
+        $ads = $query->paginate(15);
+
+        return UniqueAdResource::collection($ads);
+    }
+
+    /**
+     * Publish a unique ad
+     */
+    public function publish($id): JsonResponse
+    {
+        $ad = Ad::where('type', 'unique')->find($id);
+
+        if (!$ad) {
+            return response()->json([
+                'status' => 'error',
+                'code' => 404,
+                'message' => 'Ad not found',
+                'errors' => ['ad' => ['The requested unique ad does not exist']]
+            ], 404);
+        }
+
+        // Authorization check - owner or admin
+        if (auth()->id() !== $ad->user_id && !auth()->user()->isAdmin()) {
+            return response()->json([
+                'status' => 'error',
+                'code' => 403,
+                'message' => 'Unauthorized',
+                'errors' => ['authorization' => ['You do not have permission to publish this ad']]
+            ], 403);
+        }
+
+        if ($ad->status === 'published') {
+            return response()->json([
+                'status' => 'error',
+                'code' => 422,
+                'message' => 'Ad is already published',
+                'errors' => ['status' => ['This ad is already published']]
+            ], 422);
+        }
+
+        $ad->update([
+            'status' => 'published',
+            'published_at' => now()
+        ]);
+
+        $ad->load(['uniqueAd', 'uniqueAd.bannerImage', 'user', 'brand', 'model', 'city', 'country', 'category', 'media']);
+
+        Log::info('Unique ad published', [
+            'ad_id' => $ad->id,
+            'user_id' => auth()->id()
+        ]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Ad published successfully',
+            'data' => new UniqueAdResource($ad)
+        ]);
+    }
+
+    /**
+     * Unpublish a unique ad
+     */
+    public function unpublish($id): JsonResponse
+    {
+        $ad = Ad::where('type', 'unique')->find($id);
+
+        if (!$ad) {
+            return response()->json([
+                'status' => 'error',
+                'code' => 404,
+                'message' => 'Ad not found',
+                'errors' => ['ad' => ['The requested unique ad does not exist']]
+            ], 404);
+        }
+
+        // Authorization check - owner or admin
+        if (auth()->id() !== $ad->user_id && !auth()->user()->isAdmin()) {
+            return response()->json([
+                'status' => 'error',
+                'code' => 403,
+                'message' => 'Unauthorized',
+                'errors' => ['authorization' => ['You do not have permission to unpublish this ad']]
+            ], 403);
+        }
+
+        if ($ad->status !== 'published') {
+            return response()->json([
+                'status' => 'error',
+                'code' => 422,
+                'message' => 'Ad is not published',
+                'errors' => ['status' => ['This ad is not currently published']]
+            ], 422);
+        }
+
+        $ad->update(['status' => 'draft']);
+
+        $ad->load(['uniqueAd', 'uniqueAd.bannerImage', 'user', 'brand', 'model', 'city', 'country', 'category', 'media']);
+
+        Log::info('Unique ad unpublished', [
+            'ad_id' => $ad->id,
+            'user_id' => auth()->id()
+        ]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Ad unpublished successfully',
+            'data' => new UniqueAdResource($ad)
+        ]);
+    }
+
+    /**
+     * Expire a unique ad
+     */
+    public function expire($id): JsonResponse
+    {
+        $ad = Ad::where('type', 'unique')->find($id);
+
+        if (!$ad) {
+            return response()->json([
+                'status' => 'error',
+                'code' => 404,
+                'message' => 'Ad not found',
+                'errors' => ['ad' => ['The requested unique ad does not exist']]
+            ], 404);
+        }
+
+        // Authorization check - admin only for manual expiration
+        if (!auth()->user()->isAdmin()) {
+            return response()->json([
+                'status' => 'error',
+                'code' => 403,
+                'message' => 'Unauthorized',
+                'errors' => ['authorization' => ['Only admins can manually expire ads']]
+            ], 403);
+        }
+
+        $ad->update([
+            'status' => 'expired',
+            'expired_at' => now()
+        ]);
+
+        $ad->load(['uniqueAd', 'uniqueAd.bannerImage', 'user', 'brand', 'model', 'city', 'country', 'category', 'media']);
+
+        Log::info('Unique ad expired', [
+            'ad_id' => $ad->id,
+            'user_id' => auth()->id()
+        ]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Ad expired successfully',
+            'data' => new UniqueAdResource($ad)
+        ]);
+    }
+
+    /**
+     * Archive a unique ad
+     */
+    public function archive($id): JsonResponse
+    {
+        $ad = Ad::where('type', 'unique')->find($id);
+
+        if (!$ad) {
+            return response()->json([
+                'status' => 'error',
+                'code' => 404,
+                'message' => 'Ad not found',
+                'errors' => ['ad' => ['The requested unique ad does not exist']]
+            ], 404);
+        }
+
+        // Authorization check - owner or admin
+        if (auth()->id() !== $ad->user_id && !auth()->user()->isAdmin()) {
+            return response()->json([
+                'status' => 'error',
+                'code' => 403,
+                'message' => 'Unauthorized',
+                'errors' => ['authorization' => ['You do not have permission to archive this ad']]
+            ], 403);
+        }
+
+        $ad->update([
+            'status' => 'removed',
+            'updated_at' => now()
+        ]);
+
+        $ad->load(['uniqueAd', 'uniqueAd.bannerImage', 'user', 'brand', 'model', 'city', 'country', 'category', 'media']);
+
+        Log::info('Unique ad archived', [
+            'ad_id' => $ad->id,
+            'user_id' => auth()->id()
+        ]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Ad archived successfully',
+            'data' => new UniqueAdResource($ad)
+        ]);
+    }
+
+    /**
+     * Restore an archived/expired unique ad
+     */
+    public function restore($id): JsonResponse
+    {
+        $ad = Ad::where('type', 'unique')->find($id);
+
+        if (!$ad) {
+            return response()->json([
+                'status' => 'error',
+                'code' => 404,
+                'message' => 'Ad not found',
+                'errors' => ['ad' => ['The requested unique ad does not exist']]
+            ], 404);
+        }
+
+        // Authorization check - owner or admin
+        if (auth()->id() !== $ad->user_id && !auth()->user()->isAdmin()) {
+            return response()->json([
+                'status' => 'error',
+                'code' => 403,
+                'message' => 'Unauthorized',
+                'errors' => ['authorization' => ['You do not have permission to restore this ad']]
+            ], 403);
+        }
+
+        if (!in_array($ad->status, ['archived', 'expired', 'removed'])) {
+            return response()->json([
+                'status' => 'error',
+                'code' => 422,
+                'message' => 'Cannot restore',
+                'errors' => ['status' => ['Only archived, expired, or removed ads can be restored']]
+            ], 422);
+        }
+
+        $ad->update([
+            'status' => 'draft',
+            'archived_at' => null,
+            'expired_at' => null
+        ]);
+
+        $ad->load(['uniqueAd', 'uniqueAd.bannerImage', 'user', 'brand', 'model', 'city', 'country', 'category', 'media']);
+
+        Log::info('Unique ad restored', [
+            'ad_id' => $ad->id,
+            'user_id' => auth()->id()
+        ]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Ad restored successfully',
+            'data' => new UniqueAdResource($ad)
+        ]);
+    }
+
+    /**
+     * Bulk actions on unique ads (admin only)
+     */
+    public function bulkAction(Request $request): JsonResponse
+    {
+        if (!auth()->user()->isAdmin()) {
+            return response()->json([
+                'status' => 'error',
+                'code' => 403,
+                'message' => 'Unauthorized',
+                'errors' => ['authorization' => ['Only admins can perform bulk actions']]
+            ], 403);
+        }
+
+        $request->validate([
+            'action' => 'required|string|in:publish,unpublish,expire,archive,delete,feature,unfeature',
+            'ad_ids' => 'required|array|min:1',
+            'ad_ids.*' => 'integer|exists:ads,id'
+        ]);
+
+        $action = $request->action;
+        $adIds = $request->ad_ids;
+
+        // Verify all ads are unique type
+        $ads = Ad::where('type', 'unique')->whereIn('id', $adIds)->get();
+        
+        if ($ads->count() !== count($adIds)) {
+            return response()->json([
+                'status' => 'error',
+                'code' => 422,
+                'message' => 'Invalid ads',
+                'errors' => ['ad_ids' => ['Some ads are not unique ads or do not exist']]
+            ], 422);
+        }
+
+        $successCount = 0;
+        $failedIds = [];
+
+        foreach ($ads as $ad) {
+            try {
+                switch ($action) {
+                    case 'publish':
+                        $ad->update(['status' => 'published', 'published_at' => now()]);
+                        break;
+                    case 'unpublish':
+                        $ad->update(['status' => 'draft']);
+                        break;
+                    case 'expire':
+                        $ad->update(['status' => 'expired', 'expired_at' => now()]);
+                        break;
+                    case 'archive':
+                        $ad->update(['status' => 'archived', 'archived_at' => now()]);
+                        break;
+                    case 'delete':
+                        $ad->media()->detach();
+                        $ad->uniqueAd?->delete();
+                        $ad->delete();
+                        break;
+                    case 'feature':
+                        $ad->uniqueAd?->update(['is_featured' => true, 'featured_at' => now()]);
+                        break;
+                    case 'unfeature':
+                        $ad->uniqueAd?->update(['is_featured' => false, 'featured_at' => null]);
+                        break;
+                }
+                $successCount++;
+            } catch (\Exception $e) {
+                $failedIds[] = $ad->id;
+                Log::error('Bulk action failed for ad', [
+                    'ad_id' => $ad->id,
+                    'action' => $action,
+                    'error' => $e->getMessage()
+                ]);
+            }
+        }
+
+        Log::info('Bulk action completed', [
+            'action' => $action,
+            'total' => count($adIds),
+            'success' => $successCount,
+            'failed' => count($failedIds),
+            'user_id' => auth()->id()
+        ]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => "Bulk {$action} completed",
+            'data' => [
+                'total' => count($adIds),
+                'success_count' => $successCount,
+                'failed_count' => count($failedIds),
+                'failed_ids' => $failedIds
+            ]
+        ]);
+    }
+
+    /**
+     * Convert unique ad to normal ad
+     */
+    public function convertToNormal(Request $request, $id): JsonResponse
+    {
+        $ad = Ad::where('type', 'unique')->find($id);
+
+        if (!$ad) {
+            return response()->json([
+                'status' => 'error',
+                'code' => 404,
+                'message' => 'Ad not found',
+                'errors' => ['ad' => ['The requested unique ad does not exist']]
+            ], 404);
+        }
+
+        // Authorization check - owner or admin
+        if (auth()->id() !== $ad->user_id && !auth()->user()->isAdmin()) {
+            return response()->json([
+                'status' => 'error',
+                'code' => 403,
+                'message' => 'Unauthorized',
+                'errors' => ['authorization' => ['You do not have permission to convert this ad']]
+            ], 403);
+        }
+
+        try {
+            DB::transaction(function () use ($ad, $request) {
+                // If there is a banner image on the unique ad, transfer it to the ad's media
+                $bannerId = $ad->uniqueAd?->banner_image_id ?? null;
+                if ($bannerId) {
+                    $media = \App\Models\Media::find($bannerId);
+                    if ($media) {
+                        // attach without detaching existing media
+                        $ad->media()->syncWithoutDetaching([$bannerId]);
+                        $media->update([
+                            'related_resource' => 'ads',
+                            'related_id' => $ad->id
+                        ]);
+                    }
+                }
+
+                // Delete unique ad specific record
+                $ad->uniqueAd?->delete();
+
+                // Change type to normal
+                $ad->update(['type' => 'normal']);
+
+                // Validate/installment existence
+                $installmentId = $request->input('installment_id');
+                if ($installmentId && !DB::table('installments')->where('id', $installmentId)->exists()) {
+                    $installmentId = null;
+                }
+
+                $priceCash = $request->input('price_cash');
+
+                // Create normal ad record if needed
+                \App\Models\NormalAd::create([
+                    'ad_id' => $ad->id,
+                    'price_cash' => $priceCash ?? null,
+                    'installment_id' => $installmentId ?? null,
+                    'start_time' => now(),
+                    'update_time' => now()
+                ]);
+            });
+
+            $ad->load(['normalAd', 'user', 'brand', 'model', 'city', 'country', 'category', 'media']);
+
+            Log::info('Unique ad converted to normal', [
+                'ad_id' => $ad->id,
+                'user_id' => auth()->id()
+            ]);
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Ad converted to normal ad successfully',
+                'data' => [
+                    'id' => $ad->id,
+                    'type' => 'normal',
+                    'title' => $ad->title
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to convert unique ad to normal', [
+                'ad_id' => $ad->id,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'status' => 'error',
+                'code' => 500,
+                'message' => 'Failed to convert ad',
+                'errors' => ['general' => ['An error occurred while converting the ad']]
+            ], 500);
+        }
+    }
 }

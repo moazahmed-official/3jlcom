@@ -1161,4 +1161,90 @@ class NormalAdsController extends Controller
 
         return NormalAdResource::collection($ads);
     }
+
+    /**
+     * Convert normal ad to unique ad
+     */
+    public function convertToUnique($id, Request $request): JsonResponse
+    {
+        $ad = Ad::where('type', 'normal')->find($id);
+
+        if (!$ad) {
+            return response()->json([
+                'status' => 'error',
+                'code' => 404,
+                'message' => 'Ad not found',
+                'errors' => ['ad' => ['The requested normal ad does not exist']]
+            ], 404);
+        }
+
+        // Authorization check - owner or admin
+        if (auth()->id() !== $ad->user_id && !auth()->user()->isAdmin()) {
+            return response()->json([
+                'status' => 'error',
+                'code' => 403,
+                'message' => 'Unauthorized',
+                'errors' => ['authorization' => ['You do not have permission to convert this ad']]
+            ], 403);
+        }
+
+        try {
+            DB::transaction(function () use ($ad, $request) {
+                // Delete normal ad specific record
+                $ad->normalAd?->delete();
+
+                // Change type to unique
+                $ad->update(['type' => 'unique']);
+
+                // Validate banner_image_id; ensure referenced media exists
+                $bannerImageId = $request->get('banner_image_id');
+                if ($bannerImageId) {
+                    $mediaExists = \App\Models\Media::where('id', $bannerImageId)->exists();
+                    if (! $mediaExists) {
+                        $bannerImageId = null;
+                    }
+                }
+
+                // Create unique ad record
+                \App\Models\UniqueAd::create([
+                    'ad_id' => $ad->id,
+                    'banner_image_id' => $bannerImageId,
+                    'banner_color' => $request->get('banner_color', '#FFFFFF'),
+                    'is_auto_republished' => $request->boolean('is_auto_republished', false),
+                    'is_verified_ad' => false,
+                    'is_featured' => false
+                ]);
+            });
+
+            $ad->load(['uniqueAd', 'uniqueAd.bannerImage', 'user', 'brand', 'model', 'city', 'country', 'category', 'media']);
+
+            Log::info('Normal ad converted to unique', [
+                'ad_id' => $ad->id,
+                'user_id' => auth()->id()
+            ]);
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Ad converted to unique ad successfully',
+                'data' => [
+                    'id' => $ad->id,
+                    'type' => 'unique',
+                    'title' => $ad->title
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to convert normal ad to unique', [
+                'ad_id' => $ad->id,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'status' => 'error',
+                'code' => 500,
+                'message' => 'Failed to convert ad',
+                'errors' => ['general' => ['An error occurred while converting the ad']]
+            ], 500);
+        }
+    }
 }
