@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\V1\RoleController;
 use App\Http\Controllers\Api\V1\UserController;
 use App\Http\Controllers\Api\V1\SellerVerificationController;
 use App\Http\Controllers\Api\V1\BrandController;
+use App\Http\Controllers\Api\V1\SliderController;
 use App\Http\Controllers\MediaController;
 
 Route::prefix('v1')->group(function () {
@@ -122,6 +123,13 @@ Route::prefix('v1')->group(function () {
         Route::post('unique-ads/{ad}/favorite', [UniqueAdsController::class, 'favorite']);
         Route::delete('unique-ads/{ad}/favorite', [UniqueAdsController::class, 'unfavorite']);
         Route::post('unique-ads/{ad}/contact', [UniqueAdsController::class, 'contactSeller']);
+
+        // Slider routes (admin operations)
+        Route::post('sliders', [SliderController::class, 'store']);
+        Route::put('sliders/{slider}', [SliderController::class, 'update']);
+        Route::delete('sliders/{slider}', [SliderController::class, 'destroy']);
+        Route::post('sliders/{slider}/actions/activate', [SliderController::class, 'activate']);
+        Route::post('sliders/{slider}/actions/deactivate', [SliderController::class, 'deactivate']);
     });
 
     // Public brand routes
@@ -137,6 +145,10 @@ Route::prefix('v1')->group(function () {
     Route::get('unique-ads', [UniqueAdsController::class, 'index']);
     Route::get('unique-ads/{ad}', [UniqueAdsController::class, 'show']);
     Route::get('users/{user}/unique-ads', [UniqueAdsController::class, 'listByUser']); // Public unique ads by user
+
+    // Public Slider routes (no authentication required)
+    Route::get('sliders', [SliderController::class, 'index']);
+    Route::get('sliders/{slider}', [SliderController::class, 'show']);
 
     Route::apiResource('caishha-ads', CaishhaAdsController::class);
 });
