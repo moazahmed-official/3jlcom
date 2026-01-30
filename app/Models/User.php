@@ -110,6 +110,49 @@ class User extends Authenticatable
     }
 
     /**
+     * Check if the user is a dealer or showroom.
+     */
+    public function isDealerOrShowroom(): bool
+    {
+        return $this->hasAnyRole(['dealer', 'showroom']);
+    }
+
+    /**
+     * Get the user's submitted Caishha offers.
+     */
+    public function caishhaOffers()
+    {
+        return $this->hasMany(\App\Models\CaishhaOffer::class, 'user_id');
+    }
+
+    /**
+     * Check if user can submit offer on a Caishha ad.
+     * During dealer window: Only dealers and verified sellers can submit.
+     * After dealer window: All users (dealers, sellers, individuals) can submit.
+     * Seller offers are hidden from ad owner until visibility period expires.
+     */
+    public function canSubmitCaishhaOffer(\App\Models\CaishhaAd $caishhaAd): bool
+    {
+        // Cannot submit if ad cannot accept offers
+        if (!$caishhaAd->canAcceptOffers()) {
+            return false;
+        }
+
+        // Check if user already has an offer (allow update, but not duplicate)
+        $existingOffer = $caishhaAd->offers()->where('user_id', $this->id)->first();
+        // If they already have an offer, they cannot submit a new one (must update existing)
+        // This method is for initial submission check; update handled separately
+        
+        // During dealer window: only dealers and verified sellers
+        if ($caishhaAd->isInDealerWindow()) {
+            return $this->isDealerOrShowroom() || $this->seller_verified;
+        }
+        
+        // After dealer window (individual window): everyone can submit
+        return $caishhaAd->isInIndividualWindow();
+    }
+
+    /**
      * The attributes that should be hidden for serialization.
      *
      * @var list<string>

@@ -124,12 +124,37 @@ Route::prefix('v1')->group(function () {
         Route::delete('unique-ads/{ad}/favorite', [UniqueAdsController::class, 'unfavorite']);
         Route::post('unique-ads/{ad}/contact', [UniqueAdsController::class, 'contactSeller']);
 
-        // Slider routes (admin operations)
-        Route::post('sliders', [SliderController::class, 'store']);
-        Route::put('sliders/{slider}', [SliderController::class, 'update']);
-        Route::delete('sliders/{slider}', [SliderController::class, 'destroy']);
-        Route::post('sliders/{slider}/actions/activate', [SliderController::class, 'activate']);
-        Route::post('sliders/{slider}/actions/deactivate', [SliderController::class, 'deactivate']);
+        // Caishha Settings routes (admin only)
+        Route::get('caishha-settings', [\App\Http\Controllers\Api\V1\CaishhaSettingsController::class, 'index']);
+        Route::put('caishha-settings', [\App\Http\Controllers\Api\V1\CaishhaSettingsController::class, 'update']);
+        Route::put('caishha-settings/{key}', [\App\Http\Controllers\Api\V1\CaishhaSettingsController::class, 'updateSingle']);
+        Route::get('caishha-settings/presets', [\App\Http\Controllers\Api\V1\CaishhaSettingsController::class, 'presets']);
+
+        // Caishha Ads routes (authenticated)
+        Route::get('caishha-ads/my-ads', [CaishhaAdsController::class, 'myAds']); // User's ads with all statuses
+        Route::get('caishha-ads/admin', [CaishhaAdsController::class, 'adminIndex']); // Admin: all ads with all statuses
+        Route::get('caishha-ads/stats', [CaishhaAdsController::class, 'globalStats']); // Admin: global statistics
+        Route::post('caishha-ads/actions/bulk', [CaishhaAdsController::class, 'bulkAction']); // Admin: bulk operations
+        Route::post('caishha-ads', [CaishhaAdsController::class, 'store']);
+        Route::put('caishha-ads/{ad}', [CaishhaAdsController::class, 'update']);
+        Route::delete('caishha-ads/{ad}', [CaishhaAdsController::class, 'destroy']);
+        
+        // Caishha Ad lifecycle actions
+        Route::post('caishha-ads/{ad}/actions/publish', [CaishhaAdsController::class, 'publish']);
+        Route::post('caishha-ads/{ad}/actions/unpublish', [CaishhaAdsController::class, 'unpublish']);
+        Route::post('caishha-ads/{ad}/actions/expire', [CaishhaAdsController::class, 'expire']);
+        Route::post('caishha-ads/{ad}/actions/archive', [CaishhaAdsController::class, 'archive']);
+        Route::post('caishha-ads/{ad}/actions/restore', [CaishhaAdsController::class, 'restore']);
+        
+        // Caishha Offers management
+        Route::post('caishha-ads/{ad}/offers', [CaishhaAdsController::class, 'submitOffer']); // Submit offer on ad
+        Route::get('caishha-ads/{ad}/offers', [CaishhaAdsController::class, 'listOffers']); // List offers (owner/admin)
+        Route::post('caishha-ads/{ad}/offers/{offer}/accept', [CaishhaAdsController::class, 'acceptOffer']); // Accept offer
+        Route::post('caishha-ads/{ad}/offers/{offer}/reject', [CaishhaAdsController::class, 'rejectOffer']); // Reject offer
+        Route::get('caishha-offers/my-offers', [CaishhaAdsController::class, 'myOffers']); // User's submitted offers
+        Route::get('caishha-offers/{offer}', [CaishhaAdsController::class, 'showOffer']); // Get specific offer details
+        Route::put('caishha-offers/{offer}', [CaishhaAdsController::class, 'updateOffer']); // Update offer
+        Route::delete('caishha-offers/{offer}', [CaishhaAdsController::class, 'deleteOffer']); // Delete/withdraw offer
     });
 
     // Public brand routes
@@ -150,5 +175,7 @@ Route::prefix('v1')->group(function () {
     Route::get('sliders', [SliderController::class, 'index']);
     Route::get('sliders/{slider}', [SliderController::class, 'show']);
 
-    Route::apiResource('caishha-ads', CaishhaAdsController::class);
+    // Public Caishha Ads routes (no authentication required)
+    Route::get('caishha-ads', [CaishhaAdsController::class, 'index']);
+    Route::get('caishha-ads/{ad}', [CaishhaAdsController::class, 'show']);
 });
