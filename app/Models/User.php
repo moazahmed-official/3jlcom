@@ -102,6 +102,28 @@ class User extends Authenticatable
     }
 
     /**
+     * Assign a role to the user.
+     */
+    public function assignRole(string $roleName): void
+    {
+        $role = Role::firstOrCreate(['name' => $roleName]);
+        if (!$this->roles()->where('role_id', $role->id)->exists()) {
+            $this->roles()->attach($role);
+        }
+    }
+
+    /**
+     * Remove a role from the user.
+     */
+    public function removeRole(string $roleName): void
+    {
+        $role = Role::where('name', $roleName)->first();
+        if ($role) {
+            $this->roles()->detach($role);
+        }
+    }
+
+    /**
      * Check if the user is an admin (admin or super-admin).
      */
     public function isAdmin(): bool
@@ -114,7 +136,9 @@ class User extends Authenticatable
      */
     public function isDealerOrShowroom(): bool
     {
-        return $this->hasAnyRole(['dealer', 'showroom']);
+        // Check both roles and account_type
+        return $this->hasAnyRole(['dealer', 'showroom']) 
+            || in_array($this->account_type, ['dealer', 'showroom']);
     }
 
     /**
@@ -150,6 +174,14 @@ class User extends Authenticatable
         
         // After dealer window (individual window): everyone can submit
         return $caishhaAd->isInIndividualWindow();
+    }
+
+    /**
+     * Get the user's FindIt requests.
+     */
+    public function finditRequests()
+    {
+        return $this->hasMany(\App\Models\FinditRequest::class, 'user_id');
     }
 
     /**

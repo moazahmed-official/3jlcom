@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\V1\SellerVerificationController;
 use App\Http\Controllers\Api\V1\BrandController;
 use App\Http\Controllers\Api\V1\SliderController;
 use App\Http\Controllers\Api\V1\AuctionAdsController;
+use App\Http\Controllers\FindItAdsController;
 use App\Http\Controllers\MediaController;
 
 Route::prefix('v1')->group(function () {
@@ -180,6 +181,33 @@ Route::prefix('v1')->group(function () {
         Route::get('auction-ads/{ad}/bids/{bid}', [AuctionAdsController::class, 'showBid']); // Get bid details
         Route::delete('auction-ads/{ad}/bids/{bid}', [AuctionAdsController::class, 'withdrawBid']); // Withdraw own bid
         Route::get('auction-bids/my-bids', [AuctionAdsController::class, 'myBids']); // User's bids across all auctions
+
+        // =====================
+        // FINDIT ADS ROUTES (Private search requests)
+        // =====================
+        
+        // FindIt request management (authenticated)
+        Route::get('findit-ads/my-requests', [FindItAdsController::class, 'myRequests']); // User's FindIt requests
+        Route::get('findit-ads/admin', [FindItAdsController::class, 'adminIndex']); // Admin: all requests
+        Route::get('findit-ads/stats', [FindItAdsController::class, 'stats']); // User's FindIt statistics
+        Route::post('findit-ads/actions/bulk', [FindItAdsController::class, 'bulkAction']); // Admin: bulk operations
+        Route::post('findit-ads', [FindItAdsController::class, 'store']); // Create FindIt request
+        Route::get('findit-ads/{findit_ad}', [FindItAdsController::class, 'show']); // Get request details
+        Route::put('findit-ads/{findit_ad}', [FindItAdsController::class, 'update']); // Update request
+        Route::delete('findit-ads/{findit_ad}', [FindItAdsController::class, 'destroy']); // Delete request
+        
+        // FindIt lifecycle actions
+        Route::post('findit-ads/{findit_ad}/activate', [FindItAdsController::class, 'activate']); // Activate draft
+        Route::post('findit-ads/{findit_ad}/close', [FindItAdsController::class, 'close']); // Close request
+        Route::post('findit-ads/{findit_ad}/extend', [FindItAdsController::class, 'extend']); // Extend expiration
+        Route::post('findit-ads/{findit_ad}/reactivate', [FindItAdsController::class, 'reactivate']); // Reactivate closed/expired
+        
+        // FindIt matches management
+        Route::get('findit-ads/{findit_ad}/matches', [FindItAdsController::class, 'listMatches']); // List matching ads
+        Route::get('findit-ads/{findit_ad}/matches/{match}', [FindItAdsController::class, 'showMatch']); // Get match details
+        Route::post('findit-ads/{findit_ad}/matches/{match}/dismiss', [FindItAdsController::class, 'dismissMatch']); // Dismiss match
+        Route::post('findit-ads/{findit_ad}/matches/{match}/restore', [FindItAdsController::class, 'restoreMatch']); // Restore dismissed match
+        Route::post('findit-ads/{findit_ad}/refresh-matches', [FindItAdsController::class, 'refreshMatches']); // Refresh matches
     });
 
     // Public brand routes

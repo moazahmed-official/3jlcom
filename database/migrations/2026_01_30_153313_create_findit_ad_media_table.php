@@ -11,9 +11,15 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('findit_ad_media', function (Blueprint $table) {
+        Schema::create('findit_request_media', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('findit_request_id')->constrained('findit_requests')->onDelete('cascade');
+            $table->foreignId('media_id')->constrained('media')->onDelete('cascade');
+            $table->unsignedSmallInteger('order')->default(0);
             $table->timestamps();
+
+            $table->unique(['findit_request_id', 'media_id']);
+            $table->index('findit_request_id');
         });
     }
 
@@ -22,6 +28,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('findit_ad_media');
+        Schema::dropIfExists('findit_request_media');
     }
 };
