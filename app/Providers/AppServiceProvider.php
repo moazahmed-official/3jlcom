@@ -2,9 +2,11 @@
 
 namespace App\Providers;
 
+use App\Models\FinditMatch;
 use App\Models\FinditRequest;
 use App\Policies\FinditRequestPolicy;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -24,5 +26,8 @@ class AppServiceProvider extends ServiceProvider
     {
         // Register policies
         Gate::policy(FinditRequest::class, FinditRequestPolicy::class);
+
+        // Explicit route model binding for FinditMatch
+        Route::model('match', FinditMatch::class);
     }
 }
