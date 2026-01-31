@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\V1\UserController;
 use App\Http\Controllers\Api\V1\SellerVerificationController;
 use App\Http\Controllers\Api\V1\BrandController;
 use App\Http\Controllers\Api\V1\SliderController;
+use App\Http\Controllers\Api\V1\AuctionAdsController;
 use App\Http\Controllers\MediaController;
 
 Route::prefix('v1')->group(function () {
@@ -155,6 +156,30 @@ Route::prefix('v1')->group(function () {
         Route::get('caishha-offers/{offer}', [CaishhaAdsController::class, 'showOffer']); // Get specific offer details
         Route::put('caishha-offers/{offer}', [CaishhaAdsController::class, 'updateOffer']); // Update offer
         Route::delete('caishha-offers/{offer}', [CaishhaAdsController::class, 'deleteOffer']); // Delete/withdraw offer
+
+        // =====================
+        // AUCTION ADS ROUTES
+        // =====================
+        
+        // Auction Ads routes (authenticated)
+        Route::get('auction-ads/my-ads', [AuctionAdsController::class, 'myAds']); // User's auctions with all statuses
+        Route::get('auction-ads/admin', [AuctionAdsController::class, 'adminIndex']); // Admin: all auctions with all statuses
+        Route::get('auction-ads/stats', [AuctionAdsController::class, 'globalStats']); // Admin: global statistics
+        Route::post('auction-ads', [AuctionAdsController::class, 'store']); // Create auction
+        Route::put('auction-ads/{ad}', [AuctionAdsController::class, 'update']); // Update auction
+        Route::delete('auction-ads/{ad}', [AuctionAdsController::class, 'destroy']); // Delete auction
+        
+        // Auction lifecycle actions
+        Route::post('auction-ads/{ad}/actions/publish', [AuctionAdsController::class, 'publish']); // Publish auction
+        Route::post('auction-ads/{ad}/actions/close', [AuctionAdsController::class, 'closeAuction']); // Close auction
+        Route::post('auction-ads/{ad}/actions/cancel', [AuctionAdsController::class, 'cancelAuction']); // Cancel auction
+        
+        // Bid management routes
+        Route::post('auction-ads/{ad}/bids', [AuctionAdsController::class, 'placeBid']); // Place a bid
+        Route::get('auction-ads/{ad}/bids', [AuctionAdsController::class, 'listBids']); // List bids (owner/admin/moderator)
+        Route::get('auction-ads/{ad}/bids/{bid}', [AuctionAdsController::class, 'showBid']); // Get bid details
+        Route::delete('auction-ads/{ad}/bids/{bid}', [AuctionAdsController::class, 'withdrawBid']); // Withdraw own bid
+        Route::get('auction-bids/my-bids', [AuctionAdsController::class, 'myBids']); // User's bids across all auctions
     });
 
     // Public brand routes
@@ -178,4 +203,9 @@ Route::prefix('v1')->group(function () {
     // Public Caishha Ads routes (no authentication required)
     Route::get('caishha-ads', [CaishhaAdsController::class, 'index']);
     Route::get('caishha-ads/{ad}', [CaishhaAdsController::class, 'show']);
+
+    // Public Auction Ads routes (no authentication required)
+    Route::get('auction-ads', [AuctionAdsController::class, 'index']);
+    Route::get('auction-ads/{ad}', [AuctionAdsController::class, 'show']);
+    Route::get('users/{user}/auction-ads', [AuctionAdsController::class, 'listByUser']); // Public auctions by user
 });

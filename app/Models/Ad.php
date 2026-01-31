@@ -43,6 +43,11 @@ class Ad extends Model
         return $this->hasOne(CaishhaAd::class, 'ad_id');
     }
 
+    public function auction()
+    {
+        return $this->hasOne(Auction::class, 'ad_id');
+    }
+
     public function media()
     {
         return $this->belongsToMany(Media::class, 'ad_media', 'ad_id', 'media_id');
