@@ -7,6 +7,15 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+// Define login route name to prevent "Route [login] not defined" error
+// This is needed even for API-only apps when auth middleware fails on web routes
+Route::get('/login', function () {
+    return response()->json([
+        'message' => 'This is an API-only application. Please use the API endpoints with proper authentication.',
+        'login_endpoint' => '/api/v1/auth/login'
+    ], 401);
+})->name('login');
+
 // Mailtrap test route
 Route::get('/mail-test', function () {
     try {

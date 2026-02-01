@@ -16,12 +16,13 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // Middleware registrations (keep empty for framework defaults)
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // Handle validation exceptions with structured JSON format
         $exceptions->render(function (ValidationException $e, $request) {
-            if ($request->expectsJson()) {
+            // Always return JSON for API routes
+            if ($request->expectsJson() || $request->is('api/*')) {
                 return response()->json([
                     'status' => 'error',
                     'code' => 422,
@@ -33,7 +34,8 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // Handle authentication exceptions with structured JSON format
         $exceptions->render(function (AuthenticationException $e, $request) {
-            if ($request->expectsJson()) {
+            // Always return JSON for API routes (never redirect to login)
+            if ($request->expectsJson() || $request->is('api/*')) {
                 return response()->json([
                     'status' => 'error',
                     'code' => 401,
@@ -45,7 +47,8 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // Handle HTTP exceptions with structured JSON format
         $exceptions->render(function (HttpExceptionInterface $e, $request) {
-            if ($request->expectsJson()) {
+            // Always return JSON for API routes
+            if ($request->expectsJson() || $request->is('api/*')) {
                 $status = $e->getStatusCode();
                 $message = $e->getMessage() ?: 'Error';
                 return response()->json([

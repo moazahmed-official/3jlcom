@@ -82,4 +82,36 @@ class Ad extends Model
     {
         return $this->belongsTo(Category::class);
     }
+
+    /**
+     * Get reviews for this ad.
+     */
+    public function reviews()
+    {
+        return $this->hasMany(\App\Models\Review::class, 'ad_id');
+    }
+
+    /**
+     * Get reports for this ad.
+     */
+    public function reports()
+    {
+        return $this->morphMany(\App\Models\Report::class, 'target');
+    }
+
+    /**
+     * Get the average rating for this ad.
+     */
+    public function getAverageRatingAttribute(): float
+    {
+        return (float) $this->avg_rating;
+    }
+
+    /**
+     * Get the total reviews count for this ad.
+     */
+    public function getTotalReviewsAttribute(): int
+    {
+        return (int) $this->reviews_count;
+    }
 }

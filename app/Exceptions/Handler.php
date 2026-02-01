@@ -45,17 +45,24 @@ class Handler extends ExceptionHandler
 
     protected function unauthenticated($request, AuthenticationException $exception)
     {
-        return response()->json([
-            'status' => 'error',
-            'code' => 401,
-            'message' => 'Unauthenticated',
-            'errors' => (object) [],
-        ], 401);
+        // Always return JSON for API routes (never redirect to login)
+        if ($request->expectsJson() || $request->is('api/*')) {
+            return response()->json([
+                'status' => 'error',
+                'code' => 401,
+                'message' => 'Unauthenticated',
+                'errors' => (object) [],
+            ], 401);
+        }
+        
+        // For web routes, redirect to login (if login route exists)
+        return redirect()->guest(route('login'));
     }
 
     public function render($request, Throwable $e)
     {
-        if ($request->wantsJson() || $request->expectsJson()) {
+        // Always return JSON for API routes
+        if ($request->wantsJson() || $request->expectsJson() || $request->is('api/*')) {
             if ($e instanceof ValidationException) {
                 return $this->invalidJson($request, $e);
             }
@@ -78,7 +85,7 @@ class Handler extends ExceptionHandler
             return response()->json([
                 'status' => 'error',
                 'code' => 500,
-                'message' => $e->getMessage() ?: 'Server Error',
+                'message' => config('app.debug') ? $e->getMessage() : 'Server Error',
                 'errors' => (object) [],
             ], 500);
         }

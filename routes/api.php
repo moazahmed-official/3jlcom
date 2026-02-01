@@ -14,6 +14,8 @@ use App\Http\Controllers\Api\V1\SliderController;
 use App\Http\Controllers\Api\V1\AuctionAdsController;
 use App\Http\Controllers\FindItAdsController;
 use App\Http\Controllers\MediaController;
+use App\Http\Controllers\Api\V1\ReviewController;
+use App\Http\Controllers\Api\V1\ReportController;
 
 Route::prefix('v1')->group(function () {
     // Public authentication routes
@@ -206,6 +208,33 @@ Route::prefix('v1')->group(function () {
         Route::get('findit-ads/{findit_ad}/matches', [FindItAdsController::class, 'listMatches']); // List matching ads
         Route::get('findit-ads/{findit_ad}/matches/{match}', [FindItAdsController::class, 'showMatch']); // Get match details
         Route::post('findit-ads/{findit_ad}/matches/{match}/dismiss', [FindItAdsController::class, 'dismissMatch']); // Dismiss match
+        
+        // =====================
+        // REVIEWS ROUTES (Protected)
+        // =====================
+        
+        // Review management (authenticated users)
+        Route::post('reviews', [ReviewController::class, 'store'])->middleware('throttle:review'); // Create review with rate limit
+        Route::get('reviews/my-reviews', [ReviewController::class, 'myReviews']); // User's own reviews
+        Route::put('reviews/{review}', [ReviewController::class, 'update']); // Update review (owner or admin)
+        Route::delete('reviews/{review}', [ReviewController::class, 'destroy']); // Delete review (owner or admin)
+        
+        // =====================
+        // REPORTS ROUTES (Protected)
+        // =====================
+        
+        // Report management (authenticated users)
+        Route::post('reports', [ReportController::class, 'store'])->middleware('throttle:report'); // Create report with rate limit
+        Route::get('reports/my-reports', [ReportController::class, 'myReports']); // User's own reports
+        Route::get('reports/{report}', [ReportController::class, 'show']); // View report (owner/assigned/admin)
+        
+        // Report admin routes (admin/moderator only)
+        Route::get('reports/admin/index', [ReportController::class, 'adminIndex']); // Admin: all reports with filters
+        Route::post('reports/{report}/assign', [ReportController::class, 'assign']); // Admin: assign to moderator
+        Route::put('reports/{report}/status', [ReportController::class, 'updateStatus']); // Admin/Moderator: update status
+        Route::post('reports/{report}/actions/resolve', [ReportController::class, 'resolve']); // Admin/Moderator: mark resolved
+        Route::post('reports/{report}/actions/close', [ReportController::class, 'close']); // Admin/Moderator: close report
+        Route::delete('reports/{report}', [ReportController::class, 'destroy']); // Admin only: delete report
         Route::post('findit-ads/{findit_ad}/matches/{match}/restore', [FindItAdsController::class, 'restoreMatch']); // Restore dismissed match
         Route::post('findit-ads/{findit_ad}/refresh-matches', [FindItAdsController::class, 'refreshMatches']); // Refresh matches
     });
@@ -236,4 +265,10 @@ Route::prefix('v1')->group(function () {
     Route::get('auction-ads', [AuctionAdsController::class, 'index']);
     Route::get('auction-ads/{ad}', [AuctionAdsController::class, 'show']);
     Route::get('users/{user}/auction-ads', [AuctionAdsController::class, 'listByUser']); // Public auctions by user
+    
+    // Public Reviews routes (no authentication required)
+    Route::get('reviews', [ReviewController::class, 'index']); // List all reviews with filters
+    Route::get('reviews/{review}', [ReviewController::class, 'show']); // View specific review
+    Route::get('ads/{ad}/reviews', [ReviewController::class, 'adReviews']); // Reviews for a specific ad
+    Route::get('users/{user}/reviews', [ReviewController::class, 'userReviews']); // Reviews for a specific seller
 });

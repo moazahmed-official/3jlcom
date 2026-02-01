@@ -185,6 +185,62 @@ class User extends Authenticatable
     }
 
     /**
+     * Get reviews created by this user.
+     */
+    public function reviews()
+    {
+        return $this->hasMany(\App\Models\Review::class, 'user_id');
+    }
+
+    /**
+     * Get reviews received by this user (as a seller).
+     */
+    public function reviewsReceived()
+    {
+        return $this->hasMany(\App\Models\Review::class, 'seller_id');
+    }
+
+    /**
+     * Get reports created by this user.
+     */
+    public function reports()
+    {
+        return $this->hasMany(\App\Models\Report::class, 'reported_by_user_id');
+    }
+
+    /**
+     * Get reports received by this user (user being reported).
+     */
+    public function reportsReceived()
+    {
+        return $this->morphMany(\App\Models\Report::class, 'target');
+    }
+
+    /**
+     * Get reports assigned to this user (as a moderator).
+     */
+    public function assignedReports()
+    {
+        return $this->hasMany(\App\Models\Report::class, 'assigned_to');
+    }
+
+    /**
+     * Get the average rating for this user (as a seller).
+     */
+    public function getAverageRatingAttribute(): float
+    {
+        return (float) $this->avg_rating;
+    }
+
+    /**
+     * Get the total reviews count for this user (as a seller).
+     */
+    public function getTotalReviewsAttribute(): int
+    {
+        return (int) $this->reviews_count;
+    }
+
+    /**
      * The attributes that should be hidden for serialization.
      *
      * @var list<string>

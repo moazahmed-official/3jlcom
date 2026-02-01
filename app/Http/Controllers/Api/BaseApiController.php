@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
 abstract class BaseApiController extends Controller
 {
+    use AuthorizesRequests;
     /**
      * Return a success JSON response with consistent structure.
      *
