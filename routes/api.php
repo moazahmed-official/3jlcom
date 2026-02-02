@@ -341,6 +341,12 @@ Route::prefix('v1')->group(function () {
         Route::put('admin/categories/{category}', [CategoryController::class, 'update']); // Update category (admin)
         Route::delete('admin/categories/{category}', [CategoryController::class, 'destroy']); // Delete category (admin)
         
+        // Category specifications management (admin only)
+        Route::get('admin/categories/{category}/specifications', [CategoryController::class, 'specifications']); // Get category specifications
+        Route::post('admin/categories/{category}/specifications/assign', [CategoryController::class, 'assignSpecifications']); // Assign specifications to category (replaces all)
+        Route::post('admin/categories/{category}/specifications/attach', [CategoryController::class, 'attachSpecification']); // Add single specification
+        Route::delete('admin/categories/{category}/specifications/{specification}', [CategoryController::class, 'detachSpecification']); // Remove specification
+        
         // SELLER STATS ROUTES
         // ===================
         

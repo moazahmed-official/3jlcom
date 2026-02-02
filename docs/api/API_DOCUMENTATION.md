@@ -3443,6 +3443,315 @@ curl -X DELETE http://localhost:8000/api/v1/admin/categories/1 \
 
 ---
 
+### 20.6 Get Category Specifications (Admin)
+**Description:** عرض المواصفات المرتبطة بالفئة - يعرض جميع المواصفات المُسندة للفئة مع ترتيبها  
+**Endpoint:** `GET /api/v1/admin/categories/{id}/specifications`  
+**Auth Required:** Yes (Admin)
+
+```bash
+curl -X GET http://localhost:8000/api/v1/admin/categories/1/specifications \
+  -H "Authorization: Bearer {token}" \
+  -H "Accept: application/json"
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "message": "Category specifications retrieved successfully",
+  "data": [
+    {
+      "id": 1,
+      "name_en": "Brand",
+      "name_ar": "الماركة",
+      "type": "select",
+      "values": ["Toyota", "Honda", "BMW"],
+      "image_id": null,
+      "order": 0,
+      "created_at": "2026-01-15T10:30:00.000000Z",
+      "updated_at": "2026-01-15T10:30:00.000000Z"
+    },
+    {
+      "id": 3,
+      "name_en": "Color",
+      "name_ar": "اللون",
+      "type": "select",
+      "values": ["Red", "Blue", "Black", "White"],
+      "image_id": null,
+      "order": 1,
+      "created_at": "2026-01-15T10:30:00.000000Z",
+      "updated_at": "2026-01-15T10:30:00.000000Z"
+    },
+    {
+      "id": 4,
+      "name_en": "Year",
+      "name_ar": "السنة",
+      "type": "number",
+      "values": null,
+      "image_id": null,
+      "order": 2,
+      "created_at": "2026-01-15T10:30:00.000000Z",
+      "updated_at": "2026-01-15T10:30:00.000000Z"
+    }
+  ]
+}
+```
+
+---
+
+### 20.7 Assign Specifications to Category (Admin)
+**Description:** إسناد مواصفات للفئة - يستبدل جميع المواصفات الحالية بالقائمة المُرسلة (مثال: لإسناد المواصفات 1، 3، 4 فقط دون 2)  
+**Endpoint:** `POST /api/v1/admin/categories/{id}/specifications/assign`  
+**Auth Required:** Yes (Admin)
+
+```bash
+curl -X POST http://localhost:8000/api/v1/admin/categories/1/specifications/assign \
+  -H "Authorization: Bearer {token}" \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json" \
+  -d '{
+    "specification_ids": [1, 3, 4]
+  }'
+```
+
+**Request Body:**
+```json
+{
+  "specification_ids": [1, 3, 4]
+}
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "message": "Specifications assigned to category successfully",
+  "data": {
+    "id": 1,
+    "name_en": "Cars",
+    "name_ar": "سيارات",
+    "status": "active",
+    "specs_group_id": null,
+    "specifications": [
+      {
+        "id": 1,
+        "name_en": "Brand",
+        "name_ar": "الماركة",
+        "type": "select",
+        "order": 0
+      },
+      {
+        "id": 3,
+        "name_en": "Color",
+        "name_ar": "اللون",
+        "type": "select",
+        "order": 1
+      },
+      {
+        "id": 4,
+        "name_en": "Year",
+        "name_ar": "السنة",
+        "type": "number",
+        "order": 2
+      }
+    ],
+    "specifications_count": 3,
+    "created_at": "2026-01-10T08:00:00.000000Z",
+    "updated_at": "2026-02-02T20:15:00.000000Z"
+  }
+}
+```
+
+**Validation:**
+- `specification_ids` is required and must be an array
+- Each ID must exist in the `specifications` table
+- Order is automatically assigned based on array index
+
+**Note:** This endpoint **replaces** all existing specifications. If the category had specifications [1, 2, 5] and you send [1, 3, 4], the final result will be [1, 3, 4] only.
+
+---
+
+### 20.8 Attach Single Specification to Category (Admin)
+**Description:** إضافة مواصفة واحدة للفئة - يضيف مواصفة دون التأثير على المواصفات الموجودة  
+**Endpoint:** `POST /api/v1/admin/categories/{id}/specifications/attach`  
+**Auth Required:** Yes (Admin)
+
+```bash
+curl -X POST http://localhost:8000/api/v1/admin/categories/1/specifications/attach \
+  -H "Authorization: Bearer {token}" \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json" \
+  -d '{
+    "specification_id": 5,
+    "order": 3
+  }'
+```
+
+**Request Body:**
+```json
+{
+  "specification_id": 5,
+  "order": 3
+}
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "message": "Specification attached to category successfully",
+  "data": {
+    "id": 1,
+    "name_en": "Cars",
+    "name_ar": "سيارات",
+    "specifications": [
+      {
+        "id": 1,
+        "name_en": "Brand",
+        "name_ar": "الماركة",
+        "type": "select",
+        "order": 0
+      },
+      {
+        "id": 3,
+        "name_en": "Color",
+        "name_ar": "اللون",
+        "type": "select",
+        "order": 1
+      },
+      {
+        "id": 4,
+        "name_en": "Year",
+        "name_ar": "السنة",
+        "type": "number",
+        "order": 2
+      },
+      {
+        "id": 5,
+        "name_en": "Fuel Type",
+        "name_ar": "نوع الوقود",
+        "type": "select",
+        "order": 3
+      }
+    ],
+    "specifications_count": 4
+  }
+}
+```
+
+**Validation:**
+- `specification_id` is required and must exist
+- `order` is optional (defaults to current count)
+- Returns 409 error if specification is already attached to the category
+
+---
+
+### 20.9 Remove Specification from Category (Admin)
+**Description:** إزالة مواصفة من الفئة - يفصل المواصفة عن الفئة دون حذفها من النظام  
+**Endpoint:** `DELETE /api/v1/admin/categories/{category_id}/specifications/{specification_id}`  
+**Auth Required:** Yes (Admin)
+
+```bash
+curl -X DELETE http://localhost:8000/api/v1/admin/categories/1/specifications/3 \
+  -H "Authorization: Bearer {token}" \
+  -H "Accept: application/json"
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "message": "Specification detached from category successfully",
+  "data": {
+    "id": 1,
+    "name_en": "Cars",
+    "name_ar": "سيارات",
+    "specifications": [
+      {
+        "id": 1,
+        "name_en": "Brand",
+        "name_ar": "الماركة",
+        "type": "select",
+        "order": 0
+      },
+      {
+        "id": 4,
+        "name_en": "Year",
+        "name_ar": "السنة",
+        "type": "number",
+        "order": 2
+      }
+    ],
+    "specifications_count": 2
+  }
+}
+```
+
+**Error Response (404):**
+```json
+{
+  "status": "error",
+  "code": 404,
+  "message": "Specification not attached to this category",
+  "errors": {}
+}
+```
+
+---
+
+## Category-Specification System Overview
+
+### Database Structure:
+A many-to-many relationship exists between `categories` and `specifications` through the `category_specification` pivot table.
+
+**Pivot Table Fields:**
+- `category_id` - Foreign key to categories
+- `specification_id` - Foreign key to specifications
+- `order` - Integer for ordering specifications (0-based)
+- Unique constraint on (category_id, specification_id)
+
+### Workflow Example:
+
+**Step 1: Create Category**
+```bash
+POST /api/v1/admin/categories
+{
+  "name_en": "Luxury Cars",
+  "name_ar": "سيارات فاخرة",
+  "status": "active"
+}
+```
+
+**Step 2: Assign Specifications** (e.g., Brand, Color, Year, Engine)
+```bash
+POST /api/v1/admin/categories/1/specifications/assign
+{
+  "specification_ids": [1, 3, 4, 8]
+}
+```
+
+**Step 3: View Category with Specifications**
+```bash
+GET /api/v1/admin/categories/1
+```
+Response includes `specifications` array with all assigned specs in order.
+
+### Use Cases:
+
+1. **Replace All Specifications:** Use `/assign` endpoint
+   - Example: Change from [1, 2, 3] to [1, 3, 4]
+
+2. **Add One Specification:** Use `/attach` endpoint
+   - Example: Add specification 5 to existing list
+
+3. **Remove One Specification:** Use DELETE endpoint
+   - Example: Remove specification 2 from category
+
+4. **View Category Specifications:** GET category or specifications endpoint
+   - Both return the same data
+
+---
+
 ## 21. Sliders
 
 ### 21.1 List Sliders (Public)

@@ -153,13 +153,16 @@ class NotificationController extends BaseApiController
         }
 
         $validated = $request->validate([
-            'target' => ['required', 'string', 'in:user,group,all'],
+            'target' => ['nullable', 'string', 'in:user,group,all'],
             'target_id' => ['required_if:target,user', 'nullable', 'integer'],
             'target_role' => ['required_if:target,group', 'nullable', 'string', 'exists:roles,name'],
+            'user_ids' => ['nullable', 'array', 'required_without:target'],
+            'user_ids.*' => ['integer', 'exists:users,id'],
             'title' => ['required', 'string', 'max:255'],
             'body' => ['required', 'string', 'max:2000'],
             'data' => ['nullable', 'array'],
             'action_url' => ['nullable', 'string', 'url'],
+            'channel' => ['nullable', 'string', 'in:database,mail,fcm'], // Optional, not used in current implementation
         ]);
 
         $notificationData = [
@@ -172,6 +175,27 @@ class NotificationController extends BaseApiController
 
         $targetUsers = collect();
 
+        // Check if user_ids is provided (new approach)
+        if (!empty($validated['user_ids'])) {
+            $targetUsers = \App\Models\User::whereIn('id', $validated['user_ids'])->get();
+            
+            if ($targetUsers->isEmpty()) {
+                return $this->error(404, 'No users found with the specified IDs');
+            }
+            
+            // Send to collected users
+            foreach ($targetUsers as $user) {
+                $user->notify(new AdminNotification($notificationData));
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Notification sent successfully',
+                'data' => ['recipients_count' => $targetUsers->count()],
+            ], 202);
+        }
+
+        // Legacy approach using target
         switch ($validated['target']) {
             case 'user':
                 $user = \App\Models\User::find($validated['target_id']);

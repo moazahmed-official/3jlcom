@@ -18,7 +18,7 @@ class CategoryController extends BaseApiController
             return $this->error(403, 'Unauthorized');
         }
 
-        $query = Category::query();
+        $query = Category::with('specifications');
 
         // Search
         if ($request->filled('search')) {
@@ -51,6 +51,8 @@ class CategoryController extends BaseApiController
         if (!$request->user()->isAdmin()) {
             return $this->error(403, 'Unauthorized');
         }
+
+        $category->load('specifications');
 
         return $this->success(
             new CategoryResource($category),
@@ -121,6 +123,112 @@ class CategoryController extends BaseApiController
         return $this->success(
             null,
             'Category deleted successfully'
+        );
+    }
+
+    /**
+     * Get specifications for a category.
+     */
+    public function specifications(Request $request, Category $category)
+    {
+        if (!$request->user()->isAdmin()) {
+            return $this->error(403, 'Unauthorized');
+        }
+
+        $specifications = $category->specifications()->get();
+
+        return $this->success(
+            $specifications,
+            'Category specifications retrieved successfully'
+        );
+    }
+
+    /**
+     * Assign specifications to a category (admin-only).
+     * Replaces all existing specifications with the provided list.
+     */
+    public function assignSpecifications(Request $request, Category $category)
+    {
+        if (!$request->user()->isAdmin()) {
+            return $this->error(403, 'Unauthorized');
+        }
+
+        $validated = $request->validate([
+            'specification_ids' => 'required|array',
+            'specification_ids.*' => 'exists:specifications,id',
+        ]);
+
+        // Prepare sync data with order
+        $syncData = [];
+        foreach ($validated['specification_ids'] as $index => $specId) {
+            $syncData[$specId] = ['order' => $index];
+        }
+
+        // Sync specifications (removes old ones, adds new ones)
+        $category->specifications()->sync($syncData);
+
+        $category->load('specifications');
+
+        return $this->success(
+            new CategoryResource($category),
+            'Specifications assigned to category successfully'
+        );
+    }
+
+    /**
+     * Add a single specification to a category (admin-only).
+     */
+    public function attachSpecification(Request $request, Category $category)
+    {
+        if (!$request->user()->isAdmin()) {
+            return $this->error(403, 'Unauthorized');
+        }
+
+        $validated = $request->validate([
+            'specification_id' => 'required|exists:specifications,id',
+            'order' => 'nullable|integer|min:0',
+        ]);
+
+        // Check if already attached
+        if ($category->specifications()->where('specification_id', $validated['specification_id'])->exists()) {
+            return $this->error(409, 'Specification already attached to this category');
+        }
+
+        $category->specifications()->attach($validated['specification_id'], [
+            'order' => $validated['order'] ?? $category->specifications()->count(),
+        ]);
+
+        $category->load('specifications');
+
+        return $this->success(
+            new CategoryResource($category),
+            'Specification attached to category successfully'
+        );
+    }
+
+    /**
+     * Remove a specification from a category (admin-only).
+     */
+    public function detachSpecification(Request $request, Category $category, $specificationId)
+    {
+        if (!$request->user()->isAdmin()) {
+            return $this->error(403, 'Unauthorized');
+        }
+
+        // Check if specification exists
+        $exists = $category->specifications()->where('specification_id', $specificationId)->exists();
+        
+        if (!$exists) {
+            return $this->error(404, 'Specification not attached to this category');
+        }
+
+        $category->specifications()->detach($specificationId);
+
+        $category->load('specifications');
+
+        return $this->success(
+            new CategoryResource($category),
+            'Specification detached from category successfully'
         );
     }
 }

@@ -134,14 +134,14 @@ class RoleController extends BaseApiController
         $roleToAccount = [
             'super_admin' => 'admin',
             'admin' => 'admin',
+            'showroom' => 'seller',
             'seller' => 'seller',
-            'showroom' => 'showroom',
             'marketer' => 'marketing',
             'user' => 'individual',
             'individual' => 'individual',
         ];
 
-        $priority = ['super_admin', 'admin', 'company', 'dealer', 'marketer', 'user', 'individual'];
+        $priority = ['super_admin', 'admin', 'showroom', 'seller', 'marketer', 'user'];
         $accountType = null;
         foreach ($priority as $r) {
             if (in_array($r, $roleNames, true)) {

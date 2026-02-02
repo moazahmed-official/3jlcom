@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Category extends Model
 {
@@ -29,6 +30,17 @@ class Category extends Model
     public function ads(): HasMany
     {
         return $this->hasMany(Ad::class);
+    }
+
+    /**
+     * Get the specifications associated with this category.
+     */
+    public function specifications(): BelongsToMany
+    {
+        return $this->belongsToMany(Specification::class, 'category_specification')
+            ->withPivot('order')
+            ->withTimestamps()
+            ->orderBy('category_specification.order');
     }
 
     /**
