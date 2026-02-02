@@ -547,6 +547,31 @@ class FindItAdsController extends Controller
     }
 
     /**
+     * Get similar ads for a FindIt request (notify on similar ads).
+     * Returns the same matches as listMatches but formatted for notification purposes.
+     * 
+     * GET /api/v1/findit-ads/{findit_ad}/similar
+     */
+    public function similarAds(FinditRequest $findit_ad): AnonymousResourceCollection
+    {
+        $this->authorize('view', $findit_ad);
+
+        if (!$findit_ad->isActive()) {
+            return FindItMatchResource::collection(collect([]));
+        }
+
+        // Get non-dismissed matches, ordered by relevance score
+        $matches = $findit_ad->matches()
+            ->with(['normalAd.brand', 'normalAd.carModel', 'normalAd.city', 'normalAd.country', 'normalAd.user', 'normalAd.media'])
+            ->notDismissed()
+            ->orderByDesc('relevance_score')
+            ->limit(10) // Limit to top 10 similar ads for notifications
+            ->get();
+
+        return FindItMatchResource::collection($matches);
+    }
+
+    /**
      * Perform bulk actions on FindIt requests (admin only).
      * 
      * POST /api/v1/findit-ads/actions/bulk

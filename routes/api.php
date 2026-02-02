@@ -16,6 +16,15 @@ use App\Http\Controllers\FindItAdsController;
 use App\Http\Controllers\MediaController;
 use App\Http\Controllers\Api\V1\ReviewController;
 use App\Http\Controllers\Api\V1\ReportController;
+use App\Http\Controllers\Api\V1\PackageController;
+use App\Http\Controllers\Api\V1\NotificationController;
+use App\Http\Controllers\Api\V1\FavoriteController;
+use App\Http\Controllers\Api\V1\SavedSearchController;
+use App\Http\Controllers\Api\V1\BlogController;
+use App\Http\Controllers\Api\V1\SpecificationController;
+use App\Http\Controllers\Api\V1\CategoryController;
+use App\Http\Controllers\Api\V1\SellerStatsController;
+use App\Http\Controllers\Api\V1\AdminStatsController;
 
 Route::prefix('v1')->group(function () {
     // Public authentication routes
@@ -208,6 +217,9 @@ Route::prefix('v1')->group(function () {
         Route::get('findit-ads/{findit_ad}/matches', [FindItAdsController::class, 'listMatches']); // List matching ads
         Route::get('findit-ads/{findit_ad}/matches/{match}', [FindItAdsController::class, 'showMatch']); // Get match details
         Route::post('findit-ads/{findit_ad}/matches/{match}/dismiss', [FindItAdsController::class, 'dismissMatch']); // Dismiss match
+        Route::post('findit-ads/{findit_ad}/matches/{match}/restore', [FindItAdsController::class, 'restoreMatch']); // Restore dismissed match
+        Route::post('findit-ads/{findit_ad}/refresh-matches', [FindItAdsController::class, 'refreshMatches']); // Refresh matches
+        Route::get('findit-ads/{findit_ad}/similar', [FindItAdsController::class, 'similarAds']); // Get similar ads for notifications
         
         // =====================
         // REVIEWS ROUTES (Protected)
@@ -235,13 +247,136 @@ Route::prefix('v1')->group(function () {
         Route::post('reports/{report}/actions/resolve', [ReportController::class, 'resolve']); // Admin/Moderator: mark resolved
         Route::post('reports/{report}/actions/close', [ReportController::class, 'close']); // Admin/Moderator: close report
         Route::delete('reports/{report}', [ReportController::class, 'destroy']); // Admin only: delete report
-        Route::post('findit-ads/{findit_ad}/matches/{match}/restore', [FindItAdsController::class, 'restoreMatch']); // Restore dismissed match
+        
+        // =====================
+        // PACKAGES ROUTES
+        // =====================
+        
+        // Package management (admin only for CUD)
+        Route::get('packages/stats', [PackageController::class, 'stats']); // Admin: package statistics
+        Route::post('packages', [PackageController::class, 'store']); // Admin: create package
+        Route::put('packages/{package}', [PackageController::class, 'update']); // Admin: update package
+        Route::delete('packages/{package}', [PackageController::class, 'destroy']); // Admin: delete package
+        Route::post('packages/{package}/assign', [PackageController::class, 'assign']); // Admin: assign to user
+        
+        // User packages management
+        Route::get('packages/my-packages', [PackageController::class, 'myPackages']); // Current user's packages
+        Route::get('users/{user}/packages', [PackageController::class, 'userPackages']); // User's packages (self or admin)
+        Route::put('user-packages/{userPackage}', [PackageController::class, 'updateUserPackage']); // Admin: update subscription
+        Route::delete('user-packages/{userPackage}', [PackageController::class, 'destroyUserPackage']); // Admin: remove subscription
+        
+        // =====================
+        // NOTIFICATIONS ROUTES
+        // =====================
+        
+        // Notification management (authenticated users)
+        Route::get('notifications', [NotificationController::class, 'index']); // List user's notifications
+        Route::get('notifications/{id}', [NotificationController::class, 'show']); // Get specific notification
+        Route::patch('notifications/{id}/read', [NotificationController::class, 'markAsRead']); // Mark as read
+        Route::post('notifications/read-all', [NotificationController::class, 'markAllAsRead']); // Mark all as read
+        Route::delete('notifications/{id}', [NotificationController::class, 'destroy']); // Delete notification
+        
+        // Admin notification sending
+        Route::post('notifications/send', [NotificationController::class, 'send']); // Admin: send notification
         Route::post('findit-ads/{findit_ad}/refresh-matches', [FindItAdsController::class, 'refreshMatches']); // Refresh matches
+        
+        // =====================
+        // FAVORITES ROUTES
+        // =====================
+        
+        // Favorite management (authenticated users)
+        Route::get('favorites', [FavoriteController::class, 'index']); // List user's favorites
+        Route::get('favorites/count', [FavoriteController::class, 'count']); // Get favorites count
+        Route::get('favorites/check/{ad}', [FavoriteController::class, 'check']); // Check if ad is favorited
+        Route::post('favorites/{ad}', [FavoriteController::class, 'store']); // Add ad to favorites
+        Route::post('favorites/toggle/{ad}', [FavoriteController::class, 'toggle']); // Toggle favorite status
+        Route::delete('favorites/{favorite}', [FavoriteController::class, 'destroy']); // Remove favorite by ID
+        Route::delete('favorites/ad/{ad}', [FavoriteController::class, 'destroyByAd']); // Remove favorite by ad ID
+        
+        // SAVED SEARCHES ROUTES
+        // =====================
+        
+        // Saved search management (authenticated users)
+        Route::get('saved-searches', [SavedSearchController::class, 'index']); // List user's saved searches
+        Route::post('saved-searches', [SavedSearchController::class, 'store']); // Create new saved search
+        Route::get('saved-searches/{savedSearch}', [SavedSearchController::class, 'show']); // Show specific saved search
+        Route::put('saved-searches/{savedSearch}', [SavedSearchController::class, 'update']); // Update saved search
+        Route::delete('saved-searches/{savedSearch}', [SavedSearchController::class, 'destroy']); // Delete saved search
+        
+        // BLOG ROUTES (Admin)
+        // =====================
+        
+        // Blog management (admin only)
+        Route::get('admin/blogs', [BlogController::class, 'adminIndex']); // List all blogs (admin)
+        Route::get('admin/blogs/{blog}', [BlogController::class, 'adminShow']); // Show any blog (admin)
+        Route::post('admin/blogs', [BlogController::class, 'store']); // Create blog (admin)
+        Route::put('admin/blogs/{blog}', [BlogController::class, 'update']); // Update blog (admin)
+        Route::delete('admin/blogs/{blog}', [BlogController::class, 'destroy']); // Delete blog (admin)
+        
+        // SPECIFICATION ROUTES (Admin)
+        // ============================
+        
+        // Specification management (admin only)
+        Route::get('admin/specifications', [SpecificationController::class, 'index']); // List specifications (admin)
+        Route::get('admin/specifications/{specification}', [SpecificationController::class, 'show']); // Show specification (admin)
+        Route::post('admin/specifications', [SpecificationController::class, 'store']); // Create specification (admin)
+        Route::put('admin/specifications/{specification}', [SpecificationController::class, 'update']); // Update specification (admin)
+        Route::delete('admin/specifications/{specification}', [SpecificationController::class, 'destroy']); // Delete specification (admin)
+        
+        // CATEGORY ROUTES (Admin)
+        // =======================
+        
+        // Category management (admin only)
+        Route::get('admin/categories', [CategoryController::class, 'index']); // List categories (admin)
+        Route::get('admin/categories/{category}', [CategoryController::class, 'show']); // Show category (admin)
+        Route::post('admin/categories', [CategoryController::class, 'store']); // Create category (admin)
+        Route::put('admin/categories/{category}', [CategoryController::class, 'update']); // Update category (admin)
+        Route::delete('admin/categories/{category}', [CategoryController::class, 'destroy']); // Delete category (admin)
+        
+        // SELLER STATS ROUTES
+        // ===================
+        
+        // Seller dashboard and analytics
+        Route::get('seller/dashboard', [SellerStatsController::class, 'dashboard']); // Seller dashboard stats
+        Route::get('seller/stats/views', [SellerStatsController::class, 'totalViews']); // Total views for seller
+        Route::get('seller/stats/contacts', [SellerStatsController::class, 'totalContacts']); // Total contacts for seller
+        Route::get('seller/stats/clicks', [SellerStatsController::class, 'totalClicks']); // Total clicks for seller
+        Route::get('seller/ads/{ad}/views', [SellerStatsController::class, 'adViews']); // Views for specific ad
+        Route::get('seller/ads/{ad}/contacts', [SellerStatsController::class, 'adContacts']); // Contacts for specific ad
+        Route::get('seller/ads/{ad}/clicks', [SellerStatsController::class, 'adClicks']); // Clicks for specific ad
+        Route::post('seller/ads/{ad}/views', [SellerStatsController::class, 'incrementAdViews']); // Increment view count
+        Route::post('seller/ads/{ad}/contacts', [SellerStatsController::class, 'incrementAdContacts']); // Increment contact count
+        Route::post('seller/ads/{ad}/clicks', [SellerStatsController::class, 'incrementAdClicks']); // Increment click count
+        
+        // SLIDER ROUTES (Admin)
+        // =====================
+        
+        // Slider management (admin only)
+        Route::post('admin/sliders', [SliderController::class, 'store']); // Create slider (admin)
+        Route::put('admin/sliders/{slider}', [SliderController::class, 'update']); // Update slider (admin)
+        Route::delete('admin/sliders/{slider}', [SliderController::class, 'destroy']); // Delete slider (admin)
+        Route::post('admin/sliders/{slider}/activate', [SliderController::class, 'activate']); // Activate slider (admin)
+        Route::post('admin/sliders/{slider}/deactivate', [SliderController::class, 'deactivate']); // Deactivate slider (admin)
+        
+        // ADMIN STATS ROUTES
+        // ==================
+        
+        // Admin analytics and statistics (admin only)
+        Route::get('admin/stats/dashboard', [AdminStatsController::class, 'dashboard']); // Overall platform stats
+        Route::get('admin/stats/ads/{ad}/views', [AdminStatsController::class, 'adViews']); // Ad views count
+        Route::get('admin/stats/ads/{ad}/clicks', [AdminStatsController::class, 'adClicks']); // Ad clicks count
+        Route::get('admin/stats/dealer/{user}', [AdminStatsController::class, 'dealerStats']); // Dealer statistics
+        Route::get('admin/stats/user/{user}', [AdminStatsController::class, 'userStats']); // User statistics
+        Route::get('admin/stats/ads/{type}', [AdminStatsController::class, 'adsByType']); // Count ads by type
     });
 
     // Public brand routes
     Route::get('/brands', [BrandController::class, 'index']);
     Route::get('/brands/{brand}/models', [BrandController::class, 'models']);
+    
+    // Public blog routes
+    Route::get('/blogs', [BlogController::class, 'index']); // List published blogs
+    Route::get('/blogs/{blog}', [BlogController::class, 'show']); // Show published blog
 
     // Public Normal Ads routes (no authentication required)
     Route::get('normal-ads', [NormalAdsController::class, 'index']);
@@ -271,4 +406,8 @@ Route::prefix('v1')->group(function () {
     Route::get('reviews/{review}', [ReviewController::class, 'show']); // View specific review
     Route::get('ads/{ad}/reviews', [ReviewController::class, 'adReviews']); // Reviews for a specific ad
     Route::get('users/{user}/reviews', [ReviewController::class, 'userReviews']); // Reviews for a specific seller
+    
+    // Public Packages routes (no authentication required)
+    Route::get('packages', [PackageController::class, 'index']); // List active packages
+    Route::get('packages/{package}', [PackageController::class, 'show']); // View package details
 });

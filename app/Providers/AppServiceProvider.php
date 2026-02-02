@@ -6,10 +6,12 @@ use App\Models\FinditMatch;
 use App\Models\FinditRequest;
 use App\Models\Review;
 use App\Models\Report;
+use App\Models\Package;
 use App\Observers\ReviewObserver;
 use App\Policies\FinditRequestPolicy;
 use App\Policies\ReviewPolicy;
 use App\Policies\ReportPolicy;
+use App\Policies\PackagePolicy;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\RateLimiter;
@@ -44,6 +46,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(FinditRequest::class, FinditRequestPolicy::class);
         Gate::policy(Review::class, ReviewPolicy::class);
         Gate::policy(Report::class, ReportPolicy::class);
+        Gate::policy(Package::class, PackagePolicy::class);
 
         // Explicit route model binding for FinditMatch
         Route::model('match', FinditMatch::class);

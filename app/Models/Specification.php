@@ -4,35 +4,36 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class Category extends Model
+class Specification extends Model
 {
     use HasFactory;
 
     protected $fillable = [
         'name_en',
         'name_ar',
-        'status',
-        'specs_group_id',
+        'type',
+        'values',
+        'image_id',
     ];
 
     protected $casts = [
-        'status' => 'string',
+        'values' => 'array',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
 
     /**
-     * Get the ads for the category.
+     * Get the image associated with the specification.
      */
-    public function ads(): HasMany
+    public function image(): BelongsTo
     {
-        return $this->hasMany(Ad::class);
+        return $this->belongsTo(Media::class, 'image_id');
     }
 
     /**
-     * Scope a query to search categories by name.
+     * Scope a query to search specifications by name.
      */
     public function scopeSearch($query, $search)
     {
@@ -43,18 +44,10 @@ class Category extends Model
     }
 
     /**
-     * Scope a query to filter active categories.
+     * Scope a query to filter by type.
      */
-    public function scopeActive($query)
+    public function scopeOfType($query, $type)
     {
-        return $query->where('status', 'active');
-    }
-
-    /**
-     * Scope a query to filter by status.
-     */
-    public function scopeOfStatus($query, $status)
-    {
-        return $query->where('status', $status);
+        return $query->where('type', $type);
     }
 }
