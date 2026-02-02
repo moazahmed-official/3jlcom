@@ -2447,6 +2447,454 @@ curl -X DELETE http://localhost:8000/api/v1/user-packages/1 \
 
 ---
 
+### 14.12 Get Package Features (Admin)
+**Description:** الحصول على ميزات وصلاحيات الباقة - عرض جميع الإعدادات التفصيلية للباقة مثل أنواع الإعلانات المسموحة والحدود والميزات الإضافية  
+**Endpoint:** `GET /api/v1/packages/{id}/features`  
+**Auth Required:** Yes (Admin)
+
+```bash
+curl -X GET http://localhost:8000/api/v1/packages/1/features \
+  -H "Authorization: Bearer {token}" \
+  -H "Accept: application/json"
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "message": "Package features retrieved successfully",
+  "data": {
+    "id": 1,
+    "package_id": 1,
+    "configured": true,
+    "ad_types": {
+      "normal": {
+        "allowed": true,
+        "limit": 20,
+        "unlimited": false
+      },
+      "unique": {
+        "allowed": true,
+        "limit": 5,
+        "unlimited": false
+      },
+      "caishha": {
+        "allowed": true,
+        "limit": 10,
+        "unlimited": false
+      },
+      "findit": {
+        "allowed": true,
+        "limit": 3,
+        "unlimited": false
+      },
+      "auction": {
+        "allowed": false,
+        "limit": 0,
+        "unlimited": false
+      }
+    },
+    "role_features": {
+      "grants_seller_status": true,
+      "auto_verify_seller": false,
+      "grants_marketer_status": false,
+      "grants_verified_badge": false
+    },
+    "ad_capabilities": {
+      "can_push_to_facebook": true,
+      "can_auto_republish": true,
+      "can_use_banner": true,
+      "can_use_background_color": false,
+      "can_bulk_upload": false
+    },
+    "additional_features": {
+      "images_per_ad_limit": 15,
+      "videos_per_ad_limit": 2,
+      "ad_duration_days": 45,
+      "max_ad_duration_days": 90,
+      "can_extend_ads": true,
+      "priority_support": false,
+      "featured_in_search": false
+    },
+    "summary": {
+      "allowed_ad_types": ["normal", "unique", "caishha", "findit"],
+      "grants_roles": ["seller"],
+      "has_advanced_features": true
+    }
+  }
+}
+```
+
+---
+
+### 14.13 Create Package Features (Admin)
+**Description:** إنشاء ميزات وصلاحيات الباقة - تحديد أنواع الإعلانات المسموحة والحدود والميزات (خطوة 2 بعد إنشاء الباقة)  
+**Endpoint:** `POST /api/v1/packages/{id}/features`  
+**Auth Required:** Yes (Admin)
+
+```bash
+curl -X POST http://localhost:8000/api/v1/packages/1/features \
+  -H "Authorization: Bearer {token}" \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json" \
+  -d '{
+    "normal_ads_allowed": true,
+    "normal_ads_limit": 20,
+    "unique_ads_allowed": true,
+    "unique_ads_limit": 5,
+    "caishha_ads_allowed": true,
+    "caishha_ads_limit": 10,
+    "findit_ads_allowed": true,
+    "findit_ads_limit": 3,
+    "auction_ads_allowed": false,
+    "auction_ads_limit": 0,
+    "grants_seller_status": true,
+    "auto_verify_seller": false,
+    "grants_marketer_status": false,
+    "grants_verified_badge": false,
+    "can_push_to_facebook": true,
+    "can_auto_republish": true,
+    "can_use_banner": true,
+    "can_use_background_color": false,
+    "can_bulk_upload": false,
+    "images_per_ad_limit": 15,
+    "videos_per_ad_limit": 2,
+    "ad_duration_days": 45,
+    "max_ad_duration_days": 90,
+    "can_extend_ads": true,
+    "priority_support": false,
+    "featured_in_search": false
+  }'
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "message": "Package features created successfully",
+  "data": {
+    "id": 1,
+    "package_id": 1,
+    "configured": true,
+    "ad_types": {
+      "normal": {
+        "allowed": true,
+        "limit": 20,
+        "unlimited": false
+      },
+      "unique": {
+        "allowed": true,
+        "limit": 5,
+        "unlimited": false
+      }
+    }
+  }
+}
+```
+
+**Validation Notes:**
+- `*_ads_limit` must be >= 0
+- `max_ad_duration_days` must be >= `ad_duration_days`
+- `auto_verify_seller` requires `grants_seller_status` to be `true`
+- Set limit to `null` for unlimited ads
+
+---
+
+### 14.14 Update Package Features (Admin)
+**Description:** تحديث ميزات وصلاحيات الباقة - تعديل الإعدادات التفصيلية للباقة  
+**Endpoint:** `PUT /api/v1/packages/{id}/features`  
+**Auth Required:** Yes (Admin)
+
+```bash
+curl -X PUT http://localhost:8000/api/v1/packages/1/features \
+  -H "Authorization: Bearer {token}" \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json" \
+  -d '{
+    "normal_ads_limit": 25,
+    "unique_ads_limit": 10,
+    "can_push_to_facebook": false,
+    "images_per_ad_limit": 20
+  }'
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "message": "Package features updated successfully",
+  "data": {
+    "id": 1,
+    "package_id": 1,
+    "configured": true,
+    "ad_types": {
+      "normal": {
+        "allowed": true,
+        "limit": 25,
+        "unlimited": false
+      }
+    }
+  }
+}
+```
+
+**Note:** If features don't exist yet, this endpoint will create them automatically.
+
+---
+
+### 14.15 Delete Package Features (Admin)
+**Description:** حذف ميزات الباقة - إعادة تعيين الباقة إلى الإعدادات الافتراضية  
+**Endpoint:** `DELETE /api/v1/packages/{id}/features`  
+**Auth Required:** Yes (Admin)
+
+```bash
+curl -X DELETE http://localhost:8000/api/v1/packages/1/features \
+  -H "Authorization: Bearer {token}" \
+  -H "Accept: application/json"
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "message": "Package features deleted successfully"
+}
+```
+
+---
+
+### 14.16 My Package Features
+**Description:** عرض ميزات باقتي الحالية - يعرض المستخدم الميزات والصلاحيات المتاحة له من خلال اشتراكه النشط  
+**Endpoint:** `GET /api/v1/packages/my-features`  
+**Auth Required:** Yes
+
+```bash
+curl -X GET http://localhost:8000/api/v1/packages/my-features \
+  -H "Authorization: Bearer {token}" \
+  -H "Accept: application/json"
+```
+
+**Response (User with Active Package):**
+```json
+{
+  "status": "success",
+  "message": "Package features retrieved successfully",
+  "data": {
+    "has_package": true,
+    "package": {
+      "id": 1,
+      "name": "Premium Package",
+      "expires_at": "2026-03-02"
+    },
+    "features": {
+      "id": 1,
+      "package_id": 1,
+      "configured": true,
+      "ad_types": {
+        "normal": {
+          "allowed": true,
+          "limit": 20,
+          "unlimited": false
+        },
+        "unique": {
+          "allowed": true,
+          "limit": 5,
+          "unlimited": false
+        }
+      },
+      "role_features": {
+        "grants_seller_status": true,
+        "auto_verify_seller": false,
+        "grants_marketer_status": false,
+        "grants_verified_badge": false
+      },
+      "ad_capabilities": {
+        "can_push_to_facebook": true,
+        "can_auto_republish": true,
+        "can_use_banner": true,
+        "can_use_background_color": false
+      }
+    }
+  }
+}
+```
+
+**Response (User without Package):**
+```json
+{
+  "status": "success",
+  "message": "No active package found",
+  "data": {
+    "has_package": false,
+    "features": {
+      "configured": false,
+      "ad_types": {
+        "normal": {
+          "allowed": true,
+          "limit": 5,
+          "unlimited": false
+        },
+        "unique": {
+          "allowed": false,
+          "limit": 0,
+          "unlimited": false
+        },
+        "caishha": {
+          "allowed": false,
+          "limit": 0,
+          "unlimited": false
+        },
+        "findit": {
+          "allowed": false,
+          "limit": 0,
+          "unlimited": false
+        },
+        "auction": {
+          "allowed": false,
+          "limit": 0,
+          "unlimited": false
+        }
+      },
+      "summary": {
+        "allowed_ad_types": ["normal"]
+      }
+    }
+  }
+}
+```
+
+---
+
+### 14.17 Check Package Capability
+**Description:** التحقق من صلاحية معينة - يتحقق إذا كان المستخدم يمتلك صلاحية معينة من خلال باقته  
+**Endpoint:** `POST /api/v1/packages/check-capability`  
+**Auth Required:** Yes
+
+```bash
+curl -X POST http://localhost:8000/api/v1/packages/check-capability \
+  -H "Authorization: Bearer {token}" \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json" \
+  -d '{
+    "capability": "publish_unique_ads"
+  }'
+```
+
+**Supported Capabilities:**
+- `publish_normal_ads`
+- `publish_unique_ads`
+- `publish_caishha_ads`
+- `publish_findit_ads`
+- `publish_auction_ads`
+- `push_to_facebook`
+- `auto_republish`
+- `use_banner`
+- `use_background_color`
+- `bulk_upload`
+- `extend_ads`
+- `priority_support`
+- `featured_in_search`
+
+**Response (Has Capability):**
+```json
+{
+  "status": "success",
+  "data": {
+    "has_capability": true,
+    "capability": "publish_unique_ads",
+    "message": "User has this capability",
+    "details": {
+      "from_package": "Premium Package",
+      "limit": 5,
+      "used": 2,
+      "remaining": 3
+    }
+  }
+}
+```
+
+**Response (No Capability):**
+```json
+{
+  "status": "success",
+  "data": {
+    "has_capability": false,
+    "capability": "publish_auction_ads",
+    "message": "User does not have this capability",
+    "reason": "Not allowed in current package"
+  }
+}
+```
+
+---
+
+## Package Features System Overview
+
+### Two-Step Package Creation Process:
+
+**Step 1: Create Package (Basic Info)**
+```bash
+POST /api/v1/packages
+{
+  "name": "Premium Package",
+  "price": 99.99,
+  "duration_days": 30,
+  "active": true
+}
+```
+
+**Step 2: Configure Features (Detailed Permissions)**
+```bash
+POST /api/v1/packages/{id}/features
+{
+  "normal_ads_allowed": true,
+  "normal_ads_limit": 20,
+  "unique_ads_allowed": true,
+  "unique_ads_limit": 5,
+  "grants_seller_status": true,
+  "can_push_to_facebook": true
+}
+```
+
+### Feature Categories:
+
+**1. Ad Type Permissions:**
+- Normal ads (regular listings)
+- Unique ads (featured/highlighted listings)
+- Caishha ads (rentals)
+- FindIt ads (private search requests)
+- Auction ads (bidding system)
+
+**2. Role Features:**
+- Grant seller status
+- Auto-verify seller (skips verification process)
+- Grant marketer status
+- Grant verified badge
+
+**3. Ad Capabilities:**
+- Push to Facebook
+- Auto-republish ads
+- Use banner in ads
+- Use background color
+- Bulk upload ads
+
+**4. Additional Features:**
+- Images per ad limit
+- Videos per ad limit
+- Ad duration (days)
+- Maximum ad duration
+- Extend ads ability
+- Priority support
+- Featured in search results
+
+### Default Behavior (No Package):
+- Can publish up to 5 normal ads
+- No access to unique, caishha, findit, or auction ads
+- No special features or capabilities
+- Basic support only
+
+---
+
 ## 15. Notifications
 
 ### 15.1 List My Notifications

@@ -35,6 +35,61 @@ class User extends Authenticatable
         'otp_expires_at',
     ];
 
+    // ========================================
+    // PACKAGE RELATIONSHIPS
+    // ========================================
+
+    /**
+     * Get user's package subscriptions (pivot records).
+     */
+    public function userPackages()
+    {
+        return $this->hasMany(UserPackage::class);
+    }
+
+    /**
+     * Get all packages this user has (through pivot).
+     */
+    public function packages()
+    {
+        return $this->belongsToMany(Package::class, 'user_packages')
+            ->withPivot(['start_date', 'end_date', 'active'])
+            ->withTimestamps();
+    }
+
+    /**
+     * Get user's active packages.
+     */
+    public function activePackages()
+    {
+        return $this->packages()
+            ->wherePivot('active', true)
+            ->where(function ($query) {
+                $query->whereNull('user_packages.end_date')
+                    ->orWhere('user_packages.end_date', '>=', now()->toDateString());
+            });
+    }
+
+    /**
+     * Get user's current active package (most recently assigned active one).
+     */
+    public function activePackage()
+    {
+        return $this->hasOneThrough(
+            Package::class,
+            UserPackage::class,
+            'user_id',
+            'id',
+            'id',
+            'package_id'
+        )->where('user_packages.active', true)
+            ->where(function ($query) {
+                $query->whereNull('user_packages.end_date')
+                    ->orWhere('user_packages.end_date', '>=', now()->toDateString());
+            })
+            ->latest('user_packages.created_at');
+    }
+
     /**
      * Get the roles associated with the user.
      */
@@ -264,6 +319,235 @@ class User extends Authenticatable
             'seller_verified' => 'boolean',
             'otp_expires_at' => 'datetime',
             'password' => 'hashed',
+        ];
+    }
+
+    // ========================================
+    // PACKAGE FEATURE PERMISSION HELPERS
+    // ========================================
+
+    /**
+     * Get user's current active package with features loaded.
+     */
+    public function getCurrentPackage(): ?Package
+    {
+        return $this->activePackages()
+            ->with('packageFeatures')
+            ->latest('user_packages.created_at')
+            ->first();
+    }
+
+    /**
+     * Get user's current package features.
+     */
+    public function getCurrentPackageFeatures(): ?PackageFeature
+    {
+        $package = $this->getCurrentPackage();
+        return $package?->packageFeatures;
+    }
+
+    /**
+     * Check if user has an active package.
+     */
+    public function hasActivePackage(): bool
+    {
+        return $this->activePackages()->exists();
+    }
+
+    /**
+     * Check if user can publish a specific ad type.
+     */
+    public function canPublishAdType(string $adType): bool
+    {
+        // Admins can always publish
+        if ($this->isAdmin()) {
+            return true;
+        }
+
+        $package = $this->getCurrentPackage();
+        
+        if (!$package) {
+            // No package: allow only normal ads by default
+            return $adType === PackageFeature::AD_TYPE_NORMAL;
+        }
+
+        return $package->isAdTypeAllowed($adType);
+    }
+
+    /**
+     * Get the ad limit for a specific ad type.
+     */
+    public function getAdTypeLimit(string $adType): ?int
+    {
+        $package = $this->getCurrentPackage();
+        
+        if (!$package) {
+            return null; // Unlimited for normal ads when no package
+        }
+
+        return $package->getAdTypeLimit($adType);
+    }
+
+    /**
+     * Get remaining ads count for a specific ad type.
+     * Returns null if unlimited.
+     */
+    public function getRemainingAdsForType(string $adType): ?int
+    {
+        $limit = $this->getAdTypeLimit($adType);
+        
+        if ($limit === null) {
+            return null; // Unlimited
+        }
+
+        // Count user's active ads of this type
+        $usedCount = $this->countActiveAdsByType($adType);
+        
+        return max(0, $limit - $usedCount);
+    }
+
+    /**
+     * Count user's active ads by type.
+     */
+    public function countActiveAdsByType(string $adType): int
+    {
+        return Ad::where('user_id', $this->id)
+            ->where('type', $adType)
+            ->whereIn('status', ['draft', 'pending', 'published'])
+            ->count();
+    }
+
+    /**
+     * Check if user can create more ads of a specific type.
+     */
+    public function canCreateMoreAds(string $adType): bool
+    {
+        if (!$this->canPublishAdType($adType)) {
+            return false;
+        }
+
+        $remaining = $this->getRemainingAdsForType($adType);
+        
+        // null means unlimited
+        return $remaining === null || $remaining > 0;
+    }
+
+    /**
+     * Check if user has a specific package feature.
+     */
+    public function hasPackageFeature(string $feature): bool
+    {
+        $features = $this->getCurrentPackageFeatures();
+        
+        if (!$features) {
+            return false;
+        }
+
+        return (bool) $features->{$feature};
+    }
+
+    /**
+     * Check if user can push ads to Facebook.
+     */
+    public function canPushToFacebook(): bool
+    {
+        return $this->getCurrentPackage()?->canPushToFacebook() ?? false;
+    }
+
+    /**
+     * Check if user's unique ads can auto-republish.
+     */
+    public function canAutoRepublish(): bool
+    {
+        return $this->getCurrentPackage()?->canAutoRepublish() ?? false;
+    }
+
+    /**
+     * Check if user can use banners in ads.
+     */
+    public function canUseBanner(): bool
+    {
+        return $this->getCurrentPackage()?->canUseBanner() ?? false;
+    }
+
+    /**
+     * Check if user can use background colors in ads.
+     */
+    public function canUseBackgroundColor(): bool
+    {
+        return $this->getCurrentPackage()?->canUseBackgroundColor() ?? false;
+    }
+
+    /**
+     * Check if user can feature ads.
+     */
+    public function canFeatureAds(): bool
+    {
+        return $this->getCurrentPackage()?->canFeatureAds() ?? false;
+    }
+
+    /**
+     * Check if user can bulk upload.
+     */
+    public function canBulkUpload(): bool
+    {
+        return $this->getCurrentPackage()?->canBulkUpload() ?? false;
+    }
+
+    /**
+     * Get user's images per ad limit.
+     */
+    public function getImagesPerAdLimit(): int
+    {
+        return $this->getCurrentPackage()?->getImagesPerAdLimit() ?? 10;
+    }
+
+    /**
+     * Get user's videos per ad limit.
+     */
+    public function getVideosPerAdLimit(): int
+    {
+        return $this->getCurrentPackage()?->getVideosPerAdLimit() ?? 1;
+    }
+
+    /**
+     * Get user's default ad duration.
+     */
+    public function getDefaultAdDuration(): int
+    {
+        return $this->getCurrentPackage()?->getDefaultAdDuration() ?? 30;
+    }
+
+    /**
+     * Get user's max ad duration.
+     */
+    public function getMaxAdDuration(): int
+    {
+        return $this->getCurrentPackage()?->getMaxAdDuration() ?? 90;
+    }
+
+    /**
+     * Get complete feature summary for user's current package.
+     */
+    public function getPackageFeatureSummary(): array
+    {
+        $package = $this->getCurrentPackage();
+        
+        if (!$package) {
+            return [
+                'has_package' => false,
+                'package' => null,
+                'features' => null,
+            ];
+        }
+
+        return [
+            'has_package' => true,
+            'package' => [
+                'id' => $package->id,
+                'name' => $package->name,
+            ],
+            'features' => $package->getFeatureSummary(),
         ];
     }
 }

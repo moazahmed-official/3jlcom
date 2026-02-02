@@ -259,8 +259,16 @@ Route::prefix('v1')->group(function () {
         Route::delete('packages/{package}', [PackageController::class, 'destroy']); // Admin: delete package
         Route::post('packages/{package}/assign', [PackageController::class, 'assign']); // Admin: assign to user
         
+        // Package features management (Step 2 - admin only for CUD)
+        Route::get('packages/{package}/features', [PackageController::class, 'getFeatures']); // Get package features
+        Route::post('packages/{package}/features', [PackageController::class, 'storeFeatures']); // Create features (admin)
+        Route::put('packages/{package}/features', [PackageController::class, 'updateFeatures']); // Update features (admin)
+        Route::delete('packages/{package}/features', [PackageController::class, 'destroyFeatures']); // Delete features (admin)
+        
         // User packages management
         Route::get('packages/my-packages', [PackageController::class, 'myPackages']); // Current user's packages
+        Route::get('packages/my-features', [PackageController::class, 'myFeatures']); // Current user's package features
+        Route::post('packages/check-capability', [PackageController::class, 'checkCapability']); // Check if user can do action
         Route::get('users/{user}/packages', [PackageController::class, 'userPackages']); // User's packages (self or admin)
         Route::put('user-packages/{userPackage}', [PackageController::class, 'updateUserPackage']); // Admin: update subscription
         Route::delete('user-packages/{userPackage}', [PackageController::class, 'destroyUserPackage']); // Admin: remove subscription

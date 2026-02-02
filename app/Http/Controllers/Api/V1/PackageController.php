@@ -6,11 +6,16 @@ use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\Package\StorePackageRequest;
 use App\Http\Requests\Package\UpdatePackageRequest;
 use App\Http\Requests\Package\AssignPackageRequest;
+use App\Http\Requests\StorePackageFeatureRequest;
+use App\Http\Requests\UpdatePackageFeatureRequest;
 use App\Http\Resources\PackageResource;
 use App\Http\Resources\UserPackageResource;
+use App\Http\Resources\PackageFeatureResource;
 use App\Models\Package;
+use App\Models\PackageFeature;
 use App\Models\User;
 use App\Models\UserPackage;
+use App\Services\PackageFeatureService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
@@ -306,5 +311,265 @@ class PackageController extends BaseApiController
         ];
 
         return $this->success($stats, 'Package statistics retrieved successfully');
+    }
+
+    // ========================================
+    // PACKAGE FEATURES MANAGEMENT (Step 2)
+    // ========================================
+
+    /**
+     * Get features for a package.
+     */
+    public function getFeatures(Request $request, Package $package): JsonResponse
+    {
+        // Check authorization
+        $isAdmin = $request->user() && $request->user()->hasAnyRole(['admin', 'super_admin']);
+        
+        if (!$package->active && !$isAdmin) {
+            return $this->error(404, 'Package not found');
+        }
+
+        $features = $package->packageFeatures;
+        
+        if (!$features) {
+            // Return default features structure if not configured
+            return $this->success([
+                'package_id' => $package->id,
+                'configured' => false,
+                'features' => $package->getFeatureSummary(),
+            ], 'Package features retrieved (using defaults)');
+        }
+
+        return $this->success(
+            new PackageFeatureResource($features),
+            'Package features retrieved successfully'
+        );
+    }
+
+    /**
+     * Store/create features for a package (admin only).
+     */
+    public function storeFeatures(StorePackageFeatureRequest $request, Package $package): JsonResponse
+    {
+        // Check if user is admin
+        if (!$request->user()->hasAnyRole(['admin', 'super_admin'])) {
+            return $this->error(403, 'You are not authorized to manage package features');
+        }
+
+        // Check if features already exist
+        if ($package->packageFeatures) {
+            return $this->error(
+                409,
+                'Features already exist for this package. Use PUT to update.'
+            );
+        }
+
+        $validated = $request->validated();
+        $validated['package_id'] = $package->id;
+
+        $features = PackageFeature::create($validated);
+
+        // Apply role upgrades to existing subscribers if needed
+        $this->applyFeaturesToExistingSubscribers($package, $features);
+
+        return $this->success(
+            new PackageFeatureResource($features),
+            'Package features created successfully',
+            201
+        );
+    }
+
+    /**
+     * Update features for a package (admin only).
+     */
+    public function updateFeatures(UpdatePackageFeatureRequest $request, Package $package): JsonResponse
+    {
+        // Check if user is admin
+        if (!$request->user()->hasAnyRole(['admin', 'super_admin'])) {
+            return $this->error(403, 'You are not authorized to manage package features');
+        }
+
+        $features = $package->packageFeatures;
+        
+        if (!$features) {
+            // Create if doesn't exist
+            $validated = $request->validated();
+            $validated['package_id'] = $package->id;
+            $features = PackageFeature::create($validated);
+        } else {
+            $features->update($request->validated());
+            $features->refresh();
+        }
+
+        // Apply role upgrades to existing subscribers if needed
+        $this->applyFeaturesToExistingSubscribers($package, $features);
+
+        return $this->success(
+            new PackageFeatureResource($features),
+            'Package features updated successfully'
+        );
+    }
+
+    /**
+     * Delete features for a package (admin only).
+     * This will reset the package to default features.
+     */
+    public function destroyFeatures(Request $request, Package $package): JsonResponse
+    {
+        // Check if user is admin
+        if (!$request->user()->hasAnyRole(['admin', 'super_admin'])) {
+            return $this->error(403, 'You are not authorized to manage package features');
+        }
+
+        $features = $package->packageFeatures;
+        
+        if (!$features) {
+            return $this->error(404, 'Package features not found');
+        }
+
+        $features->delete();
+
+        return $this->success([], 'Package features deleted. Package now uses default features.');
+    }
+
+    /**
+     * Get feature summary for the current user's package.
+     */
+    public function myFeatures(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        
+        return $this->success(
+            $user->getPackageFeatureSummary(),
+            'Your package features retrieved successfully'
+        );
+    }
+
+    /**
+     * Check if user can perform a specific action based on package.
+     */
+    public function checkCapability(Request $request): JsonResponse
+    {
+        $request->validate([
+            'capability' => ['required', 'string'],
+            'ad_type' => ['nullable', 'string', 'in:normal,unique,caishha,findit,auction'],
+        ]);
+
+        $user = $request->user();
+        $capability = $request->input('capability');
+        $adType = $request->input('ad_type');
+
+        $result = [
+            'capability' => $capability,
+            'allowed' => false,
+            'reason' => null,
+        ];
+
+        switch ($capability) {
+            case 'publish_ad':
+                if (!$adType) {
+                    $result['reason'] = 'ad_type is required for publish_ad capability check';
+                } else {
+                    $result['allowed'] = $user->canPublishAdType($adType);
+                    $result['remaining'] = $user->getRemainingAdsForType($adType);
+                    if (!$result['allowed']) {
+                        $result['reason'] = "Your package does not allow {$adType} ads";
+                    } elseif ($result['remaining'] !== null && $result['remaining'] <= 0) {
+                        $result['allowed'] = false;
+                        $result['reason'] = "You have reached your {$adType} ads limit";
+                    }
+                }
+                break;
+
+            case 'push_to_facebook':
+                $result['allowed'] = $user->canPushToFacebook();
+                if (!$result['allowed']) {
+                    $result['reason'] = 'Your package does not include Facebook push';
+                }
+                break;
+
+            case 'auto_republish':
+                $result['allowed'] = $user->canAutoRepublish();
+                if (!$result['allowed']) {
+                    $result['reason'] = 'Your package does not include auto-republish';
+                }
+                break;
+
+            case 'use_banner':
+                $result['allowed'] = $user->canUseBanner();
+                if (!$result['allowed']) {
+                    $result['reason'] = 'Your package does not include banner feature';
+                }
+                break;
+
+            case 'use_background_color':
+                $result['allowed'] = $user->canUseBackgroundColor();
+                if (!$result['allowed']) {
+                    $result['reason'] = 'Your package does not include background color feature';
+                }
+                break;
+
+            case 'feature_ad':
+                $result['allowed'] = $user->canFeatureAds();
+                if (!$result['allowed']) {
+                    $result['reason'] = 'Your package does not include ad featuring';
+                }
+                break;
+
+            case 'bulk_upload':
+                $result['allowed'] = $user->canBulkUpload();
+                if (!$result['allowed']) {
+                    $result['reason'] = 'Your package does not include bulk upload';
+                }
+                break;
+
+            default:
+                $result['reason'] = 'Unknown capability';
+        }
+
+        return $this->success($result, 'Capability check completed');
+    }
+
+    /**
+     * Apply package features (role upgrades) to existing subscribers.
+     */
+    protected function applyFeaturesToExistingSubscribers(Package $package, PackageFeature $features): void
+    {
+        // Get all active subscribers
+        $activeSubscribers = UserPackage::where('package_id', $package->id)
+            ->valid()
+            ->with('user')
+            ->get();
+
+        foreach ($activeSubscribers as $userPackage) {
+            $user = $userPackage->user;
+            
+            if (!$user) {
+                continue;
+            }
+
+            // Grant seller status if feature is enabled
+            if ($features->grants_seller_status) {
+                $user->assignRole('seller');
+                
+                // Auto-verify if enabled
+                if ($features->auto_verify_seller && !$user->seller_verified) {
+                    $user->update([
+                        'seller_verified' => true,
+                        'seller_verified_at' => now(),
+                    ]);
+                }
+            }
+
+            // Grant marketer status if feature is enabled
+            if ($features->grants_marketer_status) {
+                $user->assignRole('marketer');
+            }
+
+            // Update account type if needed
+            if ($features->grants_seller_status && !in_array($user->account_type, ['dealer', 'showroom'])) {
+                $user->update(['account_type' => 'dealer']);
+            }
+        }
     }
 }
