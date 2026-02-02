@@ -8,6 +8,8 @@ use App\Http\Requests\UpdateNormalAdRequest;
 use App\Http\Resources\NormalAdResource;
 use App\Models\Ad;
 use App\Models\NormalAd;
+use App\Models\Media;
+use App\Services\PackageFeatureService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -206,13 +208,14 @@ class NormalAdsController extends Controller
         return NormalAdResource::collection($ads);
     }
 
-    public function store(StoreNormalAdRequest $request): JsonResponse
+    public function store(StoreNormalAdRequest $request, PackageFeatureService $packageService): JsonResponse
     {
         try {
             DB::beginTransaction();
 
             // Determine user_id - admin can create for other users, regular user only for themselves
             $userId = $request->user_id ?? auth()->id();
+            $user = \App\Models\User::findOrFail($userId);
             
             // Authorization check - only admins can create ads for other users
             if ($userId !== auth()->id() && !auth()->user()->isAdmin()) {
@@ -222,6 +225,36 @@ class NormalAdsController extends Controller
                     'message' => 'Unauthorized',
                     'errors' => ['authorization' => ['Only admins can create ads for other users']]
                 ], 403);
+            }
+
+            // Validate ad creation limit
+            $adValidation = $packageService->validateAdCreation($user, 'normal');
+            if (!$adValidation['allowed']) {
+                DB::rollBack();
+                return response()->json([
+                    'status' => 'error',
+                    'code' => 403,
+                    'message' => $adValidation['reason'],
+                    'errors' => ['package' => [$adValidation['reason']]],
+                    'remaining' => $adValidation['remaining']
+                ], 403);
+            }
+
+            // Validate media limits
+            if ($request->has('media_ids') && !empty($request->media_ids)) {
+                $imageCount = Media::whereIn('id', $request->media_ids)->where('type', 'image')->count();
+                $videoCount = Media::whereIn('id', $request->media_ids)->where('type', 'video')->count();
+                
+                $mediaValidation = $packageService->validateMediaLimits($user, $imageCount, $videoCount);
+                if (!$mediaValidation['allowed']) {
+                    DB::rollBack();
+                    return response()->json([
+                        'status' => 'error',
+                        'code' => 403,
+                        'message' => $mediaValidation['reason'],
+                        'errors' => ['media' => [$mediaValidation['reason']]]
+                    ], 403);
+                }
             }
 
             // Create the main ad record

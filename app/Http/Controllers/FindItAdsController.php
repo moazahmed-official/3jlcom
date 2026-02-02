@@ -8,7 +8,9 @@ use App\Http\Resources\FindItMatchResource;
 use App\Http\Resources\FindItRequestResource;
 use App\Models\FinditMatch;
 use App\Models\FinditRequest;
+use App\Models\Media;
 use App\Services\FindItMatchingService;
+use App\Services\PackageFeatureService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -108,13 +110,41 @@ class FindItAdsController extends Controller
      * 
      * POST /api/v1/findit-ads
      */
-    public function store(StoreFindItRequest $request): JsonResponse
+    public function store(StoreFindItRequest $request, PackageFeatureService $packageService): JsonResponse
     {
+        $user = auth()->user();
+
+        // Validate ad creation limit
+        $adValidation = $packageService->validateAdCreation($user, 'findit');
+        if (!$adValidation['allowed']) {
+            return response()->json([
+                'success' => false,
+                'message' => $adValidation['reason'],
+                'errors' => ['package' => [$adValidation['reason']]],
+                'remaining' => $adValidation['remaining']
+            ], 403);
+        }
+
         $validated = $request->validated();
         
         // Extract media IDs for syncing
         $mediaIds = $validated['media'] ?? [];
         unset($validated['media']);
+
+        // Validate media limits
+        if (!empty($mediaIds)) {
+            $imageCount = Media::whereIn('id', $mediaIds)->where('type', 'image')->count();
+            $videoCount = Media::whereIn('id', $mediaIds)->where('type', 'video')->count();
+            
+            $mediaValidation = $packageService->validateMediaLimits($user, $imageCount, $videoCount);
+            if (!$mediaValidation['allowed']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $mediaValidation['reason'],
+                    'errors' => ['media' => [$mediaValidation['reason']]]
+                ], 403);
+            }
+        }
         
         // Auto-activate flag - default to true (active)
         $autoActivate = $validated['auto_activate'] ?? true;
