@@ -17,6 +17,7 @@ use App\Http\Controllers\MediaController;
 use App\Http\Controllers\Api\V1\ReviewController;
 use App\Http\Controllers\Api\V1\ReportController;
 use App\Http\Controllers\Api\V1\PackageController;
+use App\Http\Controllers\Api\V1\PackageRequestController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\FavoriteController;
 use App\Http\Controllers\Api\V1\SavedSearchController;
@@ -272,6 +273,21 @@ Route::prefix('v1')->group(function () {
         Route::get('users/{user}/packages', [PackageController::class, 'userPackages']); // User's packages (self or admin)
         Route::put('user-packages/{userPackage}', [PackageController::class, 'updateUserPackage']); // Admin: update subscription
         Route::delete('user-packages/{userPackage}', [PackageController::class, 'destroyUserPackage']); // Admin: remove subscription
+        
+        // =====================
+        // PACKAGE REQUESTS ROUTES
+        // =====================
+        
+        // User: Request a package
+        Route::post('packages/{package}/request', [PackageRequestController::class, 'store']); // Submit package request
+        Route::get('user/package-requests', [PackageRequestController::class, 'myRequests']); // View my requests
+        
+        // Admin: Manage package requests
+        Route::get('admin/package-requests', [PackageRequestController::class, 'index']); // List all requests
+        Route::get('admin/package-requests/{packageRequest}', [PackageRequestController::class, 'show']); // View request details
+        Route::patch('admin/package-requests/{packageRequest}/review', [PackageRequestController::class, 'review']); // Review (approve/reject)
+        Route::post('admin/package-requests/{packageRequest}/approve', [PackageRequestController::class, 'approve']); // Approve request
+        Route::post('admin/package-requests/{packageRequest}/reject', [PackageRequestController::class, 'reject']); // Reject request
         
         // =====================
         // NOTIFICATIONS ROUTES

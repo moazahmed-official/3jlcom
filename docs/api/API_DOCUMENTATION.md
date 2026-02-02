@@ -2828,6 +2828,442 @@ curl -X POST http://localhost:8000/api/v1/packages/check-capability \
 
 ---
 
+### 14.18 Request a Package (User)
+**Description:** طلب باقة - المستخدم يقدم طلب للحصول على باقة معينة  
+**Endpoint:** `POST /api/v1/packages/{package}/request`  
+**Auth Required:** Yes
+
+```bash
+curl -X POST http://localhost:8000/api/v1/packages/1/request \
+  -H "Authorization: Bearer {token}" \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json" \
+  -d '{
+    "user_message": "I would like to subscribe to this package for my showroom business"
+  }'
+```
+
+**Request Body:**
+```json
+{
+  "user_message": "Optional message explaining why you need this package"
+}
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "message": "Package request submitted successfully",
+  "data": {
+    "id": 15,
+    "user_id": 42,
+    "package_id": 1,
+    "status": "pending",
+    "user_message": "I would like to subscribe to this package for my showroom business",
+    "admin_notes": null,
+    "reviewed_by": null,
+    "reviewed_at": null,
+    "created_at": "2026-02-02T20:45:00.000000Z",
+    "updated_at": "2026-02-02T20:45:00.000000Z",
+    "package": {
+      "id": 1,
+      "name": "Premium Package",
+      "price": 99.99,
+      "duration_days": 30
+    }
+  }
+}
+```
+
+**Error Responses:**
+
+Duplicate pending request (409):
+```json
+{
+  "status": "error",
+  "code": 409,
+  "message": "You already have a pending request for this package",
+  "errors": {
+    "package": ["A pending request already exists"]
+  }
+}
+```
+
+Already has package (409):
+```json
+{
+  "status": "error",
+  "code": 409,
+  "message": "You already have this package assigned",
+  "errors": {
+    "package": ["This package is already assigned to you"]
+  }
+}
+```
+
+---
+
+### 14.19 View My Package Requests (User)
+**Description:** عرض طلباتي للباقات - المستخدم يرى جميع طلباته  
+**Endpoint:** `GET /api/v1/user/package-requests`  
+**Auth Required:** Yes
+
+```bash
+curl -X GET http://localhost:8000/api/v1/user/package-requests?per_page=20 \
+  -H "Authorization: Bearer {token}" \
+  -H "Accept: application/json"
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "message": "Package requests retrieved successfully",
+  "data": {
+    "current_page": 1,
+    "data": [
+      {
+        "id": 15,
+        "user_id": 42,
+        "package_id": 1,
+        "status": "pending",
+        "user_message": "I would like to subscribe to this package",
+        "admin_notes": null,
+        "reviewed_by": null,
+        "reviewed_at": null,
+        "created_at": "2026-02-02T20:45:00.000000Z",
+        "updated_at": "2026-02-02T20:45:00.000000Z",
+        "package": {
+          "id": 1,
+          "name": "Premium Package",
+          "price": 99.99
+        },
+        "reviewer": null
+      },
+      {
+        "id": 12,
+        "user_id": 42,
+        "package_id": 3,
+        "status": "approved",
+        "user_message": "Need basic package to start",
+        "admin_notes": "Approved for trial period",
+        "reviewed_by": 5,
+        "reviewed_at": "2026-02-01T15:30:00.000000Z",
+        "created_at": "2026-02-01T14:20:00.000000Z",
+        "updated_at": "2026-02-01T15:30:00.000000Z",
+        "package": {
+          "id": 3,
+          "name": "Basic Package",
+          "price": 29.99
+        },
+        "reviewer": {
+          "id": 5,
+          "name": "Admin User",
+          "email": "admin@example.com"
+        }
+      }
+    ],
+    "per_page": 20,
+    "total": 2
+  }
+}
+```
+
+---
+
+### 14.20 List All Package Requests (Admin)
+**Description:** عرض جميع طلبات الباقات - المدير يرى جميع الطلبات مع إمكانية الفلترة  
+**Endpoint:** `GET /api/v1/admin/package-requests`  
+**Auth Required:** Yes (Admin)
+
+```bash
+curl -X GET "http://localhost:8000/api/v1/admin/package-requests?status=pending&per_page=20" \
+  -H "Authorization: Bearer {token}" \
+  -H "Accept: application/json"
+```
+
+**Query Parameters:**
+- `status`: pending, approved, rejected
+- `user_id`: Filter by specific user
+- `package_id`: Filter by specific package
+- `per_page`: Items per page
+
+**Response:**
+```json
+{
+  "status": "success",
+  "message": "Package requests retrieved successfully",
+  "data": {
+    "current_page": 1,
+    "data": [
+      {
+        "id": 15,
+        "user_id": 42,
+        "package_id": 1,
+        "status": "pending",
+        "user_message": "I would like to subscribe to this package for my showroom",
+        "admin_notes": null,
+        "reviewed_by": null,
+        "reviewed_at": null,
+        "created_at": "2026-02-02T20:45:00.000000Z",
+        "updated_at": "2026-02-02T20:45:00.000000Z",
+        "user": {
+          "id": 42,
+          "name": "John Showroom",
+          "email": "john@showroom.com",
+          "account_type": "seller"
+        },
+        "package": {
+          "id": 1,
+          "name": "Premium Package",
+          "price": 99.99,
+          "duration_days": 30
+        }
+      }
+    ],
+    "per_page": 20,
+    "total": 5
+  }
+}
+```
+
+---
+
+### 14.21 View Package Request Details (Admin)
+**Description:** عرض تفاصيل طلب باقة معين  
+**Endpoint:** `GET /api/v1/admin/package-requests/{id}`  
+**Auth Required:** Yes (Admin)
+
+```bash
+curl -X GET http://localhost:8000/api/v1/admin/package-requests/15 \
+  -H "Authorization: Bearer {token}" \
+  -H "Accept: application/json"
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "message": "Package request retrieved successfully",
+  "data": {
+    "id": 15,
+    "user_id": 42,
+    "package_id": 1,
+    "status": "pending",
+    "user_message": "I would like to subscribe to this package for my showroom business",
+    "admin_notes": null,
+    "reviewed_by": null,
+    "reviewed_at": null,
+    "created_at": "2026-02-02T20:45:00.000000Z",
+    "updated_at": "2026-02-02T20:45:00.000000Z",
+    "user": {
+      "id": 42,
+      "name": "John Showroom",
+      "email": "john@showroom.com",
+      "phone": "+1234567890",
+      "account_type": "seller"
+    },
+    "package": {
+      "id": 1,
+      "name": "Premium Package",
+      "description": "Full access package with all features",
+      "price": 99.99,
+      "duration_days": 30,
+      "active": true
+    }
+  }
+}
+```
+
+---
+
+### 14.22 Review Package Request (Admin)
+**Description:** مراجعة طلب باقة - المدير يوافق أو يرفض الطلب  
+**Endpoint:** `PATCH /api/v1/admin/package-requests/{id}/review`  
+**Auth Required:** Yes (Admin)
+
+```bash
+curl -X PATCH http://localhost:8000/api/v1/admin/package-requests/15/review \
+  -H "Authorization: Bearer {token}" \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json" \
+  -d '{
+    "status": "approved",
+    "admin_notes": "Approved after verifying business documents"
+  }'
+```
+
+**Request Body:**
+```json
+{
+  "status": "approved",
+  "admin_notes": "Optional notes explaining the decision"
+}
+```
+
+**Response (Approved):**
+```json
+{
+  "status": "success",
+  "message": "Package request reviewed successfully",
+  "data": {
+    "id": 15,
+    "user_id": 42,
+    "package_id": 1,
+    "status": "approved",
+    "user_message": "I would like to subscribe to this package",
+    "admin_notes": "Approved after verifying business documents",
+    "reviewed_by": 5,
+    "reviewed_at": "2026-02-02T21:00:00.000000Z",
+    "created_at": "2026-02-02T20:45:00.000000Z",
+    "updated_at": "2026-02-02T21:00:00.000000Z",
+    "user": {
+      "id": 42,
+      "name": "John Showroom",
+      "email": "john@showroom.com",
+      "package_id": 1
+    },
+    "package": {
+      "id": 1,
+      "name": "Premium Package",
+      "price": 99.99
+    },
+    "reviewer": {
+      "id": 5,
+      "name": "Admin User",
+      "email": "admin@example.com"
+    }
+  }
+}
+```
+
+**Note:** When approved, the package is automatically assigned to the user (user.package_id is updated).
+
+**Error Response (Already Reviewed):**
+```json
+{
+  "status": "error",
+  "code": 409,
+  "message": "This request has already been reviewed",
+  "errors": {
+    "request": ["Request status is approved"]
+  }
+}
+```
+
+---
+
+### 14.23 Approve Package Request (Admin)
+**Description:** الموافقة على طلب باقة - طريقة مختصرة للموافقة  
+**Endpoint:** `POST /api/v1/admin/package-requests/{id}/approve`  
+**Auth Required:** Yes (Admin)
+
+```bash
+curl -X POST http://localhost:8000/api/v1/admin/package-requests/15/approve \
+  -H "Authorization: Bearer {token}" \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json" \
+  -d '{
+    "admin_notes": "Approved"
+  }'
+```
+
+**Request Body:**
+```json
+{
+  "admin_notes": "Optional approval notes"
+}
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "message": "Package request approved successfully",
+  "data": {
+    "id": 15,
+    "status": "approved",
+    "reviewed_by": 5,
+    "reviewed_at": "2026-02-02T21:00:00.000000Z",
+    "user": {
+      "id": 42,
+      "package_id": 1
+    }
+  }
+}
+```
+
+---
+
+### 14.24 Reject Package Request (Admin)
+**Description:** رفض طلب باقة - طريقة مختصرة للرفض  
+**Endpoint:** `POST /api/v1/admin/package-requests/{id}/reject`  
+**Auth Required:** Yes (Admin)
+
+```bash
+curl -X POST http://localhost:8000/api/v1/admin/package-requests/15/reject \
+  -H "Authorization: Bearer {token}" \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json" \
+  -d '{
+    "admin_notes": "Package not suitable for individual accounts"
+  }'
+```
+
+**Request Body:**
+```json
+{
+  "admin_notes": "Optional rejection reason"
+}
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "message": "Package request rejected successfully",
+  "data": {
+    "id": 15,
+    "status": "rejected",
+    "admin_notes": "Package not suitable for individual accounts",
+    "reviewed_by": 5,
+    "reviewed_at": "2026-02-02T21:00:00.000000Z"
+  }
+}
+```
+
+---
+
+## Package Request System Workflow
+
+### User Flow:
+1. **Browse Packages** - `GET /api/v1/packages` (public)
+2. **Request Package** - `POST /api/v1/packages/{id}/request`
+3. **Check Status** - `GET /api/v1/user/package-requests`
+4. **Wait for Admin Review**
+
+### Admin Flow:
+1. **View Pending Requests** - `GET /api/v1/admin/package-requests?status=pending`
+2. **Review Request Details** - `GET /api/v1/admin/package-requests/{id}`
+3. **Approve or Reject:**
+   - Option A: `PATCH /api/v1/admin/package-requests/{id}/review`
+   - Option B: `POST /api/v1/admin/package-requests/{id}/approve`
+   - Option C: `POST /api/v1/admin/package-requests/{id}/reject`
+
+### Status Flow:
+- **pending** → Initial state when user submits request
+- **approved** → Admin approves → Package automatically assigned to user
+- **rejected** → Admin rejects → User notified with reason
+
+### Validations:
+- ✅ User cannot submit duplicate pending requests for same package
+- ✅ User cannot request a package they already have
+- ✅ Admin cannot review the same request twice
+- ✅ Approval automatically assigns package to user
+
+---
+
 ## Package Features System Overview
 
 ### Two-Step Package Creation Process:
