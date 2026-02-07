@@ -35,6 +35,8 @@ Authorization: Bearer {your_token}
 22. [Seller Stats & Analytics](#22-seller-stats--analytics)
 23. [Admin Stats & Analytics](#23-admin-stats--analytics)
 24. [Caishha Settings](#24-caishha-settings)
+25. [Page Content Management](#25-page-content-management)
+26. [Company Settings](#26-company-settings)
 
 ---
 
@@ -4587,6 +4589,565 @@ curl -X GET http://localhost:8000/api/v1/caishha-settings/presets \
   -H "Authorization: Bearer {token}" \
   -H "Accept: application/json"
 ```
+
+---
+
+## 25. Page Content Management
+
+### 25.1 Get All Page Contents (Admin)
+**Description:** عرض جميع محتويات الصفحات (من نحن، سياسة الخصوصية، الشروط والأحكام)  
+**Endpoint:** `GET /api/v1/admin/pages`  
+**Auth Required:** Yes (Admin)
+
+```bash
+curl -X GET http://localhost:8000/api/v1/admin/pages \
+  -H "Authorization: Bearer {token}" \
+  -H "Accept: application/json"
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "message": "Page contents retrieved successfully",
+  "data": [
+    {
+      "id": 1,
+      "page_key": "about_us",
+      "title_en": "About Us",
+      "title_ar": "من نحن",
+      "body_en": "Welcome to our platform. We are dedicated to providing the best service.",
+      "body_ar": "مرحباً بكم في منصتنا. نحن ملتزمون بتقديم أفضل خدمة.",
+      "created_at": "2026-02-07T19:57:47.000000Z",
+      "updated_at": "2026-02-07T19:57:47.000000Z"
+    },
+    {
+      "id": 2,
+      "page_key": "privacy_policy",
+      "title_en": "Privacy Policy",
+      "title_ar": "سياسة الخصوصية",
+      "body_en": "Your privacy is important to us...",
+      "body_ar": "خصوصيتك مهمة بالنسبة لنا...",
+      "created_at": "2026-02-07T19:57:47.000000Z",
+      "updated_at": "2026-02-07T19:57:47.000000Z"
+    },
+    {
+      "id": 3,
+      "page_key": "terms_conditions",
+      "title_en": "Terms and Conditions",
+      "title_ar": "الشروط والأحكام",
+      "body_en": "By using our platform, you agree to the following terms and conditions.",
+      "body_ar": "باستخدامك لمنصتنا، فإنك توافق على الشروط والأحكام التالية.",
+      "created_at": "2026-02-07T19:57:47.000000Z",
+      "updated_at": "2026-02-07T19:57:47.000000Z"
+    }
+  ]
+}
+```
+
+---
+
+### 25.2 Get Single Page Content (Admin)
+**Description:** عرض محتوى صفحة معينة للإدارة  
+**Endpoint:** `GET /api/v1/admin/pages/{pageKey}`  
+**Auth Required:** Yes (Admin)  
+**Valid Page Keys:** `about_us`, `privacy_policy`, `terms_conditions`
+
+```bash
+curl -X GET http://localhost:8000/api/v1/admin/pages/about_us \
+  -H "Authorization: Bearer {token}" \
+  -H "Accept: application/json"
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "message": "Page content retrieved successfully",
+  "data": {
+    "id": 1,
+    "page_key": "about_us",
+    "title_en": "About Us",
+    "title_ar": "من نحن",
+    "body_en": "Welcome to our platform. We are dedicated to providing the best service.",
+    "body_ar": "مرحباً بكم في منصتنا. نحن ملتزمون بتقديم أفضل خدمة.",
+    "created_at": "2026-02-07T19:57:47.000000Z",
+    "updated_at": "2026-02-07T19:57:47.000000Z"
+  }
+}
+```
+
+---
+
+### 25.3 Update Page Content (Admin)
+**Description:** تحديث محتوى صفحة معينة (العنوان والمحتوى بالعربية والإنجليزية)  
+**Endpoint:** `PUT /api/v1/admin/pages/{pageKey}`  
+**Auth Required:** Yes (Admin)
+
+```bash
+curl -X PUT http://localhost:8000/api/v1/admin/pages/about_us \
+  -H "Authorization: Bearer {token}" \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json" \
+  -d '{
+    "title_en": "About Us - Updated",
+    "title_ar": "من نحن - محدث",
+    "body_en": "This is the updated English content for the About Us page.",
+    "body_ar": "هذا هو المحتوى العربي المحدث لصفحة من نحن."
+  }'
+```
+
+**Request Body Parameters:**
+- `title_en` (optional): English title
+- `title_ar` (optional): Arabic title
+- `body_en` (optional): English body content
+- `body_ar` (optional): Arabic body content
+
+**Response:**
+```json
+{
+  "status": "success",
+  "message": "Page content updated successfully",
+  "data": {
+    "id": 1,
+    "page_key": "about_us",
+    "title_en": "About Us - Updated",
+    "title_ar": "من نحن - محدث",
+    "body_en": "This is the updated English content for the About Us page.",
+    "body_ar": "هذا هو المحتوى العربي المحدث لصفحة من نحن.",
+    "created_at": "2026-02-07T19:57:47.000000Z",
+    "updated_at": "2026-02-07T20:15:30.000000Z"
+  }
+}
+```
+
+---
+
+### 25.4 Get All Public Pages (Public)
+**Description:** عرض جميع محتويات الصفحات (بدون مصادقة)  
+**Endpoint:** `GET /api/v1/pages`  
+**Auth Required:** No
+
+```bash
+curl -X GET http://localhost:8000/api/v1/pages \
+  -H "Accept: application/json"
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "message": "Page contents retrieved successfully",
+  "data": {
+    "about_us": {
+      "id": 1,
+      "page_key": "about_us",
+      "title_en": "About Us",
+      "title_ar": "من نحن",
+      "body_en": "Welcome to our platform...",
+      "body_ar": "مرحباً بكم في منصتنا..."
+    },
+    "privacy_policy": {
+      "id": 2,
+      "page_key": "privacy_policy",
+      "title_en": "Privacy Policy",
+      "title_ar": "سياسة الخصوصية",
+      "body_en": "Your privacy is important...",
+      "body_ar": "خصوصيتك مهمة..."
+    },
+    "terms_conditions": {
+      "id": 3,
+      "page_key": "terms_conditions",
+      "title_en": "Terms and Conditions",
+      "title_ar": "الشروط والأحكام",
+      "body_en": "By using our platform...",
+      "body_ar": "باستخدامك لمنصتنا..."
+    }
+  }
+}
+```
+
+---
+
+### 25.5 Get Single Public Page (Public)
+**Description:** عرض محتوى صفحة معينة (بدون مصادقة)  
+**Endpoint:** `GET /api/v1/pages/{pageKey}`  
+**Auth Required:** No  
+**Valid Page Keys:** `about_us`, `privacy_policy`, `terms_conditions`
+
+```bash
+curl -X GET http://localhost:8000/api/v1/pages/privacy_policy \
+  -H "Accept: application/json"
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "message": "Page content retrieved successfully",
+  "data": {
+    "page_key": "privacy_policy",
+    "title_en": "Privacy Policy",
+    "title_ar": "سياسة الخصوصية",
+    "body_en": "Your privacy is important to us. This policy describes how we collect, use, and protect your data.",
+    "body_ar": "خصوصيتك مهمة بالنسبة لنا. توضح هذه السياسة كيف نجمع بياناتك ونستخدمها ونحميها."
+  }
+}
+```
+
+---
+
+## 26. Company Settings
+
+### 26.1 Get All Company Settings (Admin)
+**Description:** عرض جميع إعدادات الشركة (معلومات الاتصال، روابط وسائل التواصل، روابط التطبيقات)  
+**Endpoint:** `GET /api/v1/admin/company-settings`  
+**Auth Required:** Yes (Admin)
+
+```bash
+curl -X GET http://localhost:8000/api/v1/admin/company-settings \
+  -H "Authorization: Bearer {token}" \
+  -H "Accept: application/json"
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "message": "Company settings retrieved successfully",
+  "data": {
+    "contact": {
+      "phone": {
+        "key": "phone",
+        "value": "+1234567890",
+        "is_active": true,
+        "description": "Company phone number"
+      },
+      "email": {
+        "key": "email",
+        "value": "contact@company.com",
+        "is_active": true,
+        "description": "Company email address"
+      },
+      "location": {
+        "key": "location",
+        "value": "123 Main St, City, Country",
+        "is_active": true,
+        "description": "Company physical location/address"
+      }
+    },
+    "social_media": {
+      "facebook_link": {
+        "key": "facebook_link",
+        "value": "https://facebook.com/yourpage",
+        "is_active": true,
+        "description": "Facebook page URL"
+      },
+      "instagram_link": {
+        "key": "instagram_link",
+        "value": "https://instagram.com/yourpage",
+        "is_active": true,
+        "description": "Instagram profile URL"
+      },
+      "twitter_link": {
+        "key": "twitter_link",
+        "value": "https://twitter.com/yourpage",
+        "is_active": false,
+        "description": "Twitter/X profile URL"
+      },
+      "youtube_link": {
+        "key": "youtube_link",
+        "value": "https://youtube.com/@yourpage",
+        "is_active": true,
+        "description": "YouTube channel URL"
+      },
+      "telegram_link": {
+        "key": "telegram_link",
+        "value": "",
+        "is_active": false,
+        "description": "Telegram channel/group URL"
+      },
+      "whatsapp_link": {
+        "key": "whatsapp_link",
+        "value": "https://wa.me/1234567890",
+        "is_active": true,
+        "description": "WhatsApp contact link"
+      },
+      "tiktok_link": {
+        "key": "tiktok_link",
+        "value": "",
+        "is_active": false,
+        "description": "TikTok profile URL"
+      }
+    },
+    "app_link": {
+      "android_app_link": {
+        "key": "android_app_link",
+        "value": "https://play.google.com/store/apps/details?id=com.yourapp",
+        "is_active": true,
+        "description": "Android app download link (Google Play Store)"
+      },
+      "ios_app_link": {
+        "key": "ios_app_link",
+        "value": "https://apps.apple.com/app/yourapp/id123456789",
+        "is_active": true,
+        "description": "iOS app download link (Apple App Store)"
+      }
+    }
+  }
+}
+```
+
+---
+
+### 26.2 Get Company Settings by Type (Admin)
+**Description:** عرض إعدادات الشركة حسب النوع  
+**Endpoint:** `GET /api/v1/admin/company-settings/type/{type}`  
+**Auth Required:** Yes (Admin)  
+**Valid Types:** `contact`, `social_media`, `app_link`
+
+```bash
+curl -X GET http://localhost:8000/api/v1/admin/company-settings/type/social_media \
+  -H "Authorization: Bearer {token}" \
+  -H "Accept: application/json"
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "message": "Company social_media settings retrieved successfully",
+  "data": [
+    {
+      "id": 4,
+      "key": "facebook_link",
+      "value": "https://facebook.com/yourpage",
+      "is_active": true,
+      "type": "social_media",
+      "description": "Facebook page URL",
+      "created_at": "2026-02-07T19:57:47.000000Z",
+      "updated_at": "2026-02-07T19:57:47.000000Z"
+    },
+    {
+      "id": 5,
+      "key": "instagram_link",
+      "value": "https://instagram.com/yourpage",
+      "is_active": true,
+      "type": "social_media",
+      "description": "Instagram profile URL",
+      "created_at": "2026-02-07T19:57:47.000000Z",
+      "updated_at": "2026-02-07T19:57:47.000000Z"
+    }
+  ]
+}
+```
+
+---
+
+### 26.3 Update Single Company Setting (Admin)
+**Description:** تحديث إعداد واحد من إعدادات الشركة  
+**Endpoint:** `PUT /api/v1/admin/company-settings/{key}`  
+**Auth Required:** Yes (Admin)  
+**Valid Keys:** `phone`, `email`, `location`, `facebook_link`, `instagram_link`, `twitter_link`, `youtube_link`, `telegram_link`, `whatsapp_link`, `tiktok_link`, `android_app_link`, `ios_app_link`
+
+```bash
+curl -X PUT http://localhost:8000/api/v1/admin/company-settings/email \
+  -H "Authorization: Bearer {token}" \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json" \
+  -d '{
+    "value": "support@company.com",
+    "is_active": true
+  }'
+```
+
+**Request Body Parameters:**
+- `value` (optional): New value for the setting
+- `is_active` (optional): Active status (true/false)
+
+**Response:**
+```json
+{
+  "status": "success",
+  "message": "Setting updated successfully",
+  "data": {
+    "id": 2,
+    "key": "email",
+    "value": "support@company.com",
+    "is_active": true,
+    "type": "contact",
+    "description": "Company email address",
+    "created_at": "2026-02-07T19:57:47.000000Z",
+    "updated_at": "2026-02-07T20:30:15.000000Z"
+  }
+}
+```
+
+---
+
+### 26.4 Bulk Update Company Settings (Admin)
+**Description:** تحديث عدة إعدادات دفعة واحدة  
+**Endpoint:** `PUT /api/v1/admin/company-settings`  
+**Auth Required:** Yes (Admin)
+
+```bash
+curl -X PUT http://localhost:8000/api/v1/admin/company-settings \
+  -H "Authorization: Bearer {token}" \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json" \
+  -d '{
+    "settings": [
+      {
+        "key": "phone",
+        "value": "+966123456789",
+        "is_active": true
+      },
+      {
+        "key": "facebook_link",
+        "value": "https://facebook.com/newpage",
+        "is_active": true
+      },
+      {
+        "key": "telegram_link",
+        "value": "https://t.me/yourgroup",
+        "is_active": true
+      }
+    ]
+  }'
+```
+
+**Request Body:**
+- `settings` (required): Array of settings to update
+  - `key` (required): Setting key
+  - `value` (optional): New value
+  - `is_active` (optional): Active status
+
+**Response:**
+```json
+{
+  "status": "success",
+  "message": "All settings updated successfully",
+  "data": {
+    "updated_count": 3,
+    "updated_keys": [
+      "phone",
+      "facebook_link",
+      "telegram_link"
+    ]
+  }
+}
+```
+
+**Partial Success Response:**
+```json
+{
+  "status": "partial",
+  "message": "Some settings could not be updated",
+  "data": {
+    "updated": ["phone", "facebook_link"],
+    "errors": {
+      "telegram_link": "Invalid URL format"
+    }
+  }
+}
+```
+
+---
+
+### 26.5 Toggle Active Status (Admin)
+**Description:** تبديل حالة التفعيل لإعداد معين (تفعيل/تعطيل)  
+**Endpoint:** `POST /api/v1/admin/company-settings/{key}/toggle-active`  
+**Auth Required:** Yes (Admin)
+
+```bash
+curl -X POST http://localhost:8000/api/v1/admin/company-settings/facebook_link/toggle-active \
+  -H "Authorization: Bearer {token}" \
+  -H "Accept: application/json"
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "message": "Setting active status toggled successfully",
+  "data": {
+    "id": 4,
+    "key": "facebook_link",
+    "value": "https://facebook.com/yourpage",
+    "is_active": false,
+    "type": "social_media",
+    "description": "Facebook page URL",
+    "created_at": "2026-02-07T19:57:47.000000Z",
+    "updated_at": "2026-02-07T20:45:20.000000Z"
+  }
+}
+```
+
+---
+
+### 26.6 Get Active Company Info (Public)
+**Description:** عرض معلومات الشركة المفعلة فقط (بدون مصادقة)  
+**Endpoint:** `GET /api/v1/company-info`  
+**Auth Required:** No
+
+```bash
+curl -X GET http://localhost:8000/api/v1/company-info \
+  -H "Accept: application/json"
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "message": "Company information retrieved successfully",
+  "data": {
+    "contact": {
+      "phone": {
+        "key": "phone",
+        "value": "+966123456789"
+      },
+      "email": {
+        "key": "email",
+        "value": "support@company.com"
+      },
+      "location": {
+        "key": "location",
+        "value": "123 Main St, City, Country"
+      }
+    },
+    "social_media": {
+      "facebook_link": {
+        "key": "facebook_link",
+        "value": "https://facebook.com/yourpage"
+      },
+      "instagram_link": {
+        "key": "instagram_link",
+        "value": "https://instagram.com/yourpage"
+      },
+      "youtube_link": {
+        "key": "youtube_link",
+        "value": "https://youtube.com/@yourpage"
+      },
+      "whatsapp_link": {
+        "key": "whatsapp_link",
+        "value": "https://wa.me/1234567890"
+      }
+    },
+    "app_link": {
+      "android_app_link": {
+        "key": "android_app_link",
+        "value": "https://play.google.com/store/apps/details?id=com.yourapp"
+      },
+      "ios_app_link": {
+        "key": "ios_app_link",
+        "value": "https://apps.apple.com/app/yourapp/id123456789"
+      }
+    }
+  }
+}
+```
+
+**Note:** This endpoint only returns settings where `is_active = true`.
 
 ---
 

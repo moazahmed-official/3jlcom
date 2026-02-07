@@ -26,6 +26,8 @@ use App\Http\Controllers\Api\V1\SpecificationController;
 use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\SellerStatsController;
 use App\Http\Controllers\Api\V1\AdminStatsController;
+use App\Http\Controllers\Api\V1\PageContentController;
+use App\Http\Controllers\Api\V1\CompanySettingController;
 
 Route::prefix('v1')->group(function () {
     // Public authentication routes
@@ -398,6 +400,26 @@ Route::prefix('v1')->group(function () {
         Route::get('admin/stats/dealer/{user}', [AdminStatsController::class, 'dealerStats']); // Dealer statistics
         Route::get('admin/stats/user/{user}', [AdminStatsController::class, 'userStats']); // User statistics
         Route::get('admin/stats/ads/{type}', [AdminStatsController::class, 'adsByType']); // Count ads by type
+        
+        // =====================
+        // PAGE CONTENT ROUTES (Admin)
+        // =====================
+        
+        // Page content management (admin only)
+        Route::get('admin/pages', [PageContentController::class, 'index']); // List all page contents
+        Route::get('admin/pages/{pageKey}', [PageContentController::class, 'show']); // Show specific page content
+        Route::put('admin/pages/{pageKey}', [PageContentController::class, 'update']); // Update page content
+        
+        // =====================
+        // COMPANY SETTINGS ROUTES (Admin)
+        // =====================
+        
+        // Company settings management (admin only)
+        Route::get('admin/company-settings', [CompanySettingController::class, 'index']); // List all company settings
+        Route::get('admin/company-settings/type/{type}', [CompanySettingController::class, 'showByType']); // List by type
+        Route::put('admin/company-settings', [CompanySettingController::class, 'updateBulk']); // Bulk update settings
+        Route::put('admin/company-settings/{key}', [CompanySettingController::class, 'updateSingle']); // Update single setting
+        Route::post('admin/company-settings/{key}/toggle-active', [CompanySettingController::class, 'toggleActive']); // Toggle active status
     });
 
     // Public brand routes
@@ -440,4 +462,11 @@ Route::prefix('v1')->group(function () {
     // Public Packages routes (no authentication required)
     Route::get('packages', [PackageController::class, 'index']); // List active packages
     Route::get('packages/{package}', [PackageController::class, 'show']); // View package details
+
+    // Public Page Content routes (no authentication required)
+    Route::get('pages', [PageContentController::class, 'publicIndex']); // List all page contents
+    Route::get('pages/{pageKey}', [PageContentController::class, 'publicShow']); // Show specific page (about_us, privacy_policy, terms_conditions)
+
+    // Public Company Settings routes (no authentication required)
+    Route::get('company-info', [CompanySettingController::class, 'publicIndex']); // Get active company contacts & links
 });
