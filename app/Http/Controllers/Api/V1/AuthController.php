@@ -106,7 +106,13 @@ class AuthController extends BaseApiController
     public function verify(VerifyOtpRequest $request)
     {
         try {
-            $user = User::where('phone', $request->input('phone'))->first();
+            // Allow lookup by email or phone
+            $user = null;
+            if ($request->filled('email')) {
+                $user = User::where('email', $request->input('email'))->first();
+            } elseif ($request->filled('phone')) {
+                $user = User::where('phone', $request->input('phone'))->first();
+            }
 
             if (!$user) {
                 return $this->error(404, 'User not found.');

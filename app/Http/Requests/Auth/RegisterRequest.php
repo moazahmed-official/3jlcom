@@ -17,7 +17,8 @@ class RegisterRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'phone' => ['required', 'string', 'max:50', 'unique:users,phone'],
-            'country_id' => ['required', 'integer', 'exists:countries,id'],
+            // country_id is now optional; allow nullable values
+            'country_id' => ['nullable', 'integer', 'exists:countries,id'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'account_type' => ['sometimes', 'string', 'in:individual,dealer,showroom']
         ];
@@ -31,7 +32,6 @@ class RegisterRequest extends FormRequest
             'email.unique' => 'This email address is already registered.',
             'phone.required' => 'The phone field is required.',
             'phone.unique' => 'This phone number is already registered.',
-            'country_id.required' => 'The country field is required.',
             'country_id.exists' => 'The selected country does not exist.',
             'password.required' => 'The password field is required.',
             'password.min' => 'The password must be at least 8 characters.',
