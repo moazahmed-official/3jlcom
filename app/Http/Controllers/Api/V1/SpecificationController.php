@@ -4,11 +4,13 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Resources\SpecificationResource;
+use App\Http\Traits\LogsAudit;
 use App\Models\Specification;
 use Illuminate\Http\Request;
 
 class SpecificationController extends BaseApiController
 {
+    use LogsAudit;
     /**
      * List specifications (admin-only).
      */
@@ -80,6 +82,14 @@ class SpecificationController extends BaseApiController
         $specification = Specification::create($validated);
         $specification->load('image');
 
+        $this->auditLog(
+            actionType: 'specification.created',
+            resourceType: 'specification',
+            resourceId: $specification->id,
+            details: ['name_en' => $specification->name_en, 'type' => $specification->type],
+            severity: 'info'
+        );
+
         return $this->success(
             new SpecificationResource($specification),
             'Specification created successfully',
@@ -104,8 +114,17 @@ class SpecificationController extends BaseApiController
             'image_id' => 'nullable|exists:media,id',
         ]);
 
+        $oldData = $specification->only(['name_en', 'name_ar', 'type']);
         $specification->update($validated);
         $specification->load('image');
+
+        $this->auditLog(
+            actionType: 'specification.updated',
+            resourceType: 'specification',
+            resourceId: $specification->id,
+            details: ['old' => $oldData, 'new' => $specification->only(['name_en', 'name_ar', 'type'])],
+            severity: 'info'
+        );
 
         return $this->success(
             new SpecificationResource($specification),
@@ -121,6 +140,13 @@ class SpecificationController extends BaseApiController
         if (!$request->user()->isAdmin()) {
             return $this->error(403, 'Unauthorized');
         }
+
+        $this->auditLogDestructive(
+            actionType: 'specification.deleted',
+            resourceType: 'specification',
+            resourceId: $specification->id,
+            details: ['name_en' => $specification->name_en, 'type' => $specification->type]
+        );
 
         $specification->delete();
 

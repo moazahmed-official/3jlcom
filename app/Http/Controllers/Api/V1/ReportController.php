@@ -7,6 +7,7 @@ use App\Http\Requests\Report\StoreReportRequest;
 use App\Http\Requests\Report\AssignReportRequest;
 use App\Http\Requests\Report\UpdateReportStatusRequest;
 use App\Http\Resources\ReportResource;
+use App\Http\Traits\LogsAudit;
 use App\Models\Report;
 use App\Services\ReportStatusService;
 use Illuminate\Http\Request;
@@ -14,6 +15,8 @@ use Illuminate\Http\JsonResponse;
 
 class ReportController extends BaseApiController
 {
+    use LogsAudit;
+
     protected ReportStatusService $statusService;
 
     public function __construct(ReportStatusService $statusService)
@@ -138,11 +141,26 @@ class ReportController extends BaseApiController
     {
         $validated = $request->validated();
 
+        $oldAssignee = $report->assigned_to;
         $success = $this->statusService->assignToModerator($report, $validated['moderator_id']);
 
         if (!$success) {
             return $this->error(400, 'Failed to assign report to moderator');
         }
+
+        $this->auditLog(
+            actionType: 'report.assigned',
+            resourceType: 'report',
+            resourceId: $report->id,
+            details: [
+                'report_id' => $report->id,
+                'target_type' => $report->target_type,
+                'target_id' => $report->target_id,
+                'old_assignee' => $oldAssignee,
+                'new_assignee' => $validated['moderator_id']
+            ],
+            severity: 'info'
+        );
 
         $report->load(['reporter', 'target', 'assignedTo']);
 
@@ -159,12 +177,29 @@ class ReportController extends BaseApiController
     {
         $validated = $request->validated();
 
+        $oldStatus = $report->status;
+        $newStatus = $validated['status'];
         $message = $validated['message'] ?? null;
-        $success = $this->statusService->transition($report, $validated['status'], $message);
+        $success = $this->statusService->transition($report, $newStatus, $message);
 
         if (!$success) {
             return $this->error(400, 'Invalid status transition');
         }
+
+        $this->auditLog(
+            actionType: 'report.status_updated',
+            resourceType: 'report',
+            resourceId: $report->id,
+            details: [
+                'report_id' => $report->id,
+                'target_type' => $report->target_type,
+                'target_id' => $report->target_id,
+                'old_status' => $oldStatus,
+                'new_status' => $newStatus,
+                'message' => $message
+            ],
+            severity: 'info'
+        );
 
         $report->load(['reporter', 'target', 'assignedTo']);
 
@@ -224,6 +259,17 @@ class ReportController extends BaseApiController
     public function destroy(Report $report): JsonResponse
     {
         $this->authorize('delete', $report);
+
+        $this->auditLogDestructive(
+            actionType: 'report.deleted',
+            resourceType: 'report',
+            resourceId: $report->id,
+            details: [
+                'target_type' => $report->target_type,
+                'target_id' => $report->target_id,
+                'status' => $report->status
+            ]
+        );
 
         $report->delete();
 

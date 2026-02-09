@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\SubmitSellerVerificationRequest;
 use App\Http\Requests\UserVerificationRequest;
+use App\Http\Traits\LogsAudit;
 use App\Models\SellerVerificationRequest;
 use App\Models\User;
 use App\Notifications\AdminSellerVerificationRequestNotification;
@@ -15,6 +16,7 @@ use Carbon\Carbon;
 
 class SellerVerificationController extends BaseApiController
 {
+    use LogsAudit;
     public function store(SubmitSellerVerificationRequest $request)
     {
         try {
@@ -116,8 +118,11 @@ class SellerVerificationController extends BaseApiController
 
             DB::beginTransaction();
 
+            $oldStatus = $verificationRequest->status;
+            $newStatus = $request->input('status');
+
             $verificationRequest->update([
-                'status' => $request->input('status'),
+                'status' => $newStatus,
                 'admin_comments' => $request->input('admin_comments'),
                 'verified_by' => $request->user()->id,
                 'verified_at' => Carbon::now(),
@@ -125,7 +130,7 @@ class SellerVerificationController extends BaseApiController
 
             // Update user's verification flags depending on admin decision
             $user = $verificationRequest->user;
-            if ($request->input('status') === 'approved') {
+            if ($newStatus === 'approved') {
                 $user->update([
                     'email_verified_at' => $user->email_verified_at ?? Carbon::now(),
                     'is_verified' => true,
@@ -139,6 +144,20 @@ class SellerVerificationController extends BaseApiController
                     'seller_verified_at' => null,
                 ]);
             }
+
+            $this->auditLog(
+                actionType: $newStatus === 'approved' ? 'seller_verification.approved' : 'seller_verification.rejected',
+                resourceType: 'seller_verification_request',
+                resourceId: $verificationRequest->id,
+                details: [
+                    'user_id' => $user->id,
+                    'user_email' => $user->email,
+                    'old_status' => $oldStatus,
+                    'new_status' => $newStatus,
+                    'admin_comments' => $request->input('admin_comments')
+                ],
+                severity: 'critical'
+            );
 
             DB::commit();
 

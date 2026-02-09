@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreUniqueAdRequest;
 use App\Http\Requests\UpdateUniqueAdRequest;
 use App\Http\Resources\UniqueAdResource;
+use App\Http\Traits\LogsAudit;
 use App\Models\Ad;
 use App\Models\UniqueAd;
 use App\Models\Media;
@@ -18,6 +19,7 @@ use Illuminate\Support\Facades\Log;
 
 class UniqueAdsController extends Controller
 {
+    use LogsAudit;
     /**
      * List published unique ads (public)
      */
@@ -623,6 +625,17 @@ class UniqueAdsController extends Controller
             ]);
         }
 
+        $this->auditLog(
+            actionType: 'ad.featured',
+            resourceType: 'ad',
+            resourceId: $ad->id,
+            details: [
+                'ad_type' => 'unique',
+                'title' => $ad->title
+            ],
+            severity: 'info'
+        );
+
         $ad->load(['uniqueAd', 'uniqueAd.bannerImage', 'user', 'brand', 'model', 'city', 'country', 'category', 'media']);
 
         Log::info('Unique ad featured successfully', [
@@ -784,6 +797,18 @@ class UniqueAdsController extends Controller
             ]);
         }
 
+        $this->auditLog(
+            actionType: 'ad.verification_approved',
+            resourceType: 'ad',
+            resourceId: $ad->id,
+            details: [
+                'ad_type' => 'unique',
+                'title' => $ad->title,
+                'user_id' => $ad->user_id
+            ],
+            severity: 'warning'
+        );
+
         $ad->load(['uniqueAd', 'uniqueAd.bannerImage', 'user', 'brand', 'model', 'city', 'country', 'category', 'media']);
 
         Log::info('Unique ad verification approved', [
@@ -830,6 +855,19 @@ class UniqueAdsController extends Controller
                 'verification_rejection_reason' => $request->get('reason')
             ]);
         }
+
+        $this->auditLog(
+            actionType: 'ad.verification_rejected',
+            resourceType: 'ad',
+            resourceId: $ad->id,
+            details: [
+                'ad_type' => 'unique',
+                'title' => $ad->title,
+                'user_id' => $ad->user_id,
+                'rejection_reason' => $request->get('reason')
+            ],
+            severity: 'warning'
+        );
 
         $ad->load(['uniqueAd', 'uniqueAd.bannerImage', 'user', 'brand', 'model', 'city', 'country', 'category', 'media']);
 

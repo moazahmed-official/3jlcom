@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\Review\StoreReviewRequest;
 use App\Http\Requests\Review\UpdateReviewRequest;
 use App\Http\Resources\ReviewResource;
+use App\Http\Traits\LogsAudit;
 use App\Models\Review;
 use App\Models\Ad;
 use App\Models\User;
@@ -15,6 +16,7 @@ use Illuminate\Http\JsonResponse;
 
 class ReviewController extends BaseApiController
 {
+    use LogsAudit;
     /**
      * Display a listing of reviews.
      * Can filter by ad_id or seller_id.
@@ -198,6 +200,18 @@ class ReviewController extends BaseApiController
     public function destroy(Review $review): JsonResponse
     {
         $this->authorize('delete', $review);
+
+        $this->auditLogDestructive(
+            actionType: 'review.deleted',
+            resourceType: 'review',
+            resourceId: $review->id,
+            details: [
+                'user_id' => $review->user_id,
+                'ad_id' => $review->ad_id,
+                'seller_id' => $review->seller_id,
+                'stars' => $review->stars
+            ]
+        );
 
         $review->delete();
 

@@ -7,6 +7,7 @@ use App\Http\Requests\Role\AssignRoleRequest;
 use App\Http\Requests\Role\StoreRoleRequest;
 use App\Http\Requests\Role\UpdateRoleRequest;
 use App\Http\Resources\RoleResource;
+use App\Http\Traits\LogsAudit;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -14,6 +15,7 @@ use Illuminate\Http\Request;
 
 class RoleController extends BaseApiController
 {
+    use LogsAudit;
     /**
      * Display a listing of roles.
      *
@@ -41,6 +43,14 @@ class RoleController extends BaseApiController
         $validated = $request->validated();
         
         $role = Role::create($validated);
+
+        $this->auditLog(
+            actionType: 'role.created',
+            resourceType: 'role',
+            resourceId: $role->id,
+            details: ['name' => $role->name],
+            severity: 'warning'
+        );
 
         return $this->success(
             new RoleResource($role),
@@ -73,7 +83,20 @@ class RoleController extends BaseApiController
     {
         $validated = $request->validated();
         
+        $oldName = $role->name;
         $role->update($validated);
+
+        $this->auditLog(
+            actionType: 'role.updated',
+            resourceType: 'role',
+            resourceId: $role->id,
+            details: [
+                'name' => $role->name,
+                'old_name' => $oldName,
+                'changes' => $validated
+            ],
+            severity: 'warning'
+        );
 
         return $this->success(
             new RoleResource($role->fresh()),
@@ -106,6 +129,13 @@ class RoleController extends BaseApiController
             );
         }
 
+        $this->auditLogDestructive(
+            actionType: 'role.deleted',
+            resourceType: 'role',
+            resourceId: $role->id,
+            details: ['name' => $role->name]
+        );
+
         $role->delete();
 
         return $this->success(null, 'Role deleted successfully', 200);
@@ -123,6 +153,8 @@ class RoleController extends BaseApiController
         // Get role IDs from role names
         $roles = Role::whereIn('name', $validated['roles'])->get();
 
+        $oldRoles = $user->roles()->pluck('name')->toArray();
+        $oldAccountType = $user->account_type;
 
         // Sync roles (replace all existing roles with new ones)
         $user->roles()->sync($roles->pluck('id'));
@@ -170,6 +202,21 @@ class RoleController extends BaseApiController
                 }
             }
         }
+
+        $this->auditLog(
+            actionType: 'role.assigned',
+            resourceType: 'user',
+            resourceId: $user->id,
+            details: [
+                'user_id' => $user->id,
+                'user_email' => $user->email,
+                'old_roles' => $oldRoles,
+                'new_roles' => $validated['roles'],
+                'old_account_type' => $oldAccountType,
+                'new_account_type' => $user->account_type
+            ],
+            severity: 'critical'
+        );
 
         // Load fresh user with roles for response
         $user->load('roles');

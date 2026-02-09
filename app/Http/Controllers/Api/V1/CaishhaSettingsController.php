@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Traits\LogsAudit;
 use App\Models\CaishhaSetting;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -11,6 +12,7 @@ use Illuminate\Support\Facades\Validator;
 
 class CaishhaSettingsController extends Controller
 {
+    use LogsAudit;
     /**
      * Display all Caishha settings (Admin only)
      */
@@ -94,6 +96,14 @@ class CaishhaSettingsController extends Controller
                 ], 422);
             }
 
+            $this->auditLog(
+                actionType: 'caishha_setting.bulk_updated',
+                resourceType: 'caishha_setting',
+                resourceId: null,
+                details: ['updated_settings' => $updatedSettings],
+                severity: 'warning'
+            );
+
             Log::info('Caishha settings updated', [
                 'user_id' => auth()->id(),
                 'updated_settings' => array_keys($updatedSettings)
@@ -164,7 +174,20 @@ class CaishhaSettingsController extends Controller
 
         try {
             $type = $this->getTypeForSetting($key);
+            $oldValue = CaishhaSetting::get($key);
             CaishhaSetting::set($key, $value, $type);
+
+            $this->auditLog(
+                actionType: 'caishha_setting.updated',
+                resourceType: 'caishha_setting',
+                resourceId: null,
+                details: [
+                    'key' => $key,
+                    'old_value' => $oldValue,
+                    'new_value' => $value
+                ],
+                severity: 'warning'
+            );
 
             Log::info('Caishha setting updated', [
                 'user_id' => auth()->id(),

@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\PackageRequest\ReviewPackageRequestRequest;
 use App\Http\Requests\PackageRequest\StorePackageRequestRequest;
 use App\Http\Resources\PackageRequestResource;
+use App\Http\Traits\LogsAudit;
 use App\Models\Package;
 use App\Models\PackageRequest;
 use Illuminate\Http\JsonResponse;
@@ -13,6 +14,7 @@ use Illuminate\Http\Request;
 
 class PackageRequestController extends BaseApiController
 {
+    use LogsAudit;
     /**
      * User requests a package.
      *
@@ -205,6 +207,20 @@ class PackageRequestController extends BaseApiController
             'package_id' => $packageRequest->package_id,
         ]);
 
+        $this->auditLog(
+            actionType: 'package_request.approved',
+            resourceType: 'package_request',
+            resourceId: $packageRequest->id,
+            details: [
+                'user_id' => $user->id,
+                'user_email' => $user->email,
+                'package_id' => $packageRequest->package_id,
+                'package_name' => $packageRequest->package->name,
+                'admin_notes' => $request->admin_notes
+            ],
+            severity: 'warning'
+        );
+
         $packageRequest->load(['user', 'package', 'reviewer']);
 
         return $this->success(
@@ -239,6 +255,20 @@ class PackageRequestController extends BaseApiController
             'reviewed_by' => $request->user()->id,
             'reviewed_at' => now(),
         ]);
+
+        $this->auditLog(
+            actionType: 'package_request.rejected',
+            resourceType: 'package_request',
+            resourceId: $packageRequest->id,
+            details: [
+                'user_id' => $packageRequest->user_id,
+                'user_email' => $packageRequest->user->email,
+                'package_id' => $packageRequest->package_id,
+                'package_name' => $packageRequest->package->name,
+                'admin_notes' => $request->admin_notes
+            ],
+            severity: 'warning'
+        );
 
         $packageRequest->load(['user', 'package', 'reviewer']);
 

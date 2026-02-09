@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreSliderRequest;
 use App\Http\Requests\UpdateSliderRequest;
 use App\Http\Resources\SliderResource;
+use App\Http\Traits\LogsAudit;
 use App\Models\Slider;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -15,6 +16,7 @@ use Illuminate\Support\Facades\Log;
 
 class SliderController extends Controller
 {
+    use LogsAudit;
     /**
      * List sliders (public - shows only active sliders unless admin requests all)
      */
@@ -117,6 +119,14 @@ class SliderController extends Controller
 
             $slider->load('media');
 
+            $this->auditLog(
+                actionType: 'slider.created',
+                resourceType: 'slider',
+                resourceId: $slider->id,
+                details: ['name' => $slider->name, 'category_id' => $slider->category_id],
+                severity: 'info'
+            );
+
             Log::info('Slider created', [
                 'slider_id' => $slider->id,
                 'name' => $slider->name,
@@ -185,6 +195,14 @@ class SliderController extends Controller
 
             $slider->load('media');
 
+            $this->auditLog(
+                actionType: 'slider.updated',
+                resourceType: 'slider',
+                resourceId: $slider->id,
+                details: ['name' => $slider->name],
+                severity: 'info'
+            );
+
             Log::info('Slider updated', [
                 'slider_id' => $slider->id,
                 'name' => $slider->name,
@@ -242,6 +260,13 @@ class SliderController extends Controller
         try {
             $sliderId = $slider->id;
             $sliderName = $slider->name;
+
+            $this->auditLogDestructive(
+                actionType: 'slider.deleted',
+                resourceType: 'slider',
+                resourceId: $sliderId,
+                details: ['name' => $sliderName]
+            );
 
             DB::transaction(function () use ($slider) {
                 $slider->delete();

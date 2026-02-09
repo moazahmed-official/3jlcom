@@ -4,11 +4,13 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Resources\CategoryResource;
+use App\Http\Traits\LogsAudit;
 use App\Models\Category;
 use Illuminate\Http\Request;
 
 class CategoryController extends BaseApiController
 {
+    use LogsAudit;
     /**
      * List categories (admin-only).
      */
@@ -78,6 +80,14 @@ class CategoryController extends BaseApiController
 
         $category = Category::create($validated);
 
+        $this->auditLog(
+            actionType: 'category.created',
+            resourceType: 'category',
+            resourceId: $category->id,
+            details: ['name_en' => $category->name_en, 'name_ar' => $category->name_ar],
+            severity: 'info'
+        );
+
         return $this->success(
             new CategoryResource($category),
             'Category created successfully',
@@ -101,7 +111,16 @@ class CategoryController extends BaseApiController
             'specs_group_id' => 'nullable|integer',
         ]);
 
+        $oldData = $category->only(['name_en', 'name_ar', 'status']);
         $category->update($validated);
+
+        $this->auditLog(
+            actionType: 'category.updated',
+            resourceType: 'category',
+            resourceId: $category->id,
+            details: ['old' => $oldData, 'new' => $category->only(['name_en', 'name_ar', 'status'])],
+            severity: 'info'
+        );
 
         return $this->success(
             new CategoryResource($category),
@@ -117,6 +136,13 @@ class CategoryController extends BaseApiController
         if (!$request->user()->isAdmin()) {
             return $this->error(403, 'Unauthorized');
         }
+
+        $this->auditLogDestructive(
+            actionType: 'category.deleted',
+            resourceType: 'category',
+            resourceId: $category->id,
+            details: ['name_en' => $category->name_en, 'name_ar' => $category->name_ar]
+        );
 
         $category->delete();
 
@@ -164,8 +190,22 @@ class CategoryController extends BaseApiController
             $syncData[$specId] = ['order' => $index];
         }
 
+        $oldSpecs = $category->specifications()->pluck('id')->toArray();
+
         // Sync specifications (removes old ones, adds new ones)
         $category->specifications()->sync($syncData);
+
+        $this->auditLog(
+            actionType: 'category.specifications_assigned',
+            resourceType: 'category',
+            resourceId: $category->id,
+            details: [
+                'category_name' => $category->name_en,
+                'old_specification_ids' => $oldSpecs,
+                'new_specification_ids' => $validated['specification_ids']
+            ],
+            severity: 'info'
+        );
 
         $category->load('specifications');
 

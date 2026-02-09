@@ -7,6 +7,7 @@ use App\Http\Requests\Brand\StoreBrandRequest;
 use App\Http\Requests\Brand\StoreBrandModelRequest;
 use App\Http\Resources\BrandResource;
 use App\Http\Resources\ModelResource;
+use App\Http\Traits\LogsAudit;
 use App\Models\Brand;
 use App\Models\CarModel;
 use Illuminate\Http\JsonResponse;
@@ -17,6 +18,7 @@ use App\Http\Requests\Brand\UpdateBrandModelRequest;
 
 class BrandController extends BaseApiController
 {
+    use LogsAudit;
     /**
      * Display a listing of brands.
      *
@@ -46,6 +48,14 @@ class BrandController extends BaseApiController
         }
 
         $brand = Brand::create($validated);
+
+        $this->auditLog(
+            actionType: 'brand.created',
+            resourceType: 'brand',
+            resourceId: $brand->id,
+            details: ['name_en' => $brand->name_en, 'name_ar' => $brand->name_ar],
+            severity: 'info'
+        );
 
         return $this->success(
             new BrandResource($brand),
@@ -87,6 +97,19 @@ class BrandController extends BaseApiController
         $model = CarModel::create($validated);
         $model->load('brand');
 
+        $this->auditLog(
+            actionType: 'model.created',
+            resourceType: 'car_model',
+            resourceId: $model->id,
+            details: [
+                'brand_id' => $brand->id,
+                'brand_name' => $brand->name_en,
+                'model_name_en' => $model->name_en,
+                'model_name_ar' => $model->name_ar
+            ],
+            severity: 'info'
+        );
+
         return $this->success(
             new ModelResource($model),
             'Model created successfully',
@@ -102,6 +125,7 @@ class BrandController extends BaseApiController
     public function update(UpdateBrandRequest $request, Brand $brand): JsonResponse
     {
         $validated = $request->validated();
+        $oldData = $brand->only(['name_en', 'name_ar']);
 
         if ($request->hasFile('image')) {
             // delete old image if exists
@@ -113,6 +137,14 @@ class BrandController extends BaseApiController
 
         $brand->update($validated);
 
+        $this->auditLog(
+            actionType: 'brand.updated',
+            resourceType: 'brand',
+            resourceId: $brand->id,
+            details: ['old' => $oldData, 'new' => $brand->only(['name_en', 'name_ar'])],
+            severity: 'info'
+        );
+
         return $this->success(new BrandResource($brand->fresh()), 'Brand updated successfully');
     }
 
@@ -123,6 +155,13 @@ class BrandController extends BaseApiController
      */
     public function destroy(Brand $brand): JsonResponse
     {
+        $this->auditLogDestructive(
+            actionType: 'brand.deleted',
+            resourceType: 'brand',
+            resourceId: $brand->id,
+            details: ['name_en' => $brand->name_en, 'name_ar' => $brand->name_ar]
+        );
+
         if ($brand->image) {
             Storage::disk('public')->delete($brand->image);
         }
@@ -141,6 +180,7 @@ class BrandController extends BaseApiController
     public function updateModel(UpdateBrandModelRequest $request, Brand $brand, CarModel $model): JsonResponse
     {
         $validated = $request->validated();
+        $oldData = $model->only(['name_en', 'name_ar']);
 
         if ($request->hasFile('image')) {
             if ($model->image) {
@@ -152,6 +192,19 @@ class BrandController extends BaseApiController
         $model->update($validated);
         $model->load('brand');
 
+        $this->auditLog(
+            actionType: 'model.updated',
+            resourceType: 'car_model',
+            resourceId: $model->id,
+            details: [
+                'brand_id' => $brand->id,
+                'brand_name' => $brand->name_en,
+                'old' => $oldData,
+                'new' => $model->only(['name_en', 'name_ar'])
+            ],
+            severity: 'info'
+        );
+
         return $this->success(new ModelResource($model->fresh()), 'Model updated successfully');
     }
 
@@ -162,6 +215,18 @@ class BrandController extends BaseApiController
      */
     public function destroyModel(Brand $brand, CarModel $model): JsonResponse
     {
+        $this->auditLogDestructive(
+            actionType: 'model.deleted',
+            resourceType: 'car_model',
+            resourceId: $model->id,
+            details: [
+                'brand_id' => $brand->id,
+                'brand_name' => $brand->name_en,
+                'model_name_en' => $model->name_en,
+                'model_name_ar' => $model->name_ar
+            ]
+        );
+
         if ($model->image) {
             Storage::disk('public')->delete($model->image);
         }

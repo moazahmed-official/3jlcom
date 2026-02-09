@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Traits\LogsAudit;
 use App\Models\CompanySetting;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -11,6 +12,7 @@ use Illuminate\Support\Facades\Validator;
 
 class CompanySettingController extends Controller
 {
+    use LogsAudit;
     /**
      * Display all company settings grouped by type (Admin only).
      */
@@ -135,10 +137,27 @@ class CompanySettingController extends Controller
                 $updateData['is_active'] = $request->boolean('is_active');
             }
 
+            $oldValue = $setting->value;
+            $oldActive = $setting->is_active;
+
             $setting->update($updateData);
 
             // Clear cache
             CompanySetting::clearCache($key);
+
+            $this->auditLog(
+                actionType: 'company_setting.updated',
+                resourceType: 'company_setting',
+                resourceId: $setting->id,
+                details: [
+                    'key' => $key,
+                    'old_value' => $oldValue,
+                    'new_value' => $setting->value,
+                    'old_is_active' => $oldActive,
+                    'new_is_active' => $setting->is_active
+                ],
+                severity: 'warning'
+            );
 
             Log::info('Company setting updated', [
                 'user_id' => auth()->id(),
@@ -240,6 +259,17 @@ class CompanySettingController extends Controller
 
             // Clear all cache
             CompanySetting::clearCache();
+
+            $this->auditLog(
+                actionType: 'company_setting.bulk_updated',
+                resourceType: 'company_setting',
+                resourceId: null,
+                details: [
+                    'updated_keys' => $updatedSettings,
+                    'errors' => $errors
+                ],
+                severity: 'warning'
+            );
 
             if (!empty($errors)) {
                 return response()->json([

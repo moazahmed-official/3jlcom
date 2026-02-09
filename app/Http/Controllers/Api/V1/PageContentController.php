@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Traits\LogsAudit;
 use App\Models\PageContent;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -11,6 +12,7 @@ use Illuminate\Support\Facades\Validator;
 
 class PageContentController extends Controller
 {
+    use LogsAudit;
     /**
      * Display all page contents (Admin only).
      */
@@ -126,10 +128,23 @@ class PageContentController extends Controller
                 ], 404);
             }
 
+            $oldData = $page->only(['title_en', 'title_ar']);
             $page->update($request->only(['title_en', 'title_ar', 'body_en', 'body_ar']));
 
             // Clear cache
             PageContent::clearCache($pageKey);
+
+            $this->auditLog(
+                actionType: 'page_content.updated',
+                resourceType: 'page_content',
+                resourceId: $page->id,
+                details: [
+                    'page_key' => $pageKey,
+                    'old_title_en' => $oldData['title_en'],
+                    'new_title_en' => $page->title_en
+                ],
+                severity: 'warning'
+            );
 
             Log::info('Page content updated', [
                 'user_id' => auth()->id(),
