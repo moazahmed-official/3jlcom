@@ -11,6 +11,7 @@ use App\Http\Requests\UpdatePackageFeatureRequest;
 use App\Http\Resources\PackageResource;
 use App\Http\Resources\UserPackageResource;
 use App\Http\Resources\PackageFeatureResource;
+use App\Http\Traits\LogsAudit;
 use App\Models\Package;
 use App\Models\PackageFeature;
 use App\Models\User;
@@ -21,6 +22,7 @@ use Illuminate\Http\JsonResponse;
 
 class PackageController extends BaseApiController
 {
+    use LogsAudit;
     /**
      * Display a listing of packages (public).
      */
@@ -86,6 +88,14 @@ class PackageController extends BaseApiController
 
         $package = Package::create($validated);
 
+        // AUDIT LOG: Record package creation
+        $this->auditLogPackage('created', $package->id, [
+            'name' => $package->name,
+            'price' => $package->price,
+            'duration_days' => $package->duration_days,
+            'active' => $package->active,
+        ]);
+
         return response()->json([
             'success' => true,
             'message' => 'Package created successfully',
@@ -118,7 +128,25 @@ class PackageController extends BaseApiController
     {
         $validated = $request->validated();
 
+        // Track changes for audit log
+        $changes = [];
+        foreach ($validated as $key => $value) {
+            if ($package->{$key} !== $value) {
+                $changes[$key] = [
+                    'old' => $package->{$key},
+                    'new' => $value,
+                ];
+            }
+        }
+
         $package->update($validated);
+
+        // AUDIT LOG: Record package update
+        if (!empty($changes)) {
+            $this->auditLogPackage('updated', $package->id, [
+                'changes' => $changes,
+            ]);
+        }
 
         return $this->success(
             new PackageResource($package->fresh()),
@@ -145,6 +173,13 @@ class PackageController extends BaseApiController
                 "Cannot delete package with {$activeSubscribers} active subscriber(s). Deactivate the package instead."
             );
         }
+
+        // AUDIT LOG: Record package deletion (destructive action)
+        $this->auditLogDestructive('package.deleted', 'Package', $package->id, [
+            'name' => $package->name,
+            'price' => $package->price,
+            'active_subscribers' => $activeSubscribers,
+        ]);
 
         $package->delete();
 
@@ -187,6 +222,15 @@ class PackageController extends BaseApiController
         ]);
 
         $userPackage->load(['package', 'user']);
+
+        // AUDIT LOG: Record package assignment (billing action)
+        $this->auditLogPackage('assigned', $package->id, [
+            'user_id' => $user->id,
+            'user_email' => $user->email,
+            'start_date' => $userPackage->start_date,
+            'end_date' => $userPackage->end_date,
+            'subscription_id' => $userPackage->id,
+        ], 'notice');
 
         return response()->json([
             'success' => true,

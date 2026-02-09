@@ -28,6 +28,7 @@ use App\Http\Controllers\Api\V1\SellerStatsController;
 use App\Http\Controllers\Api\V1\AdminStatsController;
 use App\Http\Controllers\Api\V1\PageContentController;
 use App\Http\Controllers\Api\V1\CompanySettingController;
+use App\Http\Controllers\Api\V1\AdminAuditLogController;
 
 Route::prefix('v1')->group(function () {
     // Public authentication routes
@@ -400,6 +401,16 @@ Route::prefix('v1')->group(function () {
         Route::get('admin/stats/dealer/{user}', [AdminStatsController::class, 'dealerStats']); // Dealer statistics
         Route::get('admin/stats/user/{user}', [AdminStatsController::class, 'userStats']); // User statistics
         Route::get('admin/stats/ads/{type}', [AdminStatsController::class, 'adsByType']); // Count ads by type
+        
+        // =====================
+        // AUDIT LOGS ROUTES (Admin Only)
+        // =====================
+        
+        // Admin-only audit logging for compliance, forensics, and security monitoring
+        // SECURITY: These routes are protected by AuditLogPolicy - admin and super_admin only
+        Route::get('admin/audit-logs', [AdminAuditLogController::class, 'index']); // List audit logs with filtering
+        Route::get('admin/audit-logs/stats', [AdminAuditLogController::class, 'stats']); // Audit log statistics
+        Route::get('admin/audit-logs/{audit_log}', [AdminAuditLogController::class, 'show']); // View single audit log
         
         // =====================
         // PAGE CONTENT ROUTES (Admin)

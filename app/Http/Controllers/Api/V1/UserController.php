@@ -7,6 +7,7 @@ use App\Http\Requests\User\StoreUserRequest;
 use App\Http\Requests\User\UpdateUserRequest;
 use App\Http\Requests\UserVerificationRequest;
 use App\Http\Resources\UserResource;
+use App\Http\Traits\LogsAudit;
 use App\Models\User;
 use App\Models\SellerVerificationRequest;
 use Illuminate\Http\JsonResponse;
@@ -16,6 +17,7 @@ use Carbon\Carbon;
 
 class UserController extends BaseApiController
 {
+    use LogsAudit;
     /**
      * Store a newly created user in storage.
      *
@@ -36,6 +38,13 @@ class UserController extends BaseApiController
             'account_type' => $validated['account_type'] ?? 'individual',
             'password' => Hash::make($validated['password']),
             'is_verified' => false,
+        ]);
+
+        // AUDIT LOG: Record user creation
+        $this->auditLogUser('created', $user->id, [
+            'email' => $user->email,
+            'phone' => $user->phone,
+            'account_type' => $user->account_type,
         ]);
 
         return $this->success(
@@ -95,12 +104,31 @@ class UserController extends BaseApiController
     {
         $validated = $request->validated();
 
+        // Track what changed for audit log
+        $changes = [];
+        foreach ($validated as $key => $value) {
+            if ($key !== 'password' && $user->{$key} !== $value) {
+                $changes[$key] = [
+                    'old' => $user->{$key},
+                    'new' => $value,
+                ];
+            }
+        }
+
         // Hash password if provided
         if (isset($validated['password'])) {
             $validated['password'] = Hash::make($validated['password']);
+            $changes['password'] = 'updated'; // Don't log actual password
         }
 
         $user->update($validated);
+
+        // AUDIT LOG: Record user update
+        if (!empty($changes)) {
+            $this->auditLogUser('updated', $user->id, [
+                'changes' => $changes,
+            ]);
+        }
 
         return $this->success(
             new UserResource($user->fresh()),
@@ -166,6 +194,19 @@ class UserController extends BaseApiController
 
             DB::commit();
 
+            // AUDIT LOG: Record verification action (critical for compliance)
+            $this->auditLogUser(
+                'verification_' . $request->input('status'),
+                $user->id,
+                [
+                    'verification_id' => $verificationRequest->id,
+                    'status' => $verificationRequest->status,
+                    'admin_comments' => $verificationRequest->admin_comments,
+                    'verified_by' => $request->user()->id,
+                ],
+                $request->input('status') === 'approved' ? 'notice' : 'warning'
+            );
+
             // Ensure we have latest values
             $verificationRequest->refresh()->load('verifiedBy');
 
@@ -226,6 +267,19 @@ class UserController extends BaseApiController
 
         // Detach all roles before deletion to avoid foreign key constraints
         $user->roles()->detach();
+        
+        // AUDIT LOG: Record user deletion (destructive action - use warning severity)
+        $this->auditLogDestructive('user.deleted', 'User', $user->id, [
+            'deleted_user' => [
+                'email' => $user->email,
+                'name' => $user->name,
+                'roles' => $userRoles->toArray(),
+            ],
+            'deleted_by' => [
+                'id' => $currentUser->id,
+                'name' => $currentUser->name,
+            ],
+        ]);
         
         // Delete the user
         $user->delete();

@@ -37,6 +37,7 @@ Authorization: Bearer {your_token}
 24. [Caishha Settings](#24-caishha-settings)
 25. [Page Content Management](#25-page-content-management)
 26. [Company Settings](#26-company-settings)
+27. [Admin Audit Logs](#27-admin-audit-logs)
 
 ---
 
@@ -5195,6 +5196,245 @@ curl -X GET http://localhost:8000/api/v1/company-info \
   }
 }
 ```
+
+---
+
+## HTTP Status Codes
+
+| Code | Description |
+|------|-------------|
+| 200 | Success |
+| 201 | Created |
+| 204 | No Content |
+| 400 | Bad Request |
+| 401 | Unauthorized |
+| 403 | Forbidden |
+| 404 | Not Found |
+| 422 | Validation Error |
+| 429 | Too Many Requests |
+| 500 | Server Error |
+
+---
+
+## 27. Admin Audit Logs
+
+### 27.1 List Audit Logs
+**Description:** عرض سجلات التدقيق الإداري مع الفلترة والبحث  
+**Endpoint:** `GET /api/v1/admin/audit-logs`  
+**Auth Required:** Yes (Admin or Super Admin only)
+
+```bash
+curl -X GET "http://localhost:8000/api/v1/admin/audit-logs?start_date=2026-02-01&severity=warning&per_page=50" \
+  -H "Authorization: Bearer {token}" \
+  -H "Accept: application/json"
+```
+
+**Query Parameters (all optional):**
+- `start_date` - Filter from date (ISO 8601 format)
+- `end_date` - Filter until date (ISO 8601 format)
+- `actor_id` - Filter by user ID who performed the action
+- `actor_role` - Filter by role (admin, super_admin)
+- `action_type` - Filter by action (e.g., user.created, package.updated)
+- `resource_type` - Filter by resource type (User, Package, Ad)
+- `resource_id` - Filter by specific resource ID
+- `severity` - Minimum severity level (debug, info, notice, warning, error, critical, alert, emergency)
+- `correlation_id` - Filter by correlation ID (trace related events)
+- `page` - Page number (default: 1)
+- `per_page` - Results per page (default: 50, max: 500)
+- `sort` - Sort field (default: timestamp)
+- `sort_direction` - Sort order (asc/desc, default: desc)
+- `format` - Response format (json/csv, default: json)
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Audit logs retrieved successfully",
+  "data": [
+    {
+      "id": 1,
+      "timestamp": "2026-02-09T10:30:00Z",
+      "actor_id": 5,
+      "actor_name": "John Admin",
+      "actor_role": "admin",
+      "action_type": "user.deleted",
+      "resource_type": "User",
+      "resource_id": "123",
+      "ip_address": "192.168.1.10",
+      "user_agent": "Mozilla/5.0...",
+      "correlation_id": "550e8400-e29b-41d4-a716-446655440000",
+      "severity": "warning",
+      "details": {
+        "deleted_user": {
+          "email": "user@example.com",
+          "name": "John Doe"
+        }
+      },
+      "actor": {
+        "id": 5,
+        "name": "John Admin",
+        "email": "admin@example.com"
+      }
+    }
+  ],
+  "pagination": {
+    "current_page": 1,
+    "per_page": 50,
+    "total": 150,
+    "last_page": 3,
+    "from": 1,
+    "to": 50
+  }
+}
+```
+
+---
+
+### 27.2 Export Audit Logs as CSV
+**Description:** تصدير سجلات التدقيق كملف CSV  
+**Endpoint:** `GET /api/v1/admin/audit-logs?format=csv`  
+**Auth Required:** Yes (Admin or Super Admin only)
+
+```bash
+curl -X GET "http://localhost:8000/api/v1/admin/audit-logs?format=csv&start_date=2026-02-01&severity=warning" \
+  -H "Authorization: Bearer {token}" \
+  -o audit_logs.csv
+```
+
+**Note:** This endpoint streams a CSV file for download. Use the same query parameters as the list endpoint.
+
+---
+
+### 27.3 Get Audit Log Statistics
+**Description:** عرض إحصائيات سجلات التدقيق  
+**Endpoint:** `GET /api/v1/admin/audit-logs/stats`  
+**Auth Required:** Yes (Admin or Super Admin only)
+
+```bash
+curl -X GET http://localhost:8000/api/v1/admin/audit-logs/stats \
+  -H "Authorization: Bearer {token}" \
+  -H "Accept: application/json"
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Audit statistics retrieved successfully",
+  "data": {
+    "total_logs": 1523,
+    "logs_today": 45,
+    "logs_this_week": 312,
+    "logs_this_month": 1200,
+    "critical_logs": 15,
+    "by_action_type": {
+      "user.updated": 450,
+      "package.assigned": 320,
+      "user.created": 280
+    },
+    "by_severity": {
+      "info": 1200,
+      "notice": 150,
+      "warning": 200,
+      "error": 100,
+      "critical": 15
+    },
+    "top_actors": [
+      {
+        "actor_id": 5,
+        "actor_name": "John Admin",
+        "count": 523
+      }
+    ]
+  }
+}
+```
+
+---
+
+### 27.4 Get Single Audit Log Entry
+**Description:** عرض تفاصيل سجل تدقيق محدد  
+**Endpoint:** `GET /api/v1/admin/audit-logs/{id}`  
+**Auth Required:** Yes (Admin or Super Admin only)
+
+```bash
+curl -X GET http://localhost:8000/api/v1/admin/audit-logs/1 \
+  -H "Authorization: Bearer {token}" \
+  -H "Accept: application/json"
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Audit log retrieved successfully",
+  "data": {
+    "id": 1,
+    "timestamp": "2026-02-09T10:30:00Z",
+    "actor_id": 5,
+    "actor_name": "John Admin",
+    "actor_role": "admin",
+    "action_type": "user.deleted",
+    "resource_type": "User",
+    "resource_id": "123",
+    "ip_address": "192.168.1.10",
+    "user_agent": "Mozilla/5.0...",
+    "correlation_id": "550e8400-e29b-41d4-a716-446655440000",
+    "severity": "warning",
+    "details": {
+      "deleted_user": {
+        "email": "user@example.com",
+        "name": "John Doe",
+        "roles": ["user"]
+      },
+      "deleted_by": {
+        "id": 5,
+        "name": "John Admin"
+      }
+    },
+    "actor": {
+      "id": 5,
+      "name": "John Admin",
+      "email": "admin@example.com"
+    }
+  }
+}
+```
+
+---
+
+### Common Action Types
+
+| Action Type | Description |
+|-------------|-------------|
+| `user.created` | User account created |
+| `user.updated` | User account updated |
+| `user.deleted` | User account deleted |
+| `user.verification_approved` | User verification approved |
+| `user.verification_rejected` | User verification rejected |
+| `package.created` | Package created |
+| `package.updated` | Package updated |
+| `package.deleted` | Package deleted |
+| `package.assigned` | Package assigned to user |
+| `package.revoked` | Package revoked from user |
+| `ad.published` | Ad published |
+| `ad.unpublished` | Ad unpublished |
+| `ad.deleted` | Ad deleted |
+| `system.config_changed` | System configuration changed |
+| `system.error.*` | System errors |
+
+### Severity Levels
+
+| Level | Description | Use Case |
+|-------|-------------|----------|
+| `debug` | Diagnostic information | Detailed debugging |
+| `info` | Normal operations | Standard actions |
+| `notice` | Important events | Package assignments, verifications |
+| `warning` | Destructive actions | Deletions, status changes |
+| `error` | Errors | Non-critical failures |
+| `critical` | Critical errors | Requires investigation |
+| `alert` | Security events | Immediate attention needed |
+| `emergency` | System failures | System-wide issues |
 
 ---
 
