@@ -469,6 +469,13 @@ Auth notes (admin):
 - ✅ Frontend admin apps should call API endpoints with `axios` (or fetch) using `withCredentials: true` so the browser sends the cookie automatically.
 - ✅ The API also supports Bearer token in the `Authorization` header; the backend will accept tokens passed either via header or via the `admin_token` cookie.
 - ⚠️ Do not store admin tokens in `localStorage`. Use the cookie flow or `sessionStorage` only if necessary.
+ - ✅ Frontend admin apps should call API endpoints with `axios` (or fetch) using `withCredentials: true` so the browser sends the cookie automatically.
+ - ✅ The API also supports Bearer token in the `Authorization` header; the backend will accept tokens passed either via header or via the `admin_token` cookie.
+ - ⚠️ Do not store admin tokens in `localStorage`. Use the cookie flow or `sessionStorage` only if necessary.
+
+CORS notes:
+- Production: backend will respond with `Access-Control-Allow-Origin: <ADMIN_ORIGIN>` and `Access-Control-Allow-Credentials: true`. Set `ADMIN_ORIGIN=https://admin.example.com` in production.
+- Local dev: backend allows `http://localhost:5173` by default. We recommend using the frontend dev proxy to avoid CORS complexity during development.
 
 Admin checks implemented in:
 - All AdminSettingsController methods

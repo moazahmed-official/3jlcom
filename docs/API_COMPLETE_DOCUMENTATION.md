@@ -99,6 +99,10 @@ All responses follow consistent JSON envelopes:
 
 Frontend admin apps should call the API with credentials enabled (`axios` `withCredentials: true`) so the browser sends the admin cookie automatically. Do NOT store admin tokens in `localStorage`.
 
+CORS notes:
+- In production the API will return the exact admin origin (not `*`) and `Access-Control-Allow-Credentials: true` so cookies can be sent. Configure `ADMIN_ORIGIN` in production to the admin frontend origin (e.g., `https://admin.example.com`).
+- In local development the API allows `http://localhost:5173` by default for the admin frontend. We recommend using a frontend proxy for local dev to simplify CORS.
+
 | Method | Endpoint | Description | Auth | Admin |
 |--------|----------|-------------|------|-------|
 | POST | `/auth/login` | Authenticate user and receive token or cookie | No | No |
