@@ -13,6 +13,8 @@ use App\Notifications\SendOtpNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cookie;
+use Laravel\Sanctum\PersonalAccessToken;
 use Carbon\Carbon;
 
 class AuthController extends BaseApiController
@@ -39,7 +41,7 @@ class AuthController extends BaseApiController
 
         $expiresIn = config('sanctum.expiration') ? config('sanctum.expiration') * 60 : null;
 
-        return $this->success(
+        $response = $this->success(
             new AuthResource([
                 'token' => $plainTextToken,
                 'token_type' => 'Bearer',
@@ -48,20 +50,70 @@ class AuthController extends BaseApiController
             ]),
             'Authenticated'
         );
+
+        // If this login originates from the admin frontend (admin subdomain),
+        // issue an HttpOnly secure cookie scoped for admin usage so the React
+        // admin app can use cookie-based auth without storing token in JS.
+        $isAdminContext = false;
+        if ($request->boolean('admin') || $request->header('X-Admin') === '1') {
+            $isAdminContext = true;
+        }
+        // Also allow host-based detection (e.g., admin.example.com or localhost:5173)
+        $host = $request->getHost();
+        if (str_contains($host, 'admin.') || str_contains($host, 'localhost')) {
+            $isAdminContext = true;
+        }
+
+        if ($isAdminContext) {
+            // Environment-based cookie configuration
+            $isProduction = config('app.env') === 'production';
+            $secure = $isProduction; // Secure=true in production, false in local dev
+            
+            // Domain: null for localhost (no domain restriction), parent domain for production
+            $domain = null;
+            if ($isProduction) {
+                $domain = config('session.domain') ?: '.example.com';
+            }
+            
+            $cookieMinutes = config('sanctum.expiration') ? config('sanctum.expiration') : 60 * 24 * 7;
+            $cookie = Cookie::make('admin_token', $plainTextToken, $cookieMinutes, '/', $domain, $secure, true, false, 'Lax');
+            $response->withCookie($cookie);
+        }
+
+        return $response;
     }
 
     public function logout(Request $request)
     {
         $user = $request->user();
 
+        // Delete current token if available via usual bearer token
         if ($user && $user->currentAccessToken()) {
             $user->currentAccessToken()->delete();
         }
 
-        return $this->success(
-            null,
-            'Logged out'
-        );
+        // Also handle cookie-based admin token revocation
+        $adminToken = $request->cookie('admin_token');
+        if ($adminToken) {
+            $pat = PersonalAccessToken::findToken($adminToken);
+            if ($pat) {
+                $pat->delete();
+            }
+        }
+
+        // Clear admin cookie in response
+        $response = $this->success(null, 'Logged out');
+        
+        // Environment-based domain (null for localhost, parent domain for production)
+        $domain = null;
+        if (config('app.env') === 'production') {
+            $domain = config('session.domain') ?: '.example.com';
+        }
+        
+        $expired = Cookie::forget('admin_token', '/', $domain);
+        $response->withCookie($expired);
+
+        return $response;
     }
 
     public function register(RegisterRequest $request)

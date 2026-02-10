@@ -462,6 +462,14 @@ All endpoints require:
 - ✅ Audit logging for all critical actions
 - ✅ Input validation
 
+Auth notes (admin):
+- ✅ Admin sessions use an HttpOnly cookie named `admin_token`. The backend issues this cookie when the login request is performed from the admin frontend.
+- ✅ **Local development:** Cookie uses `Secure=false` and works with `http://localhost:5173`. No domain restriction.
+- ✅ **Production:** Cookie uses `Secure=true`, scoped to parent domain (`.example.com`) for `admin.example.com`.
+- ✅ Frontend admin apps should call API endpoints with `axios` (or fetch) using `withCredentials: true` so the browser sends the cookie automatically.
+- ✅ The API also supports Bearer token in the `Authorization` header; the backend will accept tokens passed either via header or via the `admin_token` cookie.
+- ⚠️ Do not store admin tokens in `localStorage`. Use the cookie flow or `sessionStorage` only if necessary.
+
 Admin checks implemented in:
 - All AdminSettingsController methods
 - All AdminProfileController methods

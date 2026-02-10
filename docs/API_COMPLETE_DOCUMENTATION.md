@@ -89,14 +89,24 @@ All responses follow consistent JSON envelopes:
 
 ## Authentication
 
+### Auth methods
+
+- Primary: API token (Sanctum personal access tokens) via `Authorization: Bearer <token>` header.
+- Admin SPA: backend issues an HttpOnly cookie named `admin_token` when login requests originate from the admin frontend.
+  - **Local dev:** Cookie uses `Secure=false` to work with `http://localhost:5173`. No domain restriction.
+  - **Production:** Cookie uses `Secure=true`, scoped to parent domain for `admin.example.com`.
+- The API accepts authentication via either the `Authorization` header or the `admin_token` cookie.
+
+Frontend admin apps should call the API with credentials enabled (`axios` `withCredentials: true`) so the browser sends the admin cookie automatically. Do NOT store admin tokens in `localStorage`.
+
 | Method | Endpoint | Description | Auth | Admin |
 |--------|----------|-------------|------|-------|
-| POST | `/auth/login` | Authenticate user and receive token | No | No |
+| POST | `/auth/login` | Authenticate user and receive token or cookie | No | No |
 | POST | `/auth/register` | Register new user | No | No |
 | PUT | `/auth/verify` | Verify OTP and complete registration | No | No |
 | POST | `/auth/password/reset-request` | Request password reset OTP | No | No |
 | PUT | `/auth/password/reset` | Reset password with OTP | No | No |
-| POST | `/auth/logout` | Logout and invalidate token | Yes | No |
+| POST | `/auth/logout` | Logout and invalidate token (supports cookie or header) | Yes | Yes |
 
 ---
 

@@ -40,11 +40,11 @@ Route::prefix('v1')->group(function () {
     Route::post('auth/password/reset-request', [AuthController::class, 'passwordResetRequest']);
     Route::put('auth/password/reset', [AuthController::class, 'passwordResetConfirm']);
     
-    // Protected authentication routes
-    Route::post('auth/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
+    // Protected authentication routes (inject admin cookie if present)
+    Route::post('auth/logout', [AuthController::class, 'logout'])->middleware([\App\Http\Middleware\InjectAuthFromCookie::class, 'auth:sanctum']);
 
-    // Protected routes requiring authentication
-    Route::middleware('auth:sanctum')->group(function () {
+    // Protected routes requiring authentication (inject admin cookie if present)
+    Route::middleware([\App\Http\Middleware\InjectAuthFromCookie::class, 'auth:sanctum'])->group(function () {
         // User management routes
         Route::post('/users', [UserController::class, 'store']);
         Route::get('/users', [UserController::class, 'index']);
