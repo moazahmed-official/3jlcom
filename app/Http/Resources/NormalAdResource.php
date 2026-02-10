@@ -92,6 +92,13 @@ class NormalAdResource extends JsonResource
                     'apr' => $this->normalAd->installment->apr,
                 ];
             }),
+            'capabilities' => [
+                'can_publish' => true,
+                'can_unpublish' => true,
+                'can_archive' => true,
+                // Normal ads do not support unique 'feature' flag
+                'can_feature' => false,
+            ],
         ];
     }
 }

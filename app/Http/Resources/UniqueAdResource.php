@@ -80,6 +80,13 @@ class UniqueAdResource extends JsonResource
             
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),
+            'capabilities' => [
+                'can_publish' => true,
+                'can_unpublish' => true,
+                'can_archive' => true,
+                // Unique ads support feature/unfeature
+                'can_feature' => true,
+            ],
         ];
     }
 }

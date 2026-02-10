@@ -6,6 +6,8 @@ use App\Http\Controllers\Api\BaseApiController;
 use App\Models\Ad;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class AdminStatsController extends BaseApiController
 {
@@ -177,6 +179,64 @@ class AdminStatsController extends BaseApiController
             ->groupBy('type')
             ->get()
             ->pluck('count', 'type');
+
+        // If caller requested time-series / chart-ready data, provide series
+        if ($request->boolean('time_series') || $request->filled('start') || $request->filled('end')) {
+            $end = $request->filled('end') ? Carbon::parse($request->get('end'))->endOfDay() : Carbon::now();
+            $start = $request->filled('start') ? Carbon::parse($request->get('start'))->startOfDay() : $end->copy()->subDays(30);
+            $interval = $request->get('interval', 'day'); // day|week
+
+            // Build date buckets
+            $period = new \DatePeriod(
+                $start->toDateTimeImmutable(),
+                new \DateInterval($interval === 'week' ? 'P7D' : 'P1D'),
+                $end->toDateTimeImmutable()->modify('+1 day')
+            );
+
+            $userGrowth = [];
+            $adsPublished = [];
+
+            // Query aggregated counts grouped by date for users and ads
+            $usersByDate = DB::table('users')
+                ->select(DB::raw("DATE(created_at) as day"), DB::raw('COUNT(*) as count'))
+                ->whereBetween('created_at', [$start->toDateTimeString(), $end->toDateTimeString()])
+                ->groupBy('day')
+                ->pluck('count', 'day')
+                ->toArray();
+
+            $adsByDate = DB::table('ads')
+                ->select(DB::raw("DATE(published_at) as day"), DB::raw('COUNT(*) as count'))
+                ->whereNotNull('published_at')
+                ->whereBetween('published_at', [$start->toDateTimeString(), $end->toDateTimeString()])
+                ->groupBy('day')
+                ->pluck('count', 'day')
+                ->toArray();
+
+            foreach ($period as $dt) {
+                $day = Carbon::instance($dt)->toDateString();
+                $userGrowth[] = [
+                    'timestamp' => $day,
+                    'value' => (int) ($usersByDate[$day] ?? 0),
+                ];
+                $adsPublished[] = [
+                    'timestamp' => $day,
+                    'value' => (int) ($adsByDate[$day] ?? 0),
+                ];
+            }
+
+            return $this->success([
+                'total_users' => $totalUsers,
+                'total_ads' => $totalAds,
+                'active_ads' => $activeAds,
+                'total_views' => $totalViews ?? 0,
+                'total_contacts' => $totalContacts ?? 0,
+                'ads_by_type' => $adsByType,
+                'time_series' => [
+                    'userGrowth' => $userGrowth,
+                    'adsPublished' => $adsPublished,
+                ],
+            ], 'Admin dashboard stats retrieved successfully (with time-series)');
+        }
 
         return $this->success([
             'total_users' => $totalUsers,
