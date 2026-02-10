@@ -289,4 +289,91 @@ class UserController extends BaseApiController
             'User deleted successfully'
         );
     }
+
+    /**
+     * Toggle user status (ban/suspend/activate)
+     * PUT /api/v1/users/{user}/toggle-status
+     */
+    public function toggleStatus(Request $request, User $user): JsonResponse
+    {
+        $currentUser = $request->user();
+
+        // Only admin/super_admin can toggle status
+        if (!$currentUser->roles()->whereIn('name', ['admin', 'super_admin'])->exists()) {
+            return $this->error(
+                403,
+                'You do not have permission to manage user status',
+                ['user' => ['Insufficient permissions']]
+            );
+        }
+
+        // Prevent self-status toggle
+        if ($currentUser->id === $user->id) {
+            return $this->error(
+                403,
+                'You cannot change your own status',
+                ['user' => ['Self-status change is not allowed']]
+            );
+        }
+
+        $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
+            'status' => 'required|in:active,banned,suspended',
+            'reason' => 'nullable|string|max:500',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->error(422, 'Validation failed', $validator->errors()->toArray());
+        }
+
+        $newStatus = $request->input('status');
+        $reason = $request->input('reason');
+        $oldStatus = $user->status ?? 'active';
+
+        // Update user status
+        $user->status = $newStatus;
+        
+        // Set timestamps for banned/suspended
+        if ($newStatus === 'banned') {
+            $user->banned_at = now();
+            $user->banned_reason = $reason;
+        } elseif ($newStatus === 'suspended') {
+            $user->suspended_at = now();
+            $user->suspended_reason = $reason;
+        } else {
+            $user->banned_at = null;
+            $user->banned_reason = null;
+            $user->suspended_at = null;
+            $user->suspended_reason = null;
+        }
+
+        $user->save();
+
+        // AUDIT LOG: Record status change (critical action)
+        $this->auditLog(
+            actionType: 'user.status_changed',
+            resourceType: 'User',
+            resourceId: $user->id,
+            details: [
+                'user_email' => $user->email,
+                'old_status' => $oldStatus,
+                'new_status' => $newStatus,
+                'reason' => $reason,
+                'changed_by' => [
+                    'id' => $currentUser->id,
+                    'name' => $currentUser->name,
+                ],
+            ],
+            severity: 'critical'
+        );
+
+        return $this->success(
+            [
+                'user_id' => $user->id,
+                'status' => $user->status,
+                'reason' => $reason,
+                'updated_at' => $user->updated_at->toIso8601String(),
+            ],
+            "User status updated to {$newStatus} successfully"
+        );
+    }
 }

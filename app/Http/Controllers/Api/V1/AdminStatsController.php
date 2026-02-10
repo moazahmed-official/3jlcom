@@ -187,4 +187,56 @@ class AdminStatsController extends BaseApiController
             'ads_by_type' => $adsByType,
         ], 'Admin dashboard stats retrieved successfully');
     }
+
+    /**
+     * Get recent activity feed for dashboard
+     * GET /api/admin/dashboard/activity
+     */
+    public function activity(Request $request)
+    {
+        if (!$request->user()->isAdmin()) {
+            return $this->error(403, 'Unauthorized');
+        }
+
+        $limit = $request->get('limit', 50);
+
+        // Get recent audit logs for activity feed
+        $activities = \App\Models\AuditLog::with('user')
+            ->orderBy('created_at', 'desc')
+            ->limit($limit)
+            ->get()
+            ->map(function ($log) {
+                return [
+                    'id' => $log->id,
+                    'user' => [
+                        'id' => $log->user_id,
+                        'name' => $log->user->name ?? 'System',
+                        'email' => $log->user->email ?? null,
+                    ],
+                    'action' => $log->action_type,
+                    'resource_type' => $log->resource_type,
+                    'resource_id' => $log->resource_id,
+                    'description' => $this->formatActivityDescription($log),
+                    'severity' => $log->severity,
+                    'timestamp' => $log->created_at->toIso8601String(),
+                    'ip_address' => $log->ip_address,
+                ];
+            });
+
+        return $this->success([
+            'activities' => $activities,
+            'total' => $activities->count(),
+        ], 'Activity feed retrieved successfully');
+    }
+
+    /**
+     * Format activity description
+     */
+    private function formatActivityDescription($log): string
+    {
+        $action = str_replace('.', ' ', $log->action_type);
+        $resource = $log->resource_type ?? 'resource';
+        
+        return ucfirst($action) . " {$resource}" . ($log->resource_id ? " #{$log->resource_id}" : "");
+    }
 }

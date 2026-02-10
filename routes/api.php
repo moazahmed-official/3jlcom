@@ -29,6 +29,8 @@ use App\Http\Controllers\Api\V1\AdminStatsController;
 use App\Http\Controllers\Api\V1\PageContentController;
 use App\Http\Controllers\Api\V1\CompanySettingController;
 use App\Http\Controllers\Api\V1\AdminAuditLogController;
+use App\Http\Controllers\Api\V1\AdminSettingsController;
+use App\Http\Controllers\Api\V1\AdminProfileController;
 
 Route::prefix('v1')->group(function () {
     // Public authentication routes
@@ -52,6 +54,9 @@ Route::prefix('v1')->group(function () {
         
         // User verification route (admin only)
         Route::post('/users/{user}/verify', [UserController::class, 'verify']);
+        
+        // User status management (admin only)
+        Route::put('/users/{user}/toggle-status', [UserController::class, 'toggleStatus']);
         
         // Role management routes
         Route::apiResource('roles', RoleController::class);
@@ -396,11 +401,35 @@ Route::prefix('v1')->group(function () {
         
         // Admin analytics and statistics (admin only)
         Route::get('admin/stats/dashboard', [AdminStatsController::class, 'dashboard']); // Overall platform stats
+        Route::get('admin/dashboard/stats', [AdminStatsController::class, 'dashboard']); // Alias for frontend compatibility
+        Route::get('admin/dashboard/activity', [AdminStatsController::class, 'activity']); // Dashboard activity feed
         Route::get('admin/stats/ads/{ad}/views', [AdminStatsController::class, 'adViews']); // Ad views count
         Route::get('admin/stats/ads/{ad}/clicks', [AdminStatsController::class, 'adClicks']); // Ad clicks count
         Route::get('admin/stats/dealer/{user}', [AdminStatsController::class, 'dealerStats']); // Dealer statistics
         Route::get('admin/stats/user/{user}', [AdminStatsController::class, 'userStats']); // User statistics
         Route::get('admin/stats/ads/{type}', [AdminStatsController::class, 'adsByType']); // Count ads by type
+        
+        // =====================
+        // ADMIN SETTINGS ROUTES (Admin Only)
+        // =====================
+        
+        // General application settings management
+        Route::get('admin/settings', [AdminSettingsController::class, 'index']); // List all settings
+        Route::put('admin/settings', [AdminSettingsController::class, 'update']); // Update settings
+        Route::get('admin/settings/features', [AdminSettingsController::class, 'getFeatures']); // Get feature flags
+        Route::put('admin/settings/features/{key}', [AdminSettingsController::class, 'updateFeature']); // Toggle feature
+        Route::post('admin/settings/clear-cache', [AdminSettingsController::class, 'clearCache']); // Clear cache
+        
+        // =====================
+        // ADMIN PROFILE ROUTES
+        // =====================
+        
+        // Admin profile management
+        Route::get('admin/profile', [AdminProfileController::class, 'show']); // Get profile
+        Route::put('admin/profile', [AdminProfileController::class, 'update']); // Update profile
+        Route::post('admin/profile/image', [AdminProfileController::class, 'updateImage']); // Upload profile image
+        Route::put('admin/profile/change-password', [AdminProfileController::class, 'changePassword']); // Change password
+        Route::get('admin/profile/activity', [AdminProfileController::class, 'activity']); // Profile activity
         
         // =====================
         // AUDIT LOGS ROUTES (Admin Only)
