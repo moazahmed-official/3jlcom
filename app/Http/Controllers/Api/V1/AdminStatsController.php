@@ -201,24 +201,24 @@ class AdminStatsController extends BaseApiController
         $limit = $request->get('limit', 50);
 
         // Get recent audit logs for activity feed
-        $activities = \App\Models\AuditLog::with('user')
-            ->orderBy('created_at', 'desc')
+        $activities = \App\Models\AuditLog::with('actor')
+            ->orderBy('timestamp', 'desc')
             ->limit($limit)
             ->get()
             ->map(function ($log) {
                 return [
                     'id' => $log->id,
                     'user' => [
-                        'id' => $log->user_id,
-                        'name' => $log->user->name ?? 'System',
-                        'email' => $log->user->email ?? null,
+                        'id' => $log->actor_id,
+                        'name' => $log->actor_name ?? $log->actor->name ?? 'System',
+                        'email' => $log->actor->email ?? null,
                     ],
                     'action' => $log->action_type,
                     'resource_type' => $log->resource_type,
                     'resource_id' => $log->resource_id,
                     'description' => $this->formatActivityDescription($log),
                     'severity' => $log->severity,
-                    'timestamp' => $log->created_at->toIso8601String(),
+                    'timestamp' => $log->timestamp->toIso8601String(),
                     'ip_address' => $log->ip_address,
                 ];
             });

@@ -174,8 +174,8 @@ class AdminProfileController extends BaseApiController
         $user = $request->user();
         $limit = $request->get('limit', 20);
 
-        $activities = AuditLog::where('user_id', $user->id)
-            ->orderBy('created_at', 'desc')
+        $activities = AuditLog::where('actor_id', $user->id)
+            ->orderBy('timestamp', 'desc')
             ->limit($limit)
             ->get()
             ->map(function ($log) {
@@ -185,7 +185,7 @@ class AdminProfileController extends BaseApiController
                     'resource_type' => $log->resource_type,
                     'resource_id' => $log->resource_id,
                     'description' => $this->formatActivityDescription($log),
-                    'timestamp' => $log->created_at->toIso8601String(),
+                    'timestamp' => $log->timestamp->toIso8601String(),
                     'ip_address' => $log->ip_address,
                 ];
             });

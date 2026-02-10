@@ -532,6 +532,35 @@ The frontend can now integrate all dashboard, settings, profile, and user manage
 
 ---
 
+## ⚠️ Bug Fix - February 10, 2026
+
+**Issue:** HTTP 500 error on `GET /admin/dashboard/activity` endpoint  
+**Root Cause:** Query was using `created_at` column which doesn't exist in `audit_logs` table  
+**Solution:** Fixed both controllers to use correct column names from audit_logs schema
+
+### Fixed Files:
+1. ✅ [app/Http/Controllers/Api/V1/AdminStatsController.php](../app/Http/Controllers/Api/V1/AdminStatsController.php)
+   - Changed `orderBy('created_at')` → `orderBy('timestamp')`
+   - Changed `with('user')` → `with('actor')`
+   - Changed `$log->user_id` → `$log->actor_id`
+   - Changed `$log->created_at` → `$log->timestamp`
+
+2. ✅ [app/Http/Controllers/Api/V1/AdminProfileController.php](../app/Http/Controllers/Api/V1/AdminProfileController.php)
+   - Changed `where('user_id')` → `where('actor_id')`
+   - Changed `orderBy('created_at')` → `orderBy('timestamp')`
+   - Changed `$log->created_at` → `$log->timestamp`
+
+### Audit Logs Schema Reference:
+The `audit_logs` table uses:
+- ✅ `timestamp` - When the action occurred (not `created_at`)
+- ✅ `actor_id` - User who performed the action (not `user_id`)
+- ✅ `actor()` - Relationship to User model (not `user()`)
+- ⚠️ **No** `updated_at` column (immutable logs)
+
+**Status:** Fixed and ready for testing. Frontend can now poll the activity endpoint without errors.
+
+---
+
 **Need Help?** Check the detailed API documentation in:
 - `docs/API_COMPLETE_DOCUMENTATION.md` - Complete endpoint reference
 - `docs/API_STANDARDIZED_CONTRACT.md` - Detailed schemas
