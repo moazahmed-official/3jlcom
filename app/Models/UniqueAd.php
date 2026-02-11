@@ -14,9 +14,11 @@ class UniqueAd extends Model
 
     protected $fillable = [
         'ad_id',
+        'unique_ad_type_id',
         'banner_image_id',
         'banner_color',
         'is_auto_republished',
+        'applies_caishha_feature',
         'is_verified_ad',
         'is_featured',
         'featured_at',
@@ -29,6 +31,7 @@ class UniqueAd extends Model
 
     protected $casts = [
         'is_auto_republished' => 'boolean',
+        'applies_caishha_feature' => 'boolean',
         'is_verified_ad' => 'boolean',
         'is_featured' => 'boolean',
         'featured_at' => 'datetime',
@@ -52,5 +55,21 @@ class UniqueAd extends Model
     public function bannerImage(): BelongsTo
     {
         return $this->belongsTo(Media::class, 'banner_image_id');
+    }
+
+    /**
+     * Get the unique ad type definition for this ad.
+     */
+    public function typeDefinition(): BelongsTo
+    {
+        return $this->belongsTo(UniqueAdTypeDefinition::class, 'unique_ad_type_id');
+    }
+
+    /**
+     * Get the caishha ad data if this unique ad uses caishha feature.
+     */
+    public function caishhaAd(): BelongsTo
+    {
+        return $this->belongsTo(CaishhaAd::class, 'ad_id', 'ad_id');
     }
 }

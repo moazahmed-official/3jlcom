@@ -80,6 +80,18 @@ class PackageFeatureResource extends JsonResource
                 'bulk_upload_limit' => $this->bulk_upload_limit,
             ],
             
+            // Actionable Feature Credits
+            'actionable_features' => [
+                'allows_image_frame' => $this->allows_image_frame,
+                'caishha_feature_enabled' => $this->caishha_feature_enabled,
+                'facebook_push_limit' => $this->facebook_push_limit,
+                'carseer_api_credits' => $this->carseer_api_credits,
+                'auto_bg_credits' => $this->auto_bg_credits,
+                'pixblin_credits' => $this->pixblin_credits,
+                'ai_video_credits' => $this->ai_video_credits,
+                'custom_features_text' => $this->custom_features_text ?? [],
+            ],
+            
             // Summary counts for UI display
             'summary' => [
                 'allowed_ad_types_count' => $this->countAllowedAdTypes(),
@@ -143,6 +155,13 @@ class PackageFeatureResource extends JsonResource
             $this->grants_seller_status,
             $this->grants_marketer_status,
             $this->grants_verified_badge,
+            $this->allows_image_frame,
+            $this->caishha_feature_enabled,
+            $this->facebook_push_limit > 0,
+            $this->ai_video_credits > 0,
+            $this->auto_bg_credits > 0,
+            $this->pixblin_credits > 0,
+            $this->carseer_api_credits > 0,
         ];
         
         return count(array_filter($features));

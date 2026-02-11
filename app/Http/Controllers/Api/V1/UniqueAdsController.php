@@ -10,7 +10,9 @@ use App\Http\Traits\LogsAudit;
 use App\Models\Ad;
 use App\Models\UniqueAd;
 use App\Models\Media;
+use App\Models\UniqueAdTypeDefinition;
 use App\Services\PackageFeatureService;
+use App\Services\UniqueAdTypeService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -217,8 +219,14 @@ class UniqueAdsController extends Controller
 
     /**
      * Store a new unique ad
+     *
+     * Business logic:
+     * - PAID plan users: Can directly create unique ads with a type (features come from package).
+     * - FREE plan users: Cannot directly create unique ads with types.
+     *   They must create a normal ad first, then use the upgrade request system.
+     *   Admins may still create unique ads for free-plan users.
      */
-    public function store(StoreUniqueAdRequest $request, PackageFeatureService $packageService): JsonResponse
+    public function store(StoreUniqueAdRequest $request, PackageFeatureService $packageService, UniqueAdTypeService $typeService): JsonResponse
     {
         // Determine user_id - admin can create for other users, regular user only for themselves
         $userId = $request->user_id ?? auth()->id();
@@ -234,20 +242,86 @@ class UniqueAdsController extends Controller
             ], 403);
         }
 
-        // Validate ad creation limit
-        $adValidation = $packageService->validateAdCreation($user, 'unique');
-        if (!$adValidation['allowed']) {
+        // Determine plan type
+        $activePackage = $user->activePackage;
+        $isFreeUser = !$activePackage || $activePackage->isFree();
+        $isAdmin = auth()->user()->isAdmin();
+
+        // FREE plan users cannot directly create unique ads (unless admin is creating for them)
+        if ($isFreeUser && !$isAdmin) {
             return response()->json([
                 'status' => 'error',
                 'code' => 403,
-                'message' => $adValidation['reason'],
-                'errors' => ['package' => [$adValidation['reason']]],
-                'remaining' => $adValidation['remaining']
+                'message' => 'Free plan users cannot directly create unique ads. Create a normal ad first, then request an upgrade via the upgrade request system.',
+                'errors' => ['plan' => ['Unique ad creation requires a paid plan. Use POST /api/v1/ads/{ad}/upgrade-request to request an upgrade for an existing normal ad.']]
             ], 403);
         }
 
+        // Get unique ad type if specified
+        $uniqueAdType = null;
+        if ($request->filled('unique_ad_type_id')) {
+            $uniqueAdType = UniqueAdTypeDefinition::find($request->unique_ad_type_id);
+            
+            if (!$uniqueAdType) {
+                return response()->json([
+                    'status' => 'error',
+                    'code' => 404,
+                    'message' => 'Unique ad type not found',
+                    'errors' => ['unique_ad_type_id' => ['The selected unique ad type does not exist']]
+                ], 404);
+            }
+
+            // Validate user can create this type (paid plan + package check)
+            try {
+                $typeService->validateUserCanCreateType($user, $uniqueAdType);
+            } catch (\Exception $e) {
+                return response()->json([
+                    'status' => 'error',
+                    'code' => 403,
+                    'message' => $e->getMessage(),
+                    'errors' => ['unique_ad_type_id' => [$e->getMessage()]]
+                ], 403);
+            }
+
+            // Validate requested features against type definition
+            $featureErrors = $typeService->validateRequestedFeatures($request->validated(), $uniqueAdType);
+            if (!empty($featureErrors)) {
+                return response()->json([
+                    'status' => 'error',
+                    'code' => 422,
+                    'message' => 'Feature validation failed',
+                    'errors' => $featureErrors
+                ], 422);
+            }
+
+            // Validate media counts
+            if ($request->has('media_ids') && !empty($request->media_ids)) {
+                $mediaErrors = $typeService->validateMediaCounts($request->media_ids, $uniqueAdType);
+                if (!empty($mediaErrors)) {
+                    return response()->json([
+                        'status' => 'error',
+                        'code' => 422,
+                        'message' => 'Media validation failed',
+                        'errors' => $mediaErrors
+                    ], 422);
+                }
+            }
+        } else {
+            // Fallback to generic package validation for backward compatibility
+            $adValidation = $packageService->validateAdCreation($user, 'unique');
+            if (!$adValidation['allowed']) {
+                return response()->json([
+                    'status' => 'error',
+                    'code' => 403,
+                    'message' => $adValidation['reason'],
+                    'errors' => ['package' => [$adValidation['reason']]],
+                    'remaining' => $adValidation['remaining']
+                ], 403);
+            }
+        }
+
         // Validate media limits
-        if ($request->has('media_ids') && !empty($request->media_ids)) {
+        if ($request->has('media_ids') && !empty($request->media_ids) && !$uniqueAdType) {
             $imageCount = Media::whereIn('id', $request->media_ids)->where('type', 'image')->count();
             $videoCount = Media::whereIn('id', $request->media_ids)->where('type', 'video')->count();
             
@@ -263,7 +337,7 @@ class UniqueAdsController extends Controller
         }
 
         try {
-            $ad = DB::transaction(function () use ($request, $userId) {
+            $ad = DB::transaction(function () use ($request, $userId, $uniqueAdType, $typeService) {
                 // Create the main ad record
                 $ad = Ad::create([
                     'user_id' => $userId,
@@ -283,13 +357,24 @@ class UniqueAdsController extends Controller
                 ]);
 
                 // Create the unique ad specific record
-                UniqueAd::create([
+                $uniqueAd = UniqueAd::create([
                     'ad_id' => $ad->id,
+                    'unique_ad_type_id' => $uniqueAdType?->id,
                     'banner_image_id' => $request->banner_image_id,
                     'banner_color' => $request->banner_color,
                     'is_auto_republished' => $request->boolean('is_auto_republished', false),
                     'is_verified_ad' => auth()->user()->isAdmin() ? $request->boolean('is_verified_ad', false) : false,
                 ]);
+
+                // Apply type features if type is specified
+                if ($uniqueAdType) {
+                    $typeService->applyTypeFeatures($uniqueAd, $uniqueAdType);
+                }
+
+                // Enable Caishha feature if requested and allowed
+                if ($request->boolean('enable_caishha_feature') && $uniqueAdType && $uniqueAdType->caishha_feature_enabled) {
+                    $typeService->enableCaishhaFeature($ad, $uniqueAd);
+                }
 
                 // Attach media if provided
                 if ($request->has('media_ids') && !empty($request->media_ids)) {
@@ -306,12 +391,13 @@ class UniqueAdsController extends Controller
             });
 
             // Load relationships for response
-            $ad->load(['uniqueAd', 'uniqueAd.bannerImage', 'user', 'brand', 'model', 'city', 'country', 'category', 'media']);
+            $ad->load(['uniqueAd', 'uniqueAd.bannerImage', 'uniqueAd.typeDefinition', 'user', 'brand', 'model', 'city', 'country', 'category', 'media']);
 
             Log::info('Unique ad created successfully', [
                 'ad_id' => $ad->id,
                 'user_id' => auth()->id(),
-                'title' => $ad->title
+                'title' => $ad->title,
+                'unique_ad_type_id' => $uniqueAdType?->id
             ]);
 
             return response()->json([

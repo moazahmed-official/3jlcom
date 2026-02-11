@@ -49,6 +49,16 @@ class PackageFeature extends Model
         'show_contact_immediately',
         'ad_duration_days',
         'max_ad_duration_days',
+
+        // Actionable feature credits
+        'allows_image_frame',
+        'caishha_feature_enabled',
+        'facebook_push_limit',
+        'carseer_api_credits',
+        'auto_bg_credits',
+        'pixblin_credits',
+        'ai_video_credits',
+        'custom_features_text',
     ];
 
     protected $casts = [
@@ -88,6 +98,16 @@ class PackageFeature extends Model
         'show_contact_immediately' => 'boolean',
         'ad_duration_days' => 'integer',
         'max_ad_duration_days' => 'integer',
+
+        // Actionable feature credits
+        'allows_image_frame' => 'boolean',
+        'caishha_feature_enabled' => 'boolean',
+        'facebook_push_limit' => 'integer',
+        'carseer_api_credits' => 'integer',
+        'auto_bg_credits' => 'integer',
+        'pixblin_credits' => 'integer',
+        'ai_video_credits' => 'integer',
+        'custom_features_text' => 'array',
         
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
@@ -116,6 +136,13 @@ class PackageFeature extends Model
         'show_contact_immediately' => false,
         'ad_duration_days' => 30,
         'max_ad_duration_days' => 90,
+        'allows_image_frame' => false,
+        'caishha_feature_enabled' => false,
+        'facebook_push_limit' => 0,
+        'carseer_api_credits' => 0,
+        'auto_bg_credits' => 0,
+        'pixblin_credits' => 0,
+        'ai_video_credits' => 0,
     ];
 
     /**
@@ -370,6 +397,61 @@ class PackageFeature extends Model
             'ad_duration_days' => $this->ad_duration_days,
             'max_ad_duration_days' => $this->max_ad_duration_days,
             'show_contact_immediately' => $this->show_contact_immediately,
+            'allows_image_frame' => $this->allows_image_frame,
+            'caishha_feature_enabled' => $this->caishha_feature_enabled,
+        ];
+    }
+
+    // ========================================
+    // ACTIONABLE FEATURE CREDIT METHODS
+    // ========================================
+
+    /**
+     * Check if image frame feature is allowed.
+     */
+    public function allowsImageFrame(): bool
+    {
+        return $this->allows_image_frame;
+    }
+
+    /**
+     * Check if caishha feature is enabled for this package.
+     */
+    public function hasCaishhaFeature(): bool
+    {
+        return $this->caishha_feature_enabled;
+    }
+
+    /**
+     * Get the total credits for a specific actionable feature.
+     */
+    public function getFeatureCredits(string $feature): int
+    {
+        $map = [
+            FeatureUsageLog::FEATURE_FACEBOOK_PUSH => 'facebook_push_limit',
+            FeatureUsageLog::FEATURE_AI_VIDEO => 'ai_video_credits',
+            FeatureUsageLog::FEATURE_AUTO_BG => 'auto_bg_credits',
+            FeatureUsageLog::FEATURE_PIXBLIN => 'pixblin_credits',
+            FeatureUsageLog::FEATURE_CARSEER => 'carseer_api_credits',
+        ];
+
+        return $this->{$map[$feature] ?? null} ?? 0;
+    }
+
+    /**
+     * Get all actionable feature credits.
+     */
+    public function getActionableFeatureCredits(): array
+    {
+        return [
+            'facebook_push_limit' => $this->facebook_push_limit,
+            'ai_video_credits' => $this->ai_video_credits,
+            'auto_bg_credits' => $this->auto_bg_credits,
+            'pixblin_credits' => $this->pixblin_credits,
+            'carseer_api_credits' => $this->carseer_api_credits,
+            'allows_image_frame' => $this->allows_image_frame,
+            'caishha_feature_enabled' => $this->caishha_feature_enabled,
+            'custom_features_text' => $this->custom_features_text,
         ];
     }
 
@@ -433,6 +515,7 @@ class PackageFeature extends Model
                 'grants_verified_badge' => $this->grants_verified_badge,
             ],
             'ad_capabilities' => $this->getAdCapabilities(),
+            'actionable_features' => $this->getActionableFeatureCredits(),
             'additional_features' => [
                 'priority_support' => $this->priority_support,
                 'advanced_analytics' => $this->advanced_analytics,

@@ -78,6 +78,16 @@ class Package extends Model
     }
 
     /**
+     * Get the unique ad types allowed by this package.
+     */
+    public function uniqueAdTypes()
+    {
+        return $this->belongsToMany(UniqueAdTypeDefinition::class, 'package_unique_ad_types')
+            ->withPivot('ads_limit')
+            ->withTimestamps();
+    }
+
+    /**
      * Scope to get only active packages
      */
     public function scopeActive(Builder $query): Builder
@@ -389,5 +399,80 @@ class Package extends Model
         }
         
         return $features->toFeatureSummary();
+    }
+
+    // ========================================
+    // UNIQUE AD TYPE PERMISSIONS
+    // ========================================
+
+    /**
+     * Check if this package allows a specific unique ad type.
+     */
+    public function allowsUniqueAdType(int $typeId): bool
+    {
+        // Check if package has specific unique ad types assigned
+        $hasSpecificTypes = $this->uniqueAdTypes()->exists();
+        
+        if ($hasSpecificTypes) {
+            // If specific types are assigned, check if this type is one of them
+            return $this->uniqueAdTypes()->where('unique_ad_type_id', $typeId)->exists();
+        }
+        
+        // Fall back to generic unique ads permission
+        return $this->isAdTypeAllowed(PackageFeature::AD_TYPE_UNIQUE);
+    }
+
+    /**
+     * Get remaining ads count for a specific unique ad type for the user.
+     */
+    public function getRemainingAdsForUniqueType(User $user, int $typeId): ?int
+    {
+        // Get the specific type assignment
+        $typeAssignment = $this->uniqueAdTypes()
+            ->where('unique_ad_type_id', $typeId)
+            ->first();
+        
+        if ($typeAssignment) {
+            $limit = $typeAssignment->pivot->ads_limit;
+            
+            // NULL means unlimited
+            if ($limit === null) {
+                return null;
+            }
+            
+            // Count user's active ads of this specific type
+            $activeCount = $user->ads()
+                ->where('type', 'unique')
+                ->where('status', 'published')
+                ->whereHas('uniqueAd', function ($query) use ($typeId) {
+                    $query->where('unique_ad_type_id', $typeId);
+                })
+                ->count();
+            
+            return max(0, $limit - $activeCount);
+        }
+        
+        // Fall back to generic unique ads limit
+        $genericLimit = $this->getAdTypeLimit(PackageFeature::AD_TYPE_UNIQUE);
+        
+        if ($genericLimit === null) {
+            return null; // Unlimited
+        }
+        
+        // Count all unique ads
+        $activeCount = $user->ads()
+            ->where('type', 'unique')
+            ->where('status', 'published')
+            ->count();
+        
+        return max(0, $genericLimit - $activeCount);
+    }
+
+    /**
+     * Get all allowed unique ad type IDs for this package.
+     */
+    public function getAllowedUniqueAdTypeIds(): array
+    {
+        return $this->uniqueAdTypes()->pluck('unique_ad_type_id')->toArray();
     }
 }

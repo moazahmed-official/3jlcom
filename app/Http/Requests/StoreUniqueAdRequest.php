@@ -34,10 +34,12 @@ class StoreUniqueAdRequest extends FormRequest
             'year' => 'nullable|integer|min:1900|max:' . (date('Y') + 1),
             'contact_phone' => 'nullable|string|max:20',
             'whatsapp_number' => 'nullable|string|max:20',
+            'unique_ad_type_id' => 'nullable|integer|exists:unique_ad_type_definitions,id',
             'banner_image_id' => 'nullable|integer|exists:media,id',
             'banner_color' => ['nullable', 'string', 'regex:/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/'],
             'is_verified_ad' => 'nullable|boolean',
             'is_auto_republished' => 'nullable|boolean',
+            'enable_caishha_feature' => 'nullable|boolean',
             'media_ids' => 'nullable|array',
             'media_ids.*' => 'integer|exists:media,id',
             'user_id' => 'nullable|integer|exists:users,id', // Admin can create for others

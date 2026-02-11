@@ -31,6 +31,12 @@ use App\Http\Controllers\Api\V1\CompanySettingController;
 use App\Http\Controllers\Api\V1\AdminAuditLogController;
 use App\Http\Controllers\Api\V1\AdminSettingsController;
 use App\Http\Controllers\Api\V1\AdminProfileController;
+use App\Http\Controllers\Api\V1\Admin\UniqueAdTypeDefinitionController;
+use App\Http\Controllers\Api\V1\Admin\PackageUniqueAdTypeController;
+use App\Http\Controllers\Api\V1\AdUpgradeRequestController;
+use App\Http\Controllers\Api\V1\PublicUniqueAdTypeController;
+use App\Http\Controllers\Api\V1\AdTypeConversionController;
+use App\Http\Controllers\Api\V1\FeatureActionController;
 
 Route::prefix('v1')->group(function () {
     // Public authentication routes
@@ -298,6 +304,70 @@ Route::prefix('v1')->group(function () {
         Route::post('admin/package-requests/{packageRequest}/reject', [PackageRequestController::class, 'reject']); // Reject request
         
         // =====================
+        // UNIQUE AD TYPE DEFINITIONS (ADMIN)
+        // =====================
+        
+        Route::prefix('admin/unique-ad-types')->group(function () {
+            Route::get('/', [UniqueAdTypeDefinitionController::class, 'index']); // List all unique ad types
+            Route::post('/', [UniqueAdTypeDefinitionController::class, 'store']); // Create new type
+            Route::get('/{uniqueAdType}', [UniqueAdTypeDefinitionController::class, 'show']); // View type details
+            Route::put('/{uniqueAdType}', [UniqueAdTypeDefinitionController::class, 'update']); // Update type
+            Route::delete('/{uniqueAdType}', [UniqueAdTypeDefinitionController::class, 'destroy']); // Delete type
+            Route::patch('/reorder', [UniqueAdTypeDefinitionController::class, 'reorder']); // Reorder priorities
+            Route::patch('/{uniqueAdType}/toggle-active', [UniqueAdTypeDefinitionController::class, 'toggleActive']); // Toggle active status
+        });
+        
+        // =====================
+        // PACKAGE-UNIQUE AD TYPE ASSOCIATIONS (ADMIN)
+        // =====================
+        
+        Route::prefix('admin/packages/{package}/unique-ad-types')->group(function () {
+            Route::get('/', [PackageUniqueAdTypeController::class, 'index']); // List assigned types
+            Route::put('/', [PackageUniqueAdTypeController::class, 'sync']); // Replace all assignments
+            Route::post('/', [PackageUniqueAdTypeController::class, 'attach']); // Add a type
+            Route::patch('/{uniqueAdType}', [PackageUniqueAdTypeController::class, 'update']); // Update limit
+            Route::delete('/{uniqueAdType}', [PackageUniqueAdTypeController::class, 'detach']); // Remove a type
+        });
+        
+        // =====================
+        // AD UPGRADE REQUESTS
+        // =====================
+        
+        // User: Request ad upgrade
+        Route::post('ads/{ad}/upgrade-request', [AdUpgradeRequestController::class, 'store']); // Submit upgrade request
+        Route::get('user/ad-upgrade-requests', [AdUpgradeRequestController::class, 'myRequests']); // View my requests
+        Route::delete('user/ad-upgrade-requests/{upgradeRequest}', [AdUpgradeRequestController::class, 'cancel']); // Cancel pending request
+        
+        // Admin: Manage ad upgrade requests
+        Route::prefix('admin/ad-upgrade-requests')->group(function () {
+            Route::get('/', [AdUpgradeRequestController::class, 'index']); // List all requests
+            Route::get('/{upgradeRequest}', [AdUpgradeRequestController::class, 'show']); // View request details
+            Route::patch('/{upgradeRequest}/approve', [AdUpgradeRequestController::class, 'approve']); // Approve request
+            Route::patch('/{upgradeRequest}/reject', [AdUpgradeRequestController::class, 'reject']); // Reject request
+        });
+        
+        // =====================
+        // AD TYPE CONVERSION (Paid plans only)
+        // =====================
+        
+        Route::post('ads/{ad}/convert', [AdTypeConversionController::class, 'convert']); // Convert ad between types
+        Route::get('ads/{ad}/conversions', [AdTypeConversionController::class, 'history']); // Get conversion history
+        
+        // =====================
+        // ACTIONABLE FEATURE CREDITS & ACTIONS
+        // =====================
+        
+        Route::get('feature-credits', [FeatureActionController::class, 'credits']); // Get all feature credits
+        Route::get('feature-usage', [FeatureActionController::class, 'usageHistory']); // Get usage history
+        
+        // Feature action endpoints (consume credits)
+        Route::post('ads/{ad}/push-facebook', [FeatureActionController::class, 'pushToFacebook']); // Push ad to Facebook
+        Route::post('ads/{ad}/ai-video', [FeatureActionController::class, 'generateAiVideo']); // Generate AI video
+        Route::post('ads/{ad}/auto-bg', [FeatureActionController::class, 'autoBg']); // Auto-background editing
+        Route::post('ads/{ad}/pixblin', [FeatureActionController::class, 'pixblin']); // Pixblin image editing
+        Route::post('ads/{ad}/carseer', [FeatureActionController::class, 'carseer']); // Carseer vehicle API
+        
+        // =====================
         // NOTIFICATIONS ROUTES
         // =====================
         
@@ -502,6 +572,11 @@ Route::prefix('v1')->group(function () {
     // Public Packages routes (no authentication required)
     Route::get('packages', [PackageController::class, 'index']); // List active packages
     Route::get('packages/{package}', [PackageController::class, 'show']); // View package details
+
+    // Public Unique Ad Types routes (no authentication required)
+    Route::get('unique-ad-types', [PublicUniqueAdTypeController::class, 'index']); // List all available unique ad types
+    Route::get('unique-ad-types/{slug}', [PublicUniqueAdTypeController::class, 'show']); // View specific type details
+    Route::middleware('auth:sanctum')->get('user/available-unique-ad-types', [PublicUniqueAdTypeController::class, 'availableForUser']); // Get user's available types
 
     // Public Page Content routes (no authentication required)
     Route::get('pages', [PageContentController::class, 'publicIndex']); // List all page contents

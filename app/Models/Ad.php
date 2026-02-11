@@ -100,6 +100,24 @@ class Ad extends Model
     }
 
     /**
+     * Get upgrade requests for this ad.
+     */
+    public function upgradeRequests()
+    {
+        return $this->hasMany(AdUpgradeRequest::class, 'ad_id');
+    }
+
+    /**
+     * Get pending upgrade request for this ad.
+     */
+    public function pendingUpgradeRequest()
+    {
+        return $this->hasOne(AdUpgradeRequest::class, 'ad_id')
+            ->where('status', 'pending')
+            ->latest();
+    }
+
+    /**
      * Get the average rating for this ad.
      */
     public function getAverageRatingAttribute(): float
@@ -113,5 +131,38 @@ class Ad extends Model
     public function getTotalReviewsAttribute(): int
     {
         return (int) $this->reviews_count;
+    }
+
+    /**
+     * Scope to order ads by priority based on type and unique ad type definition.
+     * Lower priority number = higher priority (shown first).
+     * 
+     * Priority hierarchy:
+     * - Unique ads with type definition: Use type's priority
+     * - Auction ads: Default priority 300
+     * - Caishha ads: Default priority 200
+     * - Findit ads: Default priority 100
+     * - Unique ads without type: Default priority 500
+     * - Normal ads: Default priority 1000
+     */
+    public function scopeOrderByPriority($query)
+    {
+        return $query->leftJoin('unique_ads', 'ads.id', '=', 'unique_ads.ad_id')
+            ->leftJoin('unique_ad_type_definitions', 'unique_ads.unique_ad_type_id', '=', 'unique_ad_type_definitions.id')
+            ->select('ads.*')
+            ->selectRaw('
+                CASE 
+                    WHEN ads.type = "unique" AND unique_ad_type_definitions.priority IS NOT NULL 
+                        THEN unique_ad_type_definitions.priority
+                    WHEN ads.type = "auction" THEN 300
+                    WHEN ads.type = "caishha" THEN 200
+                    WHEN ads.type = "findit" THEN 100
+                    WHEN ads.type = "unique" THEN 500
+                    WHEN ads.type = "normal" THEN 1000
+                    ELSE 9999
+                END as calculated_priority
+            ')
+            ->orderBy('calculated_priority', 'asc')
+            ->orderBy('ads.created_at', 'desc');
     }
 }
