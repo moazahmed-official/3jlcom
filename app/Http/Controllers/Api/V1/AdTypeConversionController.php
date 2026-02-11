@@ -33,23 +33,26 @@ class AdTypeConversionController extends BaseApiController
      * Convert an ad from one type to another.
      *
      * Business rules:
+     * - ADMINS: Can convert to any type without restrictions.
+     * - PAID plan users: Can convert between any types allowed by their package.
+     * - FREE plan users: Can convert between types IF their package allows the destination type.
      * - Both the source type counter and destination type counter are deducted.
      * - The ad's type column is updated, and the appropriate sub-table record is created/removed.
-     * - Only available for PAID plans (free plans use upgrade requests).
      *
      * POST /api/v1/ads/{ad}/convert
      */
     public function convert(Request $request, Ad $ad): JsonResponse
     {
         $request->validate([
-            'to_type' => 'required|string|in:normal,unique,caishha',
+            'to_type' => 'required|string|in:normal,unique,caishha,findit,auction',
             'unique_ad_type_id' => 'nullable|integer|exists:unique_ad_type_definitions,id',
         ]);
 
         $user = auth()->user();
+        $isAdmin = $user->isAdmin();
 
-        // Verify ownership
-        if ($ad->user_id !== $user->id && !$user->isAdmin()) {
+        // Verify ownership (admins can convert any ad)
+        if ($ad->user_id !== $user->id && !$isAdmin) {
             return $this->error(403, 'You do not own this ad');
         }
 
@@ -63,20 +66,21 @@ class AdTypeConversionController extends BaseApiController
             ]);
         }
 
-        // Only paid plan users can convert ads
-        $activePackage = $user->activePackage;
-        if (!$activePackage) {
-            return $this->error(403, 'You need an active package to convert ads');
-        }
+        // Get active package for non-admin users
+        $activePackage = null;
+        if (!$isAdmin) {
+            $activePackage = $user->activePackage;
+            if (!$activePackage) {
+                return $this->error(403, 'You need an active package to convert ads');
+            }
 
-        if ($activePackage->isFree()) {
-            return $this->error(403, 'Free plan users must use the upgrade request system. Ad conversion is only available for paid plans.');
-        }
-
-        // Check if destination type is allowed by package
-        $destValidation = $this->packageFeatureService->validateAdCreation($user, $toType);
-        if (!$destValidation['allowed']) {
-            return $this->error(403, $destValidation['reason']);
+            // Check if destination type is allowed by package (works for both free and paid plans)
+            $destValidation = $this->packageFeatureService->validateAdCreation($user, $toType);
+            if (!$destValidation['allowed']) {
+                return $this->error(403, $destValidation['reason'], [
+                    'to_type' => [$destValidation['reason']]
+                ]);
+            }
         }
 
         // If converting to unique, validate unique ad type
@@ -93,11 +97,13 @@ class AdTypeConversionController extends BaseApiController
                 return $this->error(404, 'The specified unique ad type is not available');
             }
 
-            // Validate user can use this specific type
-            try {
-                $this->typeService->validateUserCanCreateType($user, $typeDef);
-            } catch (\Exception $e) {
-                return $this->error(403, $e->getMessage());
+            // Validate user can use this specific type (skip for admins)
+            if (!$isAdmin) {
+                try {
+                    $this->typeService->validateUserCanCreateType($user, $typeDef);
+                } catch (\Exception $e) {
+                    return $this->error(403, $e->getMessage());
+                }
             }
 
             $uniqueAdTypeId = $typeDef->id;
@@ -209,6 +215,30 @@ class AdTypeConversionController extends BaseApiController
                     ]
                 );
                 break;
+
+            case PackageFeature::AD_TYPE_FINDIT:
+                // Create findit record
+                \App\Models\FindItAd::firstOrCreate(
+                    ['ad_id' => $ad->id],
+                    [
+                        'status' => 'active',
+                    ]
+                );
+                break;
+
+            case PackageFeature::AD_TYPE_AUCTION:
+                // Create auction record with defaults
+                \App\Models\Auction::firstOrCreate(
+                    ['ad_id' => $ad->id],
+                    [
+                        'starting_price' => 0,
+                        'current_price' => 0,
+                        'status' => 'pending',
+                        'start_time' => now(),
+                        'end_time' => now()->addDays(7),
+                    ]
+                );
+                break;
         }
     }
 
@@ -228,6 +258,14 @@ class AdTypeConversionController extends BaseApiController
 
             case PackageFeature::AD_TYPE_CAISHHA:
                 \App\Models\CaishhaAd::where('ad_id', $ad->id)->delete();
+                break;
+
+            case PackageFeature::AD_TYPE_FINDIT:
+                \App\Models\FindItAd::where('ad_id', $ad->id)->delete();
+                break;
+
+            case PackageFeature::AD_TYPE_AUCTION:
+                \App\Models\Auction::where('ad_id', $ad->id)->delete();
                 break;
         }
     }

@@ -19,6 +19,8 @@ class Package extends Model
         'duration_days',
         'features',
         'active',
+        'visibility_type',
+        'allowed_roles',
     ];
 
     protected $casts = [
@@ -26,6 +28,8 @@ class Package extends Model
         'duration_days' => 'integer',
         'features' => 'array',
         'active' => 'boolean',
+        'visibility_type' => 'string',
+        'allowed_roles' => 'array',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
@@ -34,7 +38,15 @@ class Package extends Model
         'active' => true,
         'price' => 0.00,
         'duration_days' => 30,
+        'visibility_type' => 'public',
     ];
+
+    /**
+     * Visibility type constants
+     */
+    public const VISIBILITY_PUBLIC = 'public';
+    public const VISIBILITY_ROLE_BASED = 'role_based';
+    public const VISIBILITY_USER_SPECIFIC = 'user_specific';
 
     /**
      * Package types (for legacy features JSON - deprecated, use PackageFeature)
@@ -88,6 +100,15 @@ class Package extends Model
     }
 
     /**
+     * Get users who have explicit access to this package (for user_specific visibility).
+     */
+    public function userAccess()
+    {
+        return $this->belongsToMany(User::class, 'package_user_access')
+            ->withTimestamps();
+    }
+
+    /**
      * Scope to get only active packages
      */
     public function scopeActive(Builder $query): Builder
@@ -120,6 +141,53 @@ class Package extends Model
     }
 
     /**
+     * Scope to get packages visible to a specific user based on visibility rules.
+     */
+    public function scopeVisibleTo(Builder $query, User $user): Builder
+    {
+        return $query->where(function ($q) use ($user) {
+            // Public packages
+            $q->where('visibility_type', self::VISIBILITY_PUBLIC)
+              // Role-based packages matching user's role
+              ->orWhere(function ($q2) use ($user) {
+                  $q2->where('visibility_type', self::VISIBILITY_ROLE_BASED)
+                     ->whereJsonContains('allowed_roles', $user->role);
+              })
+              // User-specific packages where user has explicit access
+              ->orWhere(function ($q3) use ($user) {
+                  $q3->where('visibility_type', self::VISIBILITY_USER_SPECIFIC)
+                     ->whereHas('userAccess', function ($q4) use ($user) {
+                         $q4->where('user_id', $user->id);
+                     });
+              });
+        });
+    }
+
+    /**
+     * Scope to get public packages only.
+     */
+    public function scopePublicOnly(Builder $query): Builder
+    {
+        return $query->where('visibility_type', self::VISIBILITY_PUBLIC);
+    }
+
+    /**
+     * Scope to get role-based packages.
+     */
+    public function scopeRoleBased(Builder $query): Builder
+    {
+        return $query->where('visibility_type', self::VISIBILITY_ROLE_BASED);
+    }
+
+    /**
+     * Scope to get user-specific packages.
+     */
+    public function scopeUserSpecific(Builder $query): Builder
+    {
+        return $query->where('visibility_type', self::VISIBILITY_USER_SPECIFIC);
+    }
+
+    /**
      * Check if the package is free
      */
     public function isFree(): bool
@@ -133,6 +201,73 @@ class Package extends Model
     public function isActive(): bool
     {
         return $this->active === true;
+    }
+
+    // ========================================
+    // VISIBILITY HELPERS
+    // ========================================
+
+    /**
+     * Check if package is public (visible to everyone).
+     */
+    public function isPublic(): bool
+    {
+        return $this->visibility_type === self::VISIBILITY_PUBLIC;
+    }
+
+    /**
+     * Check if package is role-based.
+     */
+    public function isRoleBased(): bool
+    {
+        return $this->visibility_type === self::VISIBILITY_ROLE_BASED;
+    }
+
+    /**
+     * Check if package is user-specific.
+     */
+    public function isUserSpecific(): bool
+    {
+        return $this->visibility_type === self::VISIBILITY_USER_SPECIFIC;
+    }
+
+    /**
+     * Check if a user can see this package based on visibility rules.
+     */
+    public function isVisibleTo(User $user): bool
+    {
+        // Public packages visible to all
+        if ($this->isPublic()) {
+            return true;
+        }
+
+        // Role-based packages
+        if ($this->isRoleBased()) {
+            return in_array($user->role, $this->allowed_roles ?? []);
+        }
+
+        // User-specific packages
+        if ($this->isUserSpecific()) {
+            return $this->userAccess()->where('user_id', $user->id)->exists();
+        }
+
+        return false;
+    }
+
+    /**
+     * Grant access to specific users (for user_specific visibility).
+     */
+    public function grantAccessToUsers(array $userIds): void
+    {
+        $this->userAccess()->syncWithoutDetaching($userIds);
+    }
+
+    /**
+     * Revoke access from specific users.
+     */
+    public function revokeAccessFromUsers(array $userIds): void
+    {
+        $this->userAccess()->detach($userIds);
     }
 
     /**

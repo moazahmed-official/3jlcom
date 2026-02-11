@@ -35,10 +35,26 @@ class PackageController extends BaseApiController
         
         if (!$isAdmin) {
             $query->active();
+            
+            // Non-admin users: Only show packages visible to them
+            if ($request->user()) {
+                $query->visibleTo($request->user());
+            } else {
+                // Guest users: Only show public packages
+                $query->publicOnly();
+            }
         } else {
             // Admin can filter by active status
             if ($request->has('active')) {
                 $query->where('active', $request->boolean('active'));
+            }
+            
+            // Admin can filter by visibility type
+            if ($request->has('visibility_type')) {
+                $visibilityType = $request->visibility_type;
+                if (in_array($visibilityType, ['public', 'role_based', 'user_specific'])) {
+                    $query->where('visibility_type', $visibilityType);
+                }
             }
         }
 

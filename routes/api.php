@@ -33,6 +33,7 @@ use App\Http\Controllers\Api\V1\AdminSettingsController;
 use App\Http\Controllers\Api\V1\AdminProfileController;
 use App\Http\Controllers\Api\V1\Admin\UniqueAdTypeDefinitionController;
 use App\Http\Controllers\Api\V1\Admin\PackageUniqueAdTypeController;
+use App\Http\Controllers\Api\V1\Admin\PackageVisibilityController;
 use App\Http\Controllers\Api\V1\AdUpgradeRequestController;
 use App\Http\Controllers\Api\V1\PublicUniqueAdTypeController;
 use App\Http\Controllers\Api\V1\AdTypeConversionController;
@@ -279,6 +280,13 @@ Route::prefix('v1')->group(function () {
         Route::post('packages/{package}/features', [PackageController::class, 'storeFeatures']); // Create features (admin)
         Route::put('packages/{package}/features', [PackageController::class, 'updateFeatures']); // Update features (admin)
         Route::delete('packages/{package}/features', [PackageController::class, 'destroyFeatures']); // Delete features (admin)
+        
+        // Package visibility management (admin only)
+        Route::get('admin/packages/{package}/visibility', [PackageVisibilityController::class, 'show']); // Get visibility settings
+        Route::post('admin/packages/{package}/visibility', [PackageVisibilityController::class, 'update']); // Update visibility settings
+        Route::post('admin/packages/{package}/grant-access', [PackageVisibilityController::class, 'grantAccess']); // Grant user-specific access
+        Route::post('admin/packages/{package}/revoke-access', [PackageVisibilityController::class, 'revokeAccess']); // Revoke user access
+        Route::get('admin/packages/{package}/users-with-access', [PackageVisibilityController::class, 'usersWithAccess']); // List users with access
         
         // User packages management
         Route::get('packages/my-packages', [PackageController::class, 'myPackages']); // Current user's packages

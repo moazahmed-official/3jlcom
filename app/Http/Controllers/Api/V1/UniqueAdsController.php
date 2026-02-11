@@ -223,8 +223,10 @@ class UniqueAdsController extends Controller
      * Business logic:
      * - PAID plan users: Can directly create unique ads with a type (features come from package).
      * - FREE plan users: Cannot directly create unique ads with types.
-     *   They must create a normal ad first, then use the upgrade request system.
-     *   Admins may still create unique ads for free-plan users.
+     *   They must create a normal ad first, then either:
+     *   - Request an upgrade via admin approval (POST /api/v1/ads/{ad}/upgrade-request)
+     *   - Convert the ad if their package allows unique ads (POST /api/v1/ads/{ad}/convert)
+     * - Admins can create unique ads for any user.
      */
     public function store(StoreUniqueAdRequest $request, PackageFeatureService $packageService, UniqueAdTypeService $typeService): JsonResponse
     {
@@ -252,8 +254,12 @@ class UniqueAdsController extends Controller
             return response()->json([
                 'status' => 'error',
                 'code' => 403,
-                'message' => 'Free plan users cannot directly create unique ads. Create a normal ad first, then request an upgrade via the upgrade request system.',
-                'errors' => ['plan' => ['Unique ad creation requires a paid plan. Use POST /api/v1/ads/{ad}/upgrade-request to request an upgrade for an existing normal ad.']]
+                'message' => 'Free plan users cannot directly create unique ads. Create a normal ad first, then either request an upgrade or convert it.',
+                'errors' => ['plan' => [
+                    'Unique ad creation requires a paid plan.',
+                    'FREE plan options: 1) Create a normal ad and request admin upgrade via POST /api/v1/ads/{ad}/upgrade-request',
+                    '2) If your package allows unique ads, create a normal ad and convert it via POST /api/v1/ads/{ad}/convert'
+                ]]
             ], 403);
         }
 

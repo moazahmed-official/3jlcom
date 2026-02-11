@@ -25,14 +25,22 @@ class PackageResource extends JsonResource
             'features' => $this->features ?? [],
             'is_free' => $this->isFree(),
             'active' => $this->active,
+            'visibility_type' => $this->visibility_type ?? 'public',
+            'is_visible_to_user' => $request->user() ? $this->isVisibleTo($request->user()) : $this->isPublic(),
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
         ];
 
-        // Include admin-only statistics
+        // Include admin-only statistics and visibility details
         if ($isAdmin) {
             $data['active_subscribers_count'] = $this->active_subscribers_count ?? 
                 $this->userPackages()->where('active', true)->count();
+            $data['allowed_roles'] = $this->allowed_roles;
+            
+            // For user_specific packages, include count of users with access
+            if ($this->visibility_type === 'user_specific') {
+                $data['user_access_count'] = $this->userAccess()->count();
+            }
         }
 
         return $data;
