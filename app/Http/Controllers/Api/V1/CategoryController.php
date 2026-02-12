@@ -170,6 +170,33 @@ class CategoryController extends BaseApiController
     }
 
     /**
+     * Public list of categories (no admin check)
+     * GET /api/categories
+     */
+    public function publicIndex(Request $request)
+    {
+        $query = Category::with('specifications');
+
+        if ($request->filled('search')) {
+            $query->search($request->search);
+        }
+
+        $perPage = $request->get('per_page');
+        if ($perPage) {
+            $p = $query->paginate($perPage);
+            return $this->success([
+                'page' => $p->currentPage(),
+                'per_page' => $p->perPage(),
+                'total' => $p->total(),
+                'items' => $p->items(),
+            ], 'Categories retrieved successfully');
+        }
+
+        $items = $query->get();
+        return $this->success($items, 'Categories retrieved successfully');
+    }
+
+    /**
      * Assign specifications to a category (admin-only).
      * Replaces all existing specifications with the provided list.
      */

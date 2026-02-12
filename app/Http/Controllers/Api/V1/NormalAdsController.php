@@ -952,6 +952,99 @@ class NormalAdsController extends Controller
     }
 
     /**
+     * Export admin normal ads to CSV
+     * GET /api/normal-ads/admin/export
+     */
+    public function export(Request $request)
+    {
+        if (!auth()->user() || !auth()->user()->isAdmin()) {
+            return response()->json([
+                'status' => 'error',
+                'code' => 403,
+                'message' => 'Unauthorized',
+                'errors' => ['authorization' => ['Only admins can export data']]
+            ], 403);
+        }
+
+        $query = Ad::where('type', 'normal')
+            ->with(['normalAd', 'user', 'brand', 'model', 'city', 'country']);
+
+        // Apply same filters as adminIndex
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+        if ($request->filled('user_id')) {
+            $query->where('user_id', $request->user_id);
+        }
+        if ($request->filled('brand_id')) {
+            $query->where('brand_id', $request->brand_id);
+        }
+        if ($request->filled('model_id')) {
+            $query->where('model_id', $request->model_id);
+        }
+        if ($request->filled('city_id')) {
+            $query->where('city_id', $request->city_id);
+        }
+        if ($request->filled('country_id')) {
+            $query->where('country_id', $request->country_id);
+        }
+        if ($request->filled('search')) {
+            $searchTerm = $request->search;
+            $query->where(function ($q) use ($searchTerm) {
+                $q->where('title', 'like', "%{$searchTerm}%")
+                  ->orWhere('description', 'like', "%{$searchTerm}%");
+            });
+        }
+
+        $ads = $query->orderBy('created_at', 'desc')->get();
+
+        $columns = [
+            'id','title','price_cash','status','brand','model','year','city','country','views_count','contact_count','created_at'
+        ];
+
+        $lines = [];
+        $lines[] = implode(',', $columns);
+
+        foreach ($ads as $ad) {
+            $price = $ad->normalAd->price_cash ?? '';
+            $brand = $ad->brand->name_en ?? '';
+            $model = $ad->model->name_en ?? '';
+            $year = $ad->year ?? '';
+            $city = $ad->city->name ?? ($ad->city->name_en ?? '');
+            $country = $ad->country->name ?? ($ad->country->name_en ?? '');
+            $views = $ad->views_count ?? 0;
+            $contacts = $ad->contact_count ?? 0;
+            $created = $ad->created_at?->toDateTimeString() ?? '';
+
+            $row = [
+                $ad->id,
+                '"' . str_replace('"', '""', $ad->title) . '"',
+                $price,
+                $ad->status,
+                '"' . str_replace('"', '""', $brand) . '"',
+                '"' . str_replace('"', '""', $model) . '"',
+                $year,
+                '"' . str_replace('"', '""', $city) . '"',
+                '"' . str_replace('"', '""', $country) . '"',
+                $views,
+                $contacts,
+                $created,
+            ];
+
+            $lines[] = implode(',', $row);
+        }
+
+        $csv = implode("\n", $lines);
+
+        $filename = 'normal-ads-export-' . now()->format('Y-m-d') . '.csv';
+
+        return response($csv, 200, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"'
+        ]);
+    }
+
+    /**
      * List public ads by user
      */
     public function listByUser($userId): AnonymousResourceCollection

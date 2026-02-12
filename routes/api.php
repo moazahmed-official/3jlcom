@@ -24,6 +24,8 @@ use App\Http\Controllers\Api\V1\SavedSearchController;
 use App\Http\Controllers\Api\V1\BlogController;
 use App\Http\Controllers\Api\V1\SpecificationController;
 use App\Http\Controllers\Api\V1\CategoryController;
+use App\Http\Controllers\Api\V1\CountryController;
+use App\Http\Controllers\Api\V1\CityController;
 use App\Http\Controllers\Api\V1\SellerStatsController;
 use App\Http\Controllers\Api\V1\AdminStatsController;
 use App\Http\Controllers\Api\V1\PageContentController;
@@ -553,6 +555,10 @@ Route::prefix('v1')->group(function () {
     Route::get('normal-ads', [NormalAdsController::class, 'index']);
     Route::get('normal-ads/{ad}', [NormalAdsController::class, 'show']);
     Route::get('users/{user}/normal-ads', [NormalAdsController::class, 'listByUser']); // Public ads by user
+    Route::get('categories', [CategoryController::class, 'publicIndex']); // Public categories
+    Route::get('countries', [CountryController::class, 'index']);
+    Route::get('cities', [CityController::class, 'index']);
+    Route::get('countries/{country}/cities', [CountryController::class, 'cities']);
 
     // Public Unique Ads routes (no authentication required)
     Route::get('unique-ads', [UniqueAdsController::class, 'index']);
