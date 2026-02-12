@@ -481,6 +481,7 @@ Route::prefix('v1')->group(function () {
         Route::get('admin/stats/dashboard', [AdminStatsController::class, 'dashboard']); // Overall platform stats
         Route::get('admin/dashboard/stats', [AdminStatsController::class, 'dashboard']); // Alias for frontend compatibility
         Route::get('admin/dashboard/activity', [AdminStatsController::class, 'activity']); // Dashboard activity feed
+        Route::get('admin/stats/ads-by-category-chart', [AdminStatsController::class, 'adsByCategoryChart']); // Chart data for ads by category
         Route::get('admin/stats/ads/{ad}/views', [AdminStatsController::class, 'adViews']); // Ad views count
         Route::get('admin/stats/ads/{ad}/clicks', [AdminStatsController::class, 'adClicks']); // Ad clicks count
         Route::get('admin/stats/dealer/{user}', [AdminStatsController::class, 'dealerStats']); // Dealer statistics

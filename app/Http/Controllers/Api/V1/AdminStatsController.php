@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Api\BaseApiController;
 use App\Models\Ad;
 use App\Models\User;
+use App\Models\Category;
+use App\Models\Blog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -168,17 +170,83 @@ class AdminStatsController extends BaseApiController
             return $this->error(403, 'Unauthorized');
         }
 
-        $totalUsers = User::count();
+        // Total ads by all types
         $totalAds = Ad::count();
         $activeAds = Ad::where('status', 'published')->count();
-        $totalViews = Ad::sum('views_count');
-        $totalContacts = Ad::sum('contact_count');
-
+        
         // Ads by type
         $adsByType = Ad::selectRaw('type, COUNT(*) as count')
             ->groupBy('type')
             ->get()
             ->pluck('count', 'type');
+
+        // Total ads for each category
+        $adsByCategory = Ad::join('categories', 'ads.category_id', '=', 'categories.id')
+            ->select('categories.id', 'categories.name_en', 'categories.name_ar', DB::raw('COUNT(ads.id) as ads_count'))
+            ->groupBy('categories.id', 'categories.name_en', 'categories.name_ar')
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'category_id' => $item->id,
+                    'category_name_en' => $item->name_en,
+                    'category_name_ar' => $item->name_ar,
+                    'total_ads' => $item->ads_count,
+                ];
+            });
+
+        // Total categories
+        $totalCategories = Category::count();
+        $activeCategories = Category::where('status', 'active')->count();
+
+        // Total blogs
+        $totalBlogs = Blog::count();
+        $publishedBlogs = Blog::where('status', 'published')->count();
+
+        // Total users by all types
+        $totalUsers = User::count();
+        
+        // Total users by account type (excluding admins)
+        $usersByAccountType = User::select('account_type', DB::raw('COUNT(*) as count'))
+            ->whereNotNull('account_type')
+            ->groupBy('account_type')
+            ->get()
+            ->pluck('count', 'account_type');
+        
+        // Get admin users count
+        $adminUsers = User::whereHas('roles', function ($query) {
+            $query->whereIn('name', ['admin', 'super-admin']);
+        })->count();
+        
+        // Non-admin users count
+        $nonAdminUsers = $totalUsers - $adminUsers;
+
+        // Total views and contacts
+        $totalViews = Ad::sum('views_count') ?? 0;
+        $totalContacts = Ad::sum('contact_count') ?? 0;
+
+        // Build response data
+        $responseData = [
+            'total_ads' => $totalAds,
+            'active_ads' => $activeAds,
+            'ads_by_type' => $adsByType,
+            'ads_by_category' => $adsByCategory->values(),
+            'total_categories' => $totalCategories,
+            'active_categories' => $activeCategories,
+            'total_blogs' => $totalBlogs,
+            'published_blogs' => $publishedBlogs,
+            'total_users' => $totalUsers,
+            'non_admin_users' => $nonAdminUsers,
+            'admin_users' => $adminUsers,
+            'users_by_account_type' => [
+                'individual' => $usersByAccountType['individual'] ?? 0,
+                'seller' => $usersByAccountType['seller'] ?? 0,
+                'showroom' => $usersByAccountType['showroom'] ?? 0,
+                'dealer' => $usersByAccountType['dealer'] ?? 0,
+                'marketeer' => $usersByAccountType['marketeer'] ?? 0,
+            ],
+            'total_views' => $totalViews,
+            'total_contacts' => $totalContacts,
+        ];
 
         // If caller requested time-series / chart-ready data, provide series
         if ($request->boolean('time_series') || $request->filled('start') || $request->filled('end')) {
@@ -224,28 +292,15 @@ class AdminStatsController extends BaseApiController
                 ];
             }
 
-            return $this->success([
-                'total_users' => $totalUsers,
-                'total_ads' => $totalAds,
-                'active_ads' => $activeAds,
-                'total_views' => $totalViews ?? 0,
-                'total_contacts' => $totalContacts ?? 0,
-                'ads_by_type' => $adsByType,
-                'time_series' => [
-                    'userGrowth' => $userGrowth,
-                    'adsPublished' => $adsPublished,
-                ],
-            ], 'Admin dashboard stats retrieved successfully (with time-series)');
+            $responseData['time_series'] = [
+                'userGrowth' => $userGrowth,
+                'adsPublished' => $adsPublished,
+            ];
+
+            return $this->success($responseData, 'Admin dashboard stats retrieved successfully (with time-series)');
         }
 
-        return $this->success([
-            'total_users' => $totalUsers,
-            'total_ads' => $totalAds,
-            'active_ads' => $activeAds,
-            'total_views' => $totalViews ?? 0,
-            'total_contacts' => $totalContacts ?? 0,
-            'ads_by_type' => $adsByType,
-        ], 'Admin dashboard stats retrieved successfully');
+        return $this->success($responseData, 'Admin dashboard stats retrieved successfully');
     }
 
     /**
@@ -287,6 +342,54 @@ class AdminStatsController extends BaseApiController
             'activities' => $activities,
             'total' => $activities->count(),
         ], 'Activity feed retrieved successfully');
+    }
+
+    /**
+     * Get ads distribution by category for charts
+     * GET /api/admin/stats/ads-by-category-chart
+     */
+    public function adsByCategoryChart(Request $request)
+    {
+        if (!$request->user()->isAdmin()) {
+            return $this->error(403, 'Unauthorized');
+        }
+
+        // Get total ads count
+        $totalAds = Ad::count();
+
+        if ($totalAds === 0) {
+            return $this->success([
+                'total_ads' => 0,
+                'categories' => [],
+            ], 'No ads found');
+        }
+
+        // Get ads count by category with percentages
+        $adsByCategory = Ad::join('categories', 'ads.category_id', '=', 'categories.id')
+            ->select(
+                'categories.id',
+                'categories.name_en',
+                'categories.name_ar',
+                DB::raw('COUNT(ads.id) as ads_count'),
+                DB::raw('ROUND((COUNT(ads.id) * 100.0 / ' . $totalAds . '), 2) as percentage')
+            )
+            ->groupBy('categories.id', 'categories.name_en', 'categories.name_ar')
+            ->orderBy('ads_count', 'desc')
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'category_id' => $item->id,
+                    'category_name_en' => $item->name_en,
+                    'category_name_ar' => $item->name_ar,
+                    'ads_count' => $item->ads_count,
+                    'percentage' => (float) $item->percentage,
+                ];
+            });
+
+        return $this->success([
+            'total_ads' => $totalAds,
+            'categories' => $adsByCategory->values(),
+        ], 'Ads distribution by category retrieved successfully');
     }
 
     /**
