@@ -1986,6 +1986,8 @@ Normal ads are standard vehicle listings with optional pricing information.
   ""brand_id"": 1,
   ""model_id"": 5,
   ""year"": 2020,
+  ""color"": ""Red"",
+  ""millage"": 25000.50,
   ""price_cash"": 75000,
   ""media_ids"": [1, 2, 3],
   ""contact_phone"": ""0500000000"",
@@ -2002,6 +2004,8 @@ Normal ads are standard vehicle listings with optional pricing information.
 - `brand_id`: nullable, integer, exists:brands
 - `model_id`: nullable, integer, exists:models
 - `year`: nullable, integer, min:1900, max:(current_year+1)
+- `color`: nullable, string, max:100
+- `millage`: nullable, numeric, min:0, max:9999999
 - `price_cash`: nullable, numeric, min:0, max:999999999
 - `media_ids`: nullable, array, max:10 items
 - `contact_phone`: nullable, string, phone format
@@ -2130,6 +2134,7 @@ Unique ads are premium featured listings with banner customization and special v
 **Notes:**
 - Only admins can set `is_verified_ad` to true
 - Package must support unique ads
+- `color` and `millage` fields are included (see Normal Ad 7.4 for details)
 
 ---
 
@@ -2206,6 +2211,7 @@ Caishha ads are special listings where sellers receive offers from dealers durin
 - Defaults pulled from CaishhaSetting model
 - Dealer window period determines when dealers can make exclusive offers
 - After dealer window, all users can make offers
+- `color` and `millage` fields are included (see Normal Ad 7.4 for details)
 
 ---
 
@@ -2379,6 +2385,7 @@ Auction ads allow competitive bidding on vehicles with anti-snipe protection.
 **Notes:**
 - `anti_snip_window_seconds`: If a bid is placed within this many seconds before end, auction extends
 - `anti_snip_extension_seconds`: How many seconds to extend by
+- `color` and `millage` fields are included (see Normal Ad 7.4 for details)
 
 ---
 

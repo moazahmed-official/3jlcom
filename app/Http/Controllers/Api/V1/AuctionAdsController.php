@@ -340,6 +340,8 @@ class AuctionAdsController extends Controller
                 'brand_id' => $request->brand_id,
                 'model_id' => $request->model_id,
                 'year' => $request->year,
+                'color' => $request->color,
+                'millage' => $request->millage,
                 'contact_phone' => $request->contact_phone,
                 'whatsapp_number' => $request->whatsapp_number,
                 'status' => 'published',
@@ -473,7 +475,7 @@ class AuctionAdsController extends Controller
             // Update ad fields
             $adFields = [
                 'title', 'description', 'category_id', 'brand_id', 'model_id',
-                'city_id', 'country_id', 'year', 'contact_phone', 'whatsapp_number', 'period_days'
+                'city_id', 'country_id', 'year', 'color', 'millage', 'contact_phone', 'whatsapp_number', 'period_days'
             ];
 
             foreach ($adFields as $field) {

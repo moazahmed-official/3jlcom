@@ -26,6 +26,8 @@ class NormalAdResource extends JsonResource
             'brand_id' => $this->brand_id,
             'model_id' => $this->model_id,
             'year' => $this->year,
+            'color' => $this->color,
+            'millage' => $this->millage,
             'price_cash' => $this->normalAd?->price_cash,
             'installment_id' => $this->normalAd?->installment_id,
             'start_time' => $this->normalAd?->start_time,

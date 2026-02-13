@@ -32,6 +32,8 @@ class StoreUniqueAdRequest extends FormRequest
             'brand_id' => 'nullable|integer|exists:brands,id',
             'model_id' => 'nullable|integer|exists:models,id',
             'year' => 'nullable|integer|min:1900|max:' . (date('Y') + 1),
+            'color' => 'nullable|string|max:100',
+            'millage' => 'nullable|numeric|min:0|max:9999999',
             'contact_phone' => 'nullable|string|max:20',
             'whatsapp_number' => 'nullable|string|max:20',
             'unique_ad_type_id' => 'nullable|integer|exists:unique_ad_type_definitions,id',

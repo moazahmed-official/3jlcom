@@ -68,6 +68,17 @@ class StoreNormalAdRequest extends FormRequest
                 'min:1900',
                 'max:' . (date('Y') + 1)
             ],
+            'color' => [
+                'nullable',
+                'string',
+                'max:100'
+            ],
+            'millage' => [
+                'nullable',
+                'numeric',
+                'min:0',
+                'max:9999999'
+            ],
             'price_cash' => [
                 'nullable',
                 'numeric',

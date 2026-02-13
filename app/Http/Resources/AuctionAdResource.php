@@ -34,6 +34,8 @@ class AuctionAdResource extends JsonResource
             'brand_id' => $this->brand_id,
             'model_id' => $this->model_id,
             'year' => $this->year,
+            'color' => $this->color,
+            'millage' => $this->millage,
             'city_id' => $this->city_id,
             'country_id' => $this->country_id,
             'user_id' => $this->user_id,

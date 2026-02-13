@@ -27,6 +27,8 @@ class UniqueAdResource extends JsonResource
             'brand_id' => $this->brand_id,
             'model_id' => $this->model_id,
             'year' => $this->year,
+            'color' => $this->color,
+            'millage' => $this->millage,
             'contact_phone' => $this->contact_phone,
             'whatsapp_number' => $this->whatsapp_number,
             'views_count' => $this->views_count ?? 0,

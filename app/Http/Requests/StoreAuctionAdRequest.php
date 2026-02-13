@@ -33,6 +33,8 @@ class StoreAuctionAdRequest extends FormRequest
             'city_id' => 'required|integer|exists:cities,id',
             'country_id' => 'required|integer|exists:countries,id',
             'year' => "required|integer|min:1900|max:{$currentYear}",
+            'color' => 'nullable|string|max:100',
+            'millage' => 'nullable|numeric|min:0|max:9999999',
             'contact_phone' => 'nullable|string|max:20',
             'whatsapp_number' => 'nullable|string|max:20',
             'media_ids' => 'nullable|array|max:10',

@@ -45,6 +45,19 @@ class UpdateNormalAdRequest extends FormRequest
                 'min:1900',
                 'max:' . (date('Y') + 1)
             ],
+            'color' => [
+                'sometimes',
+                'nullable',
+                'string',
+                'max:100'
+            ],
+            'millage' => [
+                'sometimes',
+                'nullable',
+                'numeric',
+                'min:0',
+                'max:9999999'
+            ],
             'price_cash' => [
                 'sometimes',
                 'nullable',

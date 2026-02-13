@@ -284,6 +284,8 @@ class CaishhaAdsController extends Controller
                 'brand_id' => $request->brand_id,
                 'model_id' => $request->model_id,
                 'year' => $request->year,
+                'color' => $request->color,
+                'millage' => $request->millage,
                 'contact_phone' => $request->contact_phone,
                 'whatsapp_number' => $request->whatsapp_number,
                 'status' => 'published',
@@ -416,7 +418,7 @@ class CaishhaAdsController extends Controller
 
             // Update main ad fields
             $adData = $request->only([
-                'title', 'description', 'brand_id', 'model_id', 'year', 
+                'title', 'description', 'brand_id', 'model_id', 'year', 'color', 'millage',
                 'contact_phone', 'whatsapp_number'
             ]);
             
