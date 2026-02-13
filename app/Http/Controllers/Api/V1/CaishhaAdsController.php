@@ -30,7 +30,7 @@ class CaishhaAdsController extends Controller
     public function index(Request $request): AnonymousResourceCollection
     {
         $query = Ad::where('type', 'caishha')
-            ->with(['caishhaAd', 'user', 'brand', 'model', 'city', 'country', 'category', 'media'])
+            ->with(['caishhaAd', 'user', 'brand', 'model', 'city', 'country', 'category', 'media', 'specifications'])
             ->where('status', 'published');
 
         // Filter by brand
@@ -110,7 +110,7 @@ class CaishhaAdsController extends Controller
     {
         $query = Ad::where('type', 'caishha')
             ->where('user_id', auth()->id())
-            ->with(['caishhaAd', 'caishhaAd.offers', 'user', 'brand', 'model', 'city', 'country', 'category', 'media']);
+            ->with(['caishhaAd', 'caishhaAd.offers', 'user', 'brand', 'model', 'city', 'country', 'category', 'media', 'specifications']);
 
         // Filter by status if provided
         if ($request->filled('status')) {
@@ -163,7 +163,7 @@ class CaishhaAdsController extends Controller
         }
 
         $query = Ad::where('type', 'caishha')
-            ->with(['caishhaAd', 'caishhaAd.offers', 'user', 'brand', 'model', 'city', 'country', 'category', 'media']);
+            ->with(['caishhaAd', 'caishhaAd.offers', 'user', 'brand', 'model', 'city', 'country', 'category', 'media', 'specifications']);
 
         // Filter by status if provided
         if ($request->filled('status')) {
@@ -310,10 +310,21 @@ class CaishhaAdsController extends Controller
                     ]);
             }
 
+            // Handle specifications
+            if ($request->has('specifications') && !empty($request->specifications)) {
+                foreach ($request->specifications as $spec) {
+                    \App\Models\AdSpecification::create([
+                        'ad_id' => $ad->id,
+                        'specification_id' => $spec['specification_id'],
+                        'value' => $spec['value'],
+                    ]);
+                }
+            }
+
             DB::commit();
 
             // Load relationships for response
-            $ad->load(['caishhaAd', 'user', 'brand', 'model', 'city', 'country', 'category', 'media']);
+            $ad->load(['caishhaAd', 'user', 'brand', 'model', 'city', 'country', 'category', 'media', 'specifications']);
 
             Log::info('Caishha ad created successfully', [
                 'ad_id' => $ad->id,
@@ -351,7 +362,7 @@ class CaishhaAdsController extends Controller
     public function show($id): JsonResponse
     {
         $ad = Ad::where('type', 'caishha')
-            ->with(['caishhaAd', 'caishhaAd.offers.user', 'user', 'brand', 'model', 'city', 'country', 'category', 'media'])
+            ->with(['caishhaAd', 'caishhaAd.offers.user', 'user', 'brand', 'model', 'city', 'country', 'category', 'media', 'specifications'])
             ->find($id);
 
         if (!$ad) {
@@ -434,10 +445,25 @@ class CaishhaAdsController extends Controller
                 }
             }
 
+            // Handle specifications
+            if ($request->has('specifications')) {
+                \App\Models\AdSpecification::where('ad_id', $ad->id)->delete();
+                
+                if (!empty($request->specifications)) {
+                    foreach ($request->specifications as $spec) {
+                        \App\Models\AdSpecification::create([
+                            'ad_id' => $ad->id,
+                            'specification_id' => $spec['specification_id'],
+                            'value' => $spec['value'],
+                        ]);
+                    }
+                }
+            }
+
             DB::commit();
 
             // Load relationships for response
-            $ad->load(['caishhaAd', 'user', 'brand', 'model', 'city', 'country', 'category', 'media']);
+            $ad->load(['caishhaAd', 'user', 'brand', 'model', 'city', 'country', 'category', 'media', 'specifications']);
 
             Log::info('Caishha ad updated successfully', [
                 'ad_id' => $ad->id,

@@ -38,12 +38,32 @@ class Media extends Model
 
     public function getUrlAttribute(): string
     {
-        return $this->path ? Storage::disk('public')->url($this->path) : '';
+        if (!$this->path) {
+            return '';
+        }
+
+        // If running in HTTP request context, prefer building URL from request host
+        if (app()->runningInConsole() === false && request()) {
+            $base = request()->getSchemeAndHttpHost();
+            return rtrim($base, '/') . '/' . ltrim('storage/' . $this->path, '/');
+        }
+
+        // Fallback to filesystem disk url (uses config/filesystems.php 'url')
+        return Storage::disk('public')->url($this->path);
     }
 
     public function getThumbnailAttribute(): ?string
     {
-        return $this->thumbnail_url ? Storage::disk('public')->url($this->thumbnail_url) : null;
+        if (!$this->thumbnail_url) {
+            return null;
+        }
+
+        if (app()->runningInConsole() === false && request()) {
+            $base = request()->getSchemeAndHttpHost();
+            return rtrim($base, '/') . '/' . ltrim('storage/' . $this->thumbnail_url, '/');
+        }
+
+        return Storage::disk('public')->url($this->thumbnail_url);
     }
 
     protected static function boot()

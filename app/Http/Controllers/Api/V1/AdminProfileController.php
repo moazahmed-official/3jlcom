@@ -119,7 +119,7 @@ class AdminProfileController extends BaseApiController
         );
 
         return $this->success([
-            'image_url' => asset('storage/' . $path),
+            'image_url' => $media->url,
             'media_id' => $media->id,
         ], 'Profile image updated successfully');
     }

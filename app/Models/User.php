@@ -288,6 +288,15 @@ class User extends Authenticatable
     }
 
     /**
+     * Accessor for `full_name` expected by API resources.
+     * Falls back to `name` column if `full_name` is not present.
+     */
+    public function getFullNameAttribute(): ?string
+    {
+        return $this->attributes['full_name'] ?? $this->attributes['name'] ?? null;
+    }
+
+    /**
      * Get the total reviews count for this user (as a seller).
      */
     public function getTotalReviewsAttribute(): int

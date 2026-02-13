@@ -63,6 +63,19 @@ class UniqueAdResource extends JsonResource
                 'id' => $this->model->id,
                 'name' => $this->model->name,
             ] : null),
+            
+            'specifications' => $this->whenLoaded('specifications', function () {
+                return $this->specifications->map(function ($spec) {
+                    return [
+                        'id' => $spec->id,
+                        'name_en' => $spec->name_en,
+                        'name_ar' => $spec->name_ar,
+                        'type' => $spec->type,
+                        'value' => $spec->pivot->value,
+                    ];
+                });
+            }),
+            
             'banner_image' => $this->whenLoaded('uniqueAd', function () {
                 if ($this->uniqueAd?->bannerImage) {
                     return [

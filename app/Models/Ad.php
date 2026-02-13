@@ -84,6 +84,27 @@ class Ad extends Model
     }
 
     /**
+     * Get ad specifications with pivot values.
+     */
+    public function adSpecifications()
+    {
+        return $this->hasMany(AdSpecification::class, 'ad_id');
+    }
+
+    /**
+     * Get specifications with values (many-to-many).
+     */
+    public function specifications()
+    {
+        return $this->belongsToMany(
+            Specification::class,
+            'ad_specifications',
+            'ad_id',
+            'specification_id'
+        )->withPivot('value')->withTimestamps();
+    }
+
+    /**
      * Get reviews for this ad.
      */
     public function reviews()

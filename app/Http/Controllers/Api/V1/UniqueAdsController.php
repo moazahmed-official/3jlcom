@@ -28,7 +28,7 @@ class UniqueAdsController extends Controller
     public function index(Request $request): AnonymousResourceCollection
     {
         $query = Ad::where('type', 'unique')
-            ->with(['uniqueAd', 'uniqueAd.bannerImage', 'user', 'brand', 'model', 'city', 'country', 'category', 'media'])
+            ->with(['uniqueAd', 'uniqueAd.bannerImage', 'user', 'brand', 'model', 'city', 'country', 'category', 'media', 'specifications'])
             ->where('status', 'published');
 
         // Filter by brand
@@ -102,7 +102,7 @@ class UniqueAdsController extends Controller
     {
         $query = Ad::where('type', 'unique')
             ->where('user_id', auth()->id())
-            ->with(['uniqueAd', 'uniqueAd.bannerImage', 'user', 'brand', 'model', 'city', 'country', 'category', 'media']);
+            ->with(['uniqueAd', 'uniqueAd.bannerImage', 'user', 'brand', 'model', 'city', 'country', 'category', 'media', 'specifications']);
 
         // Filter by status if provided
         if ($request->filled('status')) {
@@ -155,7 +155,7 @@ class UniqueAdsController extends Controller
         }
 
         $query = Ad::where('type', 'unique')
-            ->with(['uniqueAd', 'uniqueAd.bannerImage', 'user', 'brand', 'model', 'city', 'country', 'category', 'media']);
+            ->with(['uniqueAd', 'uniqueAd.bannerImage', 'user', 'brand', 'model', 'city', 'country', 'category', 'media', 'specifications']);
 
         // Filter by status if provided
         if ($request->filled('status')) {
@@ -393,11 +393,24 @@ class UniqueAdsController extends Controller
                         ]);
                 }
 
+                // Store specifications if provided
+                if ($request->has('specifications') && is_array($request->specifications)) {
+                    foreach ($request->specifications as $spec) {
+                        if (isset($spec['specification_id']) && isset($spec['value'])) {
+                            \App\Models\AdSpecification::create([
+                                'ad_id' => $ad->id,
+                                'specification_id' => $spec['specification_id'],
+                                'value' => $spec['value'],
+                            ]);
+                        }
+                    }
+                }
+
                 return $ad;
             });
 
             // Load relationships for response
-            $ad->load(['uniqueAd', 'uniqueAd.bannerImage', 'uniqueAd.typeDefinition', 'user', 'brand', 'model', 'city', 'country', 'category', 'media']);
+            $ad->load(['uniqueAd', 'uniqueAd.bannerImage', 'uniqueAd.typeDefinition', 'user', 'brand', 'model', 'city', 'country', 'category', 'media', 'specifications']);
 
             Log::info('Unique ad created successfully', [
                 'ad_id' => $ad->id,
@@ -521,10 +534,29 @@ class UniqueAdsController extends Controller
                             ]);
                     }
                 }
+
+                // Update specifications if provided
+                if ($request->has('specifications')) {
+                    // Delete old specifications
+                    $ad->adSpecifications()->delete();
+                    
+                    // Create new ones
+                    if (is_array($request->specifications)) {
+                        foreach ($request->specifications as $spec) {
+                            if (isset($spec['specification_id']) && isset($spec['value'])) {
+                                \App\Models\AdSpecification::create([
+                                    'ad_id' => $ad->id,
+                                    'specification_id' => $spec['specification_id'],
+                                    'value' => $spec['value'],
+                                ]);
+                            }
+                        }
+                    }
+                }
             });
 
             // Load relationships for response
-            $ad->load(['uniqueAd', 'uniqueAd.bannerImage', 'user', 'brand', 'model', 'city', 'country', 'category', 'media']);
+            $ad->load(['uniqueAd', 'uniqueAd.bannerImage', 'user', 'brand', 'model', 'city', 'country', 'category', 'media', 'specifications']);
 
             Log::info('Unique ad updated successfully', [
                 'ad_id' => $ad->id,

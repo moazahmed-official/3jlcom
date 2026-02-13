@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 
 class CarModel extends Model
 {
@@ -35,5 +36,14 @@ class CarModel extends Model
     public function brand(): BelongsTo
     {
         return $this->belongsTo(Brand::class);
+    }
+
+    /**
+     * Accessor for `name` expected by API resources.
+     * Falls back to name_en then name_ar.
+     */
+    protected function name(): Attribute
+    {
+        return Attribute::get(fn () => $this->attributes['name_en'] ?? $this->attributes['name_ar'] ?? null);
     }
 }

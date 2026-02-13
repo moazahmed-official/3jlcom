@@ -21,7 +21,7 @@ class NormalAdsController extends Controller
     public function index(Request $request): AnonymousResourceCollection
     {
         $query = Ad::where('type', 'normal')
-            ->with(['normalAd', 'user', 'brand', 'model', 'city', 'country', 'category', 'media'])
+            ->with(['normalAd', 'user', 'brand', 'model', 'city', 'country', 'category', 'media', 'specifications'])
             ->where('status', 'published'); // Only show published ads
 
         // Filter by brand
@@ -98,7 +98,7 @@ class NormalAdsController extends Controller
     {
         $query = Ad::where('type', 'normal')
             ->where('user_id', auth()->id())
-            ->with(['normalAd', 'user', 'brand', 'model', 'city', 'country', 'category', 'media']);
+            ->with(['normalAd', 'user', 'brand', 'model', 'city', 'country', 'category', 'media', 'specifications']);
 
         // Filter by status if provided
         if ($request->filled('status')) {
@@ -151,7 +151,7 @@ class NormalAdsController extends Controller
         }
 
         $query = Ad::where('type', 'normal')
-            ->with(['normalAd', 'user', 'brand', 'model', 'city', 'country', 'category', 'media']);
+            ->with(['normalAd', 'user', 'brand', 'model', 'city', 'country', 'category', 'media', 'specifications']);
 
         // Filter by status if provided
         if ($request->filled('status')) {
@@ -296,10 +296,23 @@ class NormalAdsController extends Controller
                     ]);
             }
 
+            // Store specifications if provided
+            if ($request->has('specifications') && is_array($request->specifications)) {
+                foreach ($request->specifications as $spec) {
+                    if (isset($spec['specification_id']) && isset($spec['value'])) {
+                        \App\Models\AdSpecification::create([
+                            'ad_id' => $ad->id,
+                            'specification_id' => $spec['specification_id'],
+                            'value' => $spec['value'],
+                        ]);
+                    }
+                }
+            }
+
             DB::commit();
 
             // Load relationships for response
-            $ad->load(['normalAd', 'user', 'brand', 'model', 'city', 'country', 'category', 'media']);
+            $ad->load(['normalAd', 'user', 'brand', 'model', 'city', 'country', 'category', 'media', 'specifications']);
 
             Log::info('Normal ad created successfully', [
                 'ad_id' => $ad->id,
@@ -334,7 +347,7 @@ class NormalAdsController extends Controller
     public function show($id): JsonResponse
     {
         $ad = Ad::where('type', 'normal')
-            ->with(['normalAd', 'user', 'brand', 'model', 'city', 'country', 'category', 'media'])
+            ->with(['normalAd', 'user', 'brand', 'model', 'city', 'country', 'category', 'media', 'specifications'])
             ->find($id);
 
         if (!$ad) {
@@ -418,10 +431,29 @@ class NormalAdsController extends Controller
                 }
             }
 
+            // Update specifications if provided
+            if ($request->has('specifications')) {
+                // Delete old specifications
+                $ad->adSpecifications()->delete();
+                
+                // Create new ones
+                if (is_array($request->specifications)) {
+                    foreach ($request->specifications as $spec) {
+                        if (isset($spec['specification_id']) && isset($spec['value'])) {
+                            \App\Models\AdSpecification::create([
+                                'ad_id' => $ad->id,
+                                'specification_id' => $spec['specification_id'],
+                                'value' => $spec['value'],
+                            ]);
+                        }
+                    }
+                }
+            }
+
             DB::commit();
 
             // Load relationships for response
-            $ad->load(['normalAd', 'user', 'brand', 'model', 'city', 'country', 'category', 'media']);
+            $ad->load(['normalAd', 'user', 'brand', 'model', 'city', 'country', 'category', 'media', 'specifications']);
 
             Log::info('Normal ad updated successfully', [
                 'ad_id' => $ad->id,

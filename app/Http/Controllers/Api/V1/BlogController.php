@@ -139,7 +139,7 @@ class BlogController extends BaseApiController
             'title' => 'required|string|max:255',
             'category_id' => 'nullable|exists:categories,id',
             'image_id' => 'nullable|exists:media,id',
-            'body' => 'required|string',
+            'body' => 'required',
             'status' => 'required|in:draft,published,archived',
         ]);
 
@@ -148,7 +148,14 @@ class BlogController extends BaseApiController
         }
 
         try {
-            $blog = Blog::create($request->all());
+            $data = $request->all();
+
+            // If body is structured (array), store as JSON string; otherwise store as string (HTML or plain text)
+            if (isset($data['body']) && is_array($data['body'])) {
+                $data['body'] = json_encode($data['body']);
+            }
+
+            $blog = Blog::create($data);
             $blog->load(['category', 'image']);
 
             return $this->success(
@@ -175,7 +182,7 @@ class BlogController extends BaseApiController
             'title' => 'sometimes|required|string|max:255',
             'category_id' => 'nullable|exists:categories,id',
             'image_id' => 'nullable|exists:media,id',
-            'body' => 'sometimes|required|string',
+            'body' => 'sometimes|required',
             'status' => 'sometimes|required|in:draft,published,archived',
         ]);
 
@@ -184,7 +191,12 @@ class BlogController extends BaseApiController
         }
 
         try {
-            $blog->update($request->all());
+            $data = $request->all();
+            if (isset($data['body']) && is_array($data['body'])) {
+                $data['body'] = json_encode($data['body']);
+            }
+
+            $blog->update($data);
             $blog->load(['category', 'image']);
 
             return $this->success(

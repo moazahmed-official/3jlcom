@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 
 class Brand extends Model
 {
@@ -22,5 +23,14 @@ class Brand extends Model
     public function models(): HasMany
     {
         return $this->hasMany(CarModel::class, 'brand_id');
+    }
+
+    /**
+     * Accessor for `name` expected by API resources.
+     * Falls back to name_en then name_ar.
+     */
+    protected function name(): Attribute
+    {
+        return Attribute::get(fn () => $this->attributes['name_en'] ?? $this->attributes['name_ar'] ?? null);
     }
 }

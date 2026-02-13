@@ -80,6 +80,18 @@ class NormalAdResource extends JsonResource
                 ];
             }),
             
+            'specifications' => $this->whenLoaded('specifications', function () {
+                return $this->specifications->map(function ($spec) {
+                    return [
+                        'id' => $spec->id,
+                        'name_en' => $spec->name_en,
+                        'name_ar' => $spec->name_ar,
+                        'type' => $spec->type,
+                        'value' => $spec->pivot->value,
+                    ];
+                });
+            }),
+            
             'media' => MediaResource::collection($this->whenLoaded('media')),
             
             'installment' => $this->whenLoaded('normalAd.installment', function () {

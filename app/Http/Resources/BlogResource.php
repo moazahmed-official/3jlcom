@@ -14,7 +14,17 @@ class BlogResource extends JsonResource
             'title' => $this->title,
             'category_id' => $this->category_id,
             'image_id' => $this->image_id,
-            'body' => $this->body,
+            // Body may be stored as HTML/text or as JSON-encoded blocks. Decode if JSON.
+            'body' => $this->when(
+                true,
+                function () {
+                    if (is_string($this->body)) {
+                        $decoded = json_decode($this->body, true);
+                        return json_last_error() === JSON_ERROR_NONE ? $decoded : $this->body;
+                    }
+                    return $this->body;
+                }
+            ),
             'status' => $this->status,
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),
@@ -34,6 +44,7 @@ class BlogResource extends JsonResource
                     'type' => $this->image->type,
                 ];
             }),
+            
         ];
     }
 }
