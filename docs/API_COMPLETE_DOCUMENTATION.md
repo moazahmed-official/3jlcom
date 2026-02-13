@@ -1305,6 +1305,9 @@ Feature not in package:
 
 ---
 
+**Note:** The `body` field for blogs may be provided as an HTML/text string or as a JSON array of structured blocks (headers, paragraphs, images, quotes, etc.). The API stores block arrays as JSON and returns decoded blocks when present. The API does not expose or accept an `author` field.
+
+
 ## Specifications
 
 Admin-only management of vehicle specifications (features, options).

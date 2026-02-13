@@ -22,10 +22,28 @@ class StoreMediaRequest extends FormRequest
                 'mimes:jpeg,png,jpg,gif,webp,mp4,mov,avi,wmv',
                 'max:10240', // 10MB max
             ],
-            'purpose' => 'nullable|string|in:ad,profile,general,brand,model',
+            // accept 'other' from frontend as well; we'll normalize in prepareForValidation
+            'purpose' => 'nullable|string|in:ad,profile,general,brand,model,other',
             'related_resource' => 'nullable|string|max:255',
             'related_id' => 'nullable|integer|min:1',
         ];
+    }
+
+    /**
+     * Prepare the data for validation.
+     * Map frontend 'other' purpose to an accepted backend value.
+     */
+    protected function prepareForValidation(): void
+    {
+        $purpose = $this->input('purpose');
+        \Log::info('StoreMediaRequest prepareForValidation', ['original_purpose' => $purpose]);
+        if (is_string($purpose)) {
+            $lower = strtolower($purpose);
+            if ($lower === 'other') {
+                // normalize frontend 'other' to backend 'general'
+                $this->merge(['purpose' => 'general']);
+            }
+        }
     }
 
     public function messages(): array

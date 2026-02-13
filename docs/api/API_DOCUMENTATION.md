@@ -3689,6 +3689,8 @@ curl -X POST http://localhost:8000/api/v1/admin/blogs \
   }'
 ```
 
+Note: the `body` field may be either an HTML/text string or a JSON array of structured blocks (images, quotes, headers, paragraphs). If an array is provided it will be stored as JSON.
+
 ---
 
 ### 18.6 Update Blog (Admin)

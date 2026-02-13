@@ -23,7 +23,8 @@ class StoreMediaRequest extends FormRequest
             'purpose' => [
                 'nullable',
                 'string',
-                'in:ad,profile,general,brand,model'
+                // Accept frontend 'other' and normalize in prepareForValidation
+                'in:ad,profile,general,brand,model,other'
             ],
             'related_resource' => [
                 'nullable',
@@ -48,5 +49,14 @@ class StoreMediaRequest extends FormRequest
             'purpose.in' => 'Purpose must be one of: ad, profile, general, brand, model.',
             'related_id.min' => 'Related ID must be a positive integer.',
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $purpose = $this->input('purpose');
+        \Log::info('StoreMediaRequest (root) prepareForValidation', ['original_purpose' => $purpose]);
+        if (is_string($purpose) && strtolower($purpose) === 'other') {
+            $this->merge(['purpose' => 'general']);
+        }
     }
 }

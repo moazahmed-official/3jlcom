@@ -20,6 +20,19 @@ class MediaController extends BaseApiController
      */
     public function store(StoreMediaRequest $request): JsonResponse
     {
+        // Debug incoming request (temporary)
+        \Log::info('MediaController.store incoming', [
+            'keys' => array_keys($request->all()),
+            'hasFile' => $request->hasFile('file'),
+            'allFiles' => array_keys($request->allFiles()),
+            'original_purpose' => $request->input('purpose'),
+        ]);
+
+        // Defensive normalization: map frontend 'other' to 'general'
+        if (is_string($request->input('purpose')) && strtolower($request->input('purpose')) === 'other') {
+            $request->merge(['purpose' => 'general']);
+        }
+
         $validated = $request->validated();
         $file = $request->file('file');
         

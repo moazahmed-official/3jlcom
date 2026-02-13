@@ -424,6 +424,9 @@ Route::prefix('v1')->group(function () {
         Route::post('admin/blogs', [BlogController::class, 'store']); // Create blog (admin)
         Route::put('admin/blogs/{blog}', [BlogController::class, 'update']); // Update blog (admin)
         Route::delete('admin/blogs/{blog}', [BlogController::class, 'destroy']); // Delete blog (admin)
+        // Publish / Unpublish actions for blogs (admin only)
+        Route::post('admin/blogs/{blog}/actions/publish', [BlogController::class, 'publish']);
+        Route::post('admin/blogs/{blog}/actions/unpublish', [BlogController::class, 'unpublish']);
         
         // SPECIFICATION ROUTES (Admin)
         // ============================

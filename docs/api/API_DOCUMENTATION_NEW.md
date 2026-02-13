@@ -2891,11 +2891,28 @@ Content management for blog posts.
 **Request Body:**
 ```json
 {
-  ""title"": ""New Blog Post"",
-  ""category_id"": 1,
-  ""image_id"": 10,
-  ""body"": ""<p>Blog content here...</p>"",
-  ""status"": ""published""
+  "title": "New Blog Post",
+  "category_id": 1,
+  "image_id": 10,
+  "body": "<p>Blog content here...</p>",
+  "status": "published"
+}
+```
+
+You may also send `body` as a structured array of blocks (JSON). The controller accepts either a string (HTML/text) or an array of block objects which will be stored as JSON.
+
+Example structured `body`:
+```json
+{
+  "title": "Structured Post",
+  "category_id": 3,
+  "body": [
+    {"type":"header","level":2,"text":"Introduction"},
+    {"type":"paragraph","text":"This paragraph contains **bold** text."},
+    {"type":"image","url":"https://cdn.example.com/photo.jpg","caption":"Photo caption"},
+    {"type":"quote","text":"An important quote","author":"Author Name"}
+  ],
+  "status": "published"
 }
 ```
 
@@ -2903,7 +2920,7 @@ Content management for blog posts.
 - `title`: required, string, max:255
 - `category_id`: nullable, exists:categories
 - `image_id`: nullable, exists:media
-- `body`: required, string
+- `body`: required; string (HTML/text) or array (structured blocks)
 - `status`: required, in:draft,published,archived
 
 ---

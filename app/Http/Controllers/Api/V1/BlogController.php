@@ -226,4 +226,48 @@ class BlogController extends BaseApiController
             return $this->error(500, 'Failed to delete blog: ' . $e->getMessage());
         }
     }
+
+    /**
+     * Publish a blog (admin only)
+     */
+    public function publish(Request $request, Blog $blog): JsonResponse
+    {
+        if (!$request->user()->isAdmin()) {
+            return $this->error(403, 'Unauthorized');
+        }
+
+        try {
+            $blog->update(['status' => 'published']);
+            $blog->load(['category', 'image']);
+
+            return $this->success(
+                new BlogResource($blog->fresh()),
+                'Blog published successfully'
+            );
+        } catch (\Exception $e) {
+            return $this->error(500, 'Failed to publish blog: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Unpublish a blog (set to draft) (admin only)
+     */
+    public function unpublish(Request $request, Blog $blog): JsonResponse
+    {
+        if (!$request->user()->isAdmin()) {
+            return $this->error(403, 'Unauthorized');
+        }
+
+        try {
+            $blog->update(['status' => 'draft']);
+            $blog->load(['category', 'image']);
+
+            return $this->success(
+                new BlogResource($blog->fresh()),
+                'Blog unpublished successfully'
+            );
+        } catch (\Exception $e) {
+            return $this->error(500, 'Failed to unpublish blog: ' . $e->getMessage());
+        }
+    }
 }
