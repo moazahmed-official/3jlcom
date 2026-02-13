@@ -9,6 +9,21 @@ class PackagesSeeder extends Seeder
 {
     public function run()
     {
+        // Standard Package - Default free package for all new users
+        DB::table('packages')->updateOrInsert(
+            ['name' => 'Standard Package'],
+            [
+                'description' => 'Free standard package for all users with basic features',
+                'price' => 0.00,
+                'duration_days' => 365,
+                'active' => true,
+                'visibility_type' => 'public',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]
+        );
+
+        // Other packages
         DB::table('packages')->insertOrIgnore([
             [
                 'name' => 'Dealer Pro',

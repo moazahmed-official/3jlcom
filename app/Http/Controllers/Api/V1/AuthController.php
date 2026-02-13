@@ -14,6 +14,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use App\Models\Package;
+use App\Models\UserPackage;
+use App\Services\PackageFeatureService;
 
 class AuthController extends BaseApiController
 {
@@ -78,7 +81,7 @@ class AuthController extends BaseApiController
                 'phone' => $request->input('phone'),
                 'country_id' => $request->input('country_id'),
                 'password' => Hash::make($request->input('password')),
-                'account_type' => $request->input('account_type'),
+                'account_type' => $request->input('account_type', 'individual'),
                 'otp' => Hash::make($otp),
                 'otp_expires_at' => $otpExpiresAt,
                 'email_verified_at' => null,
@@ -86,6 +89,24 @@ class AuthController extends BaseApiController
 
             // Send OTP notification
             $user->notify(new SendOtpNotification($otp, 'account verification'));
+
+            // Auto-assign the Standard Package (default package for all new users)
+            $defaultPackage = Package::where('name', 'Standard Package')->where('active', true)->first();
+            if ($defaultPackage) {
+                $userPackage = UserPackage::create([
+                    'user_id' => $user->id,
+                    'package_id' => $defaultPackage->id,
+                    'start_date' => now()->toDateString(),
+                    'active' => true,
+                ]);
+
+                // Apply package features to the new user immediately
+                try {
+                    (new PackageFeatureService())->applyPackageFeatures($userPackage);
+                } catch (\Exception $e) {
+                    // Non-fatal: swallow errors so registration still succeeds
+                }
+            }
 
             DB::commit();
 

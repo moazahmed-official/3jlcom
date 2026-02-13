@@ -10,6 +10,9 @@ use App\Http\Resources\UserResource;
 use App\Http\Traits\LogsAudit;
 use App\Models\User;
 use App\Models\SellerVerificationRequest;
+use App\Models\Package;
+use App\Models\UserPackage;
+use App\Services\PackageFeatureService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
@@ -39,6 +42,24 @@ class UserController extends BaseApiController
             'password' => Hash::make($validated['password']),
             'is_verified' => false,
         ]);
+
+        // Auto-assign the Standard Package (default package for all new users)
+        $defaultPackage = Package::where('name', 'Standard Package')->where('active', true)->first();
+        if ($defaultPackage) {
+            $userPackage = UserPackage::create([
+                'user_id' => $user->id,
+                'package_id' => $defaultPackage->id,
+                'start_date' => now()->toDateString(),
+                'active' => true,
+            ]);
+
+            // Apply package features to the new user immediately
+            try {
+                (new PackageFeatureService())->applyPackageFeatures($userPackage);
+            } catch (\Exception $e) {
+                // Non-fatal: swallow errors so user creation still succeeds
+            }
+        }
 
         // AUDIT LOG: Record user creation
         $this->auditLogUser('created', $user->id, [
