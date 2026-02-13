@@ -20,6 +20,11 @@ class SliderResource extends JsonResource
             'image_id' => $this->image_id,
             'image_url' => $this->image_url,
             'category_id' => $this->category_id,
+            // Provide category name directly when relation is loaded
+            'category_name' => $this->whenLoaded('category', function () {
+                return $this->category->name_en ?? $this->category->name_ar ?? null;
+            }),
+            'order' => $this->order,
             'value' => $this->value,
             'status' => $this->status,
             'is_active' => $this->isActive(),
@@ -30,7 +35,13 @@ class SliderResource extends JsonResource
             'media' => $this->whenLoaded('media', function () {
                 return new MediaResource($this->media);
             }),
-            'category' => $this->whenLoaded('category'),
+            'category' => $this->whenLoaded('category', function () {
+                return [
+                    'id' => $this->category->id,
+                    'name_en' => $this->category->name_en,
+                    'name_ar' => $this->category->name_ar,
+                ];
+            }),
         ];
     }
 }

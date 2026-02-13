@@ -22,6 +22,7 @@ class Slider extends Model
         'name',
         'image_id',
         'category_id',
+        'order',
         'value',
         'status',
     ];
@@ -32,6 +33,7 @@ class Slider extends Model
     protected $casts = [
         'image_id' => 'integer',
         'category_id' => 'integer',
+        'order' => 'integer',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];

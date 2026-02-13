@@ -22,7 +22,7 @@ class SliderController extends Controller
      */
     public function index(Request $request): AnonymousResourceCollection
     {
-        $query = Slider::query()->with('media');
+        $query = Slider::query()->with(['media', 'category']);
 
         // Public users only see active sliders; admins can see all with ?include_inactive=1
         $user = $request->user('sanctum') ?? $request->user();
@@ -58,7 +58,7 @@ class SliderController extends Controller
      */
     public function show($id): JsonResponse
     {
-        $slider = Slider::with('media')->find($id);
+        $slider = Slider::with(['media', 'category'])->find($id);
 
         if (!$slider) {
             return response()->json([
@@ -110,6 +110,7 @@ class SliderController extends Controller
                     'name' => $request->name,
                     'image_id' => $request->image_id,
                     'category_id' => $request->category_id,
+                    'order' => $request->order ?? 0,
                     'value' => $request->value,
                     'status' => $request->status ?? 'active',
                 ]);
@@ -117,7 +118,7 @@ class SliderController extends Controller
                 return $slider;
             });
 
-            $slider->load('media');
+            $slider->load(['media', 'category']);
 
             $this->auditLog(
                 actionType: 'slider.created',
@@ -188,12 +189,13 @@ class SliderController extends Controller
                     'name',
                     'image_id',
                     'category_id',
+                    'order',
                     'value',
                     'status',
                 ]));
             });
 
-            $slider->load('media');
+            $slider->load(['media', 'category']);
 
             $this->auditLog(
                 actionType: 'slider.updated',
@@ -337,7 +339,7 @@ class SliderController extends Controller
 
         try {
             $slider->activate();
-            $slider->load('media');
+            $slider->load(['media', 'category']);
 
             Log::info('Slider activated', [
                 'slider_id' => $slider->id,
@@ -404,7 +406,7 @@ class SliderController extends Controller
 
         try {
             $slider->deactivate();
-            $slider->load('media');
+            $slider->load(['media', 'category']);
 
             Log::info('Slider deactivated', [
                 'slider_id' => $slider->id,

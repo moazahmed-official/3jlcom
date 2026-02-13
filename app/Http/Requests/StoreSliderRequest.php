@@ -27,6 +27,7 @@ class StoreSliderRequest extends FormRequest
             'image_id' => 'required|integer|exists:media,id',
             'category_id' => 'nullable|integer|exists:categories,id',
             'value' => 'nullable|string|max:500',
+            'order' => 'nullable|integer|min:0',
             'status' => 'nullable|string|in:active,inactive',
         ];
     }
@@ -45,6 +46,8 @@ class StoreSliderRequest extends FormRequest
             'category_id.integer' => 'Category ID must be an integer',
             'category_id.exists' => 'Selected category does not exist',
             'value.max' => 'Value cannot exceed 500 characters',
+            'order.integer' => 'Order must be an integer',
+            'order.min' => 'Order must be at least 0',
             'status.in' => 'Status must be either active or inactive',
         ];
     }
@@ -59,6 +62,7 @@ class StoreSliderRequest extends FormRequest
             'image_id' => 'slider image',
             'category_id' => 'category',
             'value' => 'link/value',
+            'order' => 'display order',
             'status' => 'slider status',
         ];
     }
