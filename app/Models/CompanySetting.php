@@ -39,6 +39,7 @@ class CompanySetting extends Model
         'contact',
         'social_media',
         'app_link',
+        'site',
     ];
 
     /**
@@ -57,6 +58,9 @@ class CompanySetting extends Model
         'telegram_link',
         'whatsapp_link',
         'tiktok_link',
+        // Site
+        'site_name',
+        'site_logo',
         // App Links
         'android_app_link',
         'ios_app_link',
@@ -122,11 +126,22 @@ class CompanySetting extends Model
         return Cache::remember('company_settings_all', self::CACHE_DURATION, function () {
             return static::all()->groupBy('type')->map(function ($group) {
                 return $group->map(function ($setting) {
+                    $value = $setting->value;
+                    $description = $setting->description;
+
+                    // For logo keys, prefer returning media id as integer and update description
+                    if (preg_match('/_logo$/', $setting->key)) {
+                        if (is_numeric($value)) {
+                            $value = (int) $value;
+                        }
+                        $description = 'Media id (references media.id)';
+                    }
+
                     return [
                         'key' => $setting->key,
-                        'value' => $setting->value,
+                        'value' => $value,
                         'is_active' => $setting->is_active,
-                        'description' => $setting->description,
+                        'description' => $description,
                     ];
                 })->keyBy('key');
             })->toArray();
@@ -139,7 +154,7 @@ class CompanySetting extends Model
     public static function getActiveSettings(): array
     {
         return Cache::remember('company_settings_active', self::CACHE_DURATION, function () {
-            return static::where('is_active', true)->get()->groupBy('type')->map(function ($group) {
+            $grouped = static::where('is_active', true)->get()->groupBy('type')->map(function ($group) {
                 return $group->map(function ($setting) {
                     return [
                         'key' => $setting->key,
@@ -147,6 +162,24 @@ class CompanySetting extends Model
                     ];
                 })->keyBy('key');
             })->toArray();
+
+            // Post-process known media keys (e.g., site_logo) to return full media URL
+            foreach ($grouped as $type => &$settings) {
+                foreach ($settings as $key => &$item) {
+                    if (preg_match('/_logo$/', $key)) {
+                        // value expected to be media id (string or numeric)
+                        $mediaId = $item['value'];
+                        if (is_numeric($mediaId)) {
+                            $media = \App\Models\Media::find((int) $mediaId);
+                            if ($media) {
+                                $item['value'] = $media->url;
+                            }
+                        }
+                    }
+                }
+            }
+
+            return $grouped;
         });
     }
 
@@ -176,6 +209,35 @@ class CompanySetting extends Model
     public static function isValidKey(string $key): bool
     {
         return in_array($key, self::VALID_KEYS);
+    }
+
+    /**
+     * Determine setting type for a given key.
+     */
+    public static function typeForKey(string $key): string
+    {
+        // Site keys
+        if (in_array($key, ['site_name', 'site_logo'])) {
+            return 'site';
+        }
+
+        // Contact keys
+        if (in_array($key, ['phone', 'email', 'location'])) {
+            return 'contact';
+        }
+
+        // App links
+        if (in_array($key, ['android_app_link', 'ios_app_link'])) {
+            return 'app_link';
+        }
+
+        // Social media links (any * _link that isn't app_link)
+        if (str_ends_with($key, '_link')) {
+            return 'social_media';
+        }
+
+        // Fallback
+        return 'site';
     }
 
     /**

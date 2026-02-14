@@ -59,7 +59,24 @@ class CompanySettingController extends Controller
             ], 422);
         }
 
-        $settings = CompanySetting::getByType($type);
+        $settings = CompanySetting::getByType($type)->map(function ($setting) {
+            $value = $setting->value;
+            $description = $setting->description;
+
+            if (preg_match('/_logo$/', $setting->key)) {
+                if (is_numeric($value)) {
+                    $value = (int) $value;
+                }
+                $description = 'Media id (references media.id)';
+            }
+
+            return [
+                'key' => $setting->key,
+                'value' => $value,
+                'is_active' => $setting->is_active,
+                'description' => $description,
+            ];
+        })->keyBy('key');
 
         return response()->json([
             'status' => 'success',
@@ -106,6 +123,11 @@ class CompanySettingController extends Controller
             $rules['value'] = 'nullable|email|max:255';
         }
 
+        // Site logo should reference a media id
+        if ($key === 'site_logo') {
+            $rules['value'] = 'nullable|integer|exists:media,id';
+        }
+
         $validator = Validator::make($request->all(), $rules);
 
         if ($validator->fails()) {
@@ -120,13 +142,16 @@ class CompanySettingController extends Controller
         try {
             $setting = CompanySetting::where('key', $key)->first();
 
+            // Create the setting if it doesn't exist (allow admin to add new keys)
+            $created = false;
             if (!$setting) {
-                return response()->json([
-                    'status' => 'error',
-                    'code' => 404,
-                    'message' => 'Setting not found',
-                    'errors' => ['key' => ["No setting found for key: {$key}"]]
-                ], 404);
+                $setting = CompanySetting::create([
+                    'key' => $key,
+                    'value' => null,
+                    'type' => CompanySetting::typeForKey($key),
+                    'is_active' => true,
+                ]);
+                $created = true;
             }
 
             $updateData = [];
@@ -137,8 +162,8 @@ class CompanySettingController extends Controller
                 $updateData['is_active'] = $request->boolean('is_active');
             }
 
-            $oldValue = $setting->value;
-            $oldActive = $setting->is_active;
+            $oldValue = $setting->getOriginal('value');
+            $oldActive = $setting->getOriginal('is_active');
 
             $setting->update($updateData);
 
@@ -146,7 +171,7 @@ class CompanySettingController extends Controller
             CompanySetting::clearCache($key);
 
             $this->auditLog(
-                actionType: 'company_setting.updated',
+                actionType: $created ? 'company_setting.created' : 'company_setting.updated',
                 resourceType: 'company_setting',
                 resourceId: $setting->id,
                 details: [
@@ -241,8 +266,13 @@ class CompanySettingController extends Controller
 
                 $setting = CompanySetting::where('key', $key)->first();
                 if (!$setting) {
-                    $errors[$key] = 'Setting not found';
-                    continue;
+                    // create missing setting so admin can add new keys via bulk update
+                    $setting = CompanySetting::create([
+                        'key' => $key,
+                        'value' => null,
+                        'type' => CompanySetting::typeForKey($key),
+                        'is_active' => true,
+                    ]);
                 }
 
                 $updateData = [];
