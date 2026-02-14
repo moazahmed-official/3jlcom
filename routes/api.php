@@ -548,6 +548,7 @@ Route::prefix('v1')->group(function () {
 
     // Public brand routes
     Route::get('/brands', [BrandController::class, 'index']);
+    Route::get('/brands/{brand}', [BrandController::class, 'show']);
     Route::get('/brands/{brand}/models', [BrandController::class, 'models']);
     
     // Public blog routes

@@ -36,6 +36,16 @@ class BrandController extends BaseApiController
     }
 
     /**
+     * Display a single brand.
+     *
+     * GET /api/v1/brands/{brand}
+     */
+    public function show(Brand $brand): JsonResponse
+    {
+        return $this->success(new BrandResource($brand), 'Brand retrieved successfully');
+    }
+
+    /**
      * Store a newly created brand.
      *
      * POST /api/v1/brands
