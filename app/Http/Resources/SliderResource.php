@@ -24,7 +24,9 @@ class SliderResource extends JsonResource
             'category_name' => $this->whenLoaded('category', function () {
                 return $this->category->name_en ?? $this->category->name_ar ?? null;
             }),
+            'caption' => $this->caption,
             'order' => $this->order,
+            'link' => $this->link,
             'value' => $this->value,
             'status' => $this->status,
             'is_active' => $this->isActive(),

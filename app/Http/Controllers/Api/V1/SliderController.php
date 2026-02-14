@@ -111,6 +111,8 @@ class SliderController extends Controller
                     'image_id' => $request->image_id,
                     'category_id' => $request->category_id,
                     'order' => $request->order ?? 0,
+                    'link' => $request->link ?? null,
+                    'caption' => $request->caption ?? null,
                     'value' => $request->value,
                     'status' => $request->status ?? 'active',
                 ]);
@@ -190,6 +192,8 @@ class SliderController extends Controller
                     'image_id',
                     'category_id',
                     'order',
+                    'caption',
+                    'link',
                     'value',
                     'status',
                 ]));

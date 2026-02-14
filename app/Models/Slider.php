@@ -23,6 +23,8 @@ class Slider extends Model
         'image_id',
         'category_id',
         'order',
+        'link',
+        'caption',
         'value',
         'status',
     ];
@@ -34,6 +36,8 @@ class Slider extends Model
         'image_id' => 'integer',
         'category_id' => 'integer',
         'order' => 'integer',
+        'link' => 'string',
+        'caption' => 'string',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];

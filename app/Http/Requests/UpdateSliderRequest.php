@@ -27,6 +27,8 @@ class UpdateSliderRequest extends FormRequest
             'image_id' => 'sometimes|required|integer|exists:media,id',
             'category_id' => 'nullable|integer|exists:categories,id',
             'value' => 'nullable|string|max:500',
+            'link' => 'sometimes|nullable|url|max:2000',
+            'caption' => 'sometimes|nullable|string|max:500',
             'order' => 'sometimes|nullable|integer|min:0',
             'status' => 'nullable|string|in:active,inactive',
         ];
@@ -46,6 +48,9 @@ class UpdateSliderRequest extends FormRequest
             'category_id.integer' => 'Category ID must be an integer',
             'category_id.exists' => 'Selected category does not exist',
             'value.max' => 'Value cannot exceed 500 characters',
+            'link.url' => 'Link must be a valid URL',
+            'link.max' => 'Link cannot exceed 2000 characters',
+            'caption.max' => 'Caption cannot exceed 500 characters',
             'order.integer' => 'Order must be an integer',
             'order.min' => 'Order must be at least 0',
             'status.in' => 'Status must be either active or inactive',
@@ -62,7 +67,9 @@ class UpdateSliderRequest extends FormRequest
             'image_id' => 'slider image',
             'category_id' => 'category',
             'value' => 'link/value',
+            'caption' => 'caption',
             'order' => 'display order',
+            'link' => 'link',
             'status' => 'slider status',
         ];
     }
