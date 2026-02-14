@@ -4,9 +4,11 @@ namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use App\Traits\ResolvesStorageUrl;
 
 class SpecificationResource extends JsonResource
 {
+    use ResolvesStorageUrl;
     /**
      * Transform the resource into an array.
      *
@@ -28,7 +30,7 @@ class SpecificationResource extends JsonResource
             'image' => $this->whenLoaded('image', function () {
                 return [
                     'id' => $this->image->id,
-                    'url' => $this->image->url,
+                    'url' => $this->resolveStorageUrl($this->image->url),
                     'type' => $this->image->type,
                 ];
             }),

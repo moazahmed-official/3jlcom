@@ -23,6 +23,7 @@ class CarModel extends Model
         'year_from',
         'year_to',
         'image',
+        'image_id',
     ];
 
     protected $casts = [
@@ -36,6 +37,11 @@ class CarModel extends Model
     public function brand(): BelongsTo
     {
         return $this->belongsTo(Brand::class);
+    }
+
+    public function imageMedia()
+    {
+        return $this->belongsTo(\App\Models\Media::class, 'image_id');
     }
 
     /**

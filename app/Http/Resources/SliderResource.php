@@ -4,9 +4,11 @@ namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use App\Traits\ResolvesStorageUrl;
 
 class SliderResource extends JsonResource
 {
+    use ResolvesStorageUrl;
     /**
      * Transform the resource into an array.
      *
@@ -18,7 +20,7 @@ class SliderResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'image_id' => $this->image_id,
-            'image_url' => $this->image_url,
+            'image_url' => $this->resolveStorageUrl($this->image_url),
             'category_id' => $this->category_id,
             // Provide category name directly when relation is loaded
             'category_name' => $this->whenLoaded('category', function () {

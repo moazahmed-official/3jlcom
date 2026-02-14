@@ -15,7 +15,13 @@ class Brand extends Model
         'name_en',
         'name_ar',
         'image',
+        'image_id',
     ];
+
+    public function imageMedia()
+    {
+        return $this->belongsTo(\App\Models\Media::class, 'image_id');
+    }
 
     /**
      * Get the models for this brand.
