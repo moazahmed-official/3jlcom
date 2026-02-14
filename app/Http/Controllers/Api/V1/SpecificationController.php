@@ -77,7 +77,14 @@ class SpecificationController extends BaseApiController
             'type' => 'required|in:text,number,select,boolean',
             'values' => 'nullable|array',
             'image_id' => 'nullable|exists:media,id',
+            'media_id' => 'nullable|exists:media,id',
         ]);
+
+        // Accept both media_id (preferred) and image_id for backward compatibility.
+        if (!empty($validated['media_id'])) {
+            $validated['image_id'] = $validated['media_id'];
+            unset($validated['media_id']);
+        }
 
         $specification = Specification::create($validated);
         $specification->load('image');
@@ -112,7 +119,14 @@ class SpecificationController extends BaseApiController
             'type' => 'sometimes|required|in:text,number,select,boolean',
             'values' => 'nullable|array',
             'image_id' => 'nullable|exists:media,id',
+            'media_id' => 'nullable|exists:media,id',
         ]);
+
+        // Map media_id to image_id if provided
+        if (!empty($validated['media_id'])) {
+            $validated['image_id'] = $validated['media_id'];
+            unset($validated['media_id']);
+        }
 
         $oldData = $specification->only(['name_en', 'name_ar', 'type']);
         $specification->update($validated);

@@ -20,7 +20,7 @@ class CategoryController extends BaseApiController
             return $this->error(403, 'Unauthorized');
         }
 
-        $query = Category::with('specifications');
+        $query = Category::with('specifications.image');
 
         // Search
         if ($request->filled('search')) {
@@ -54,7 +54,7 @@ class CategoryController extends BaseApiController
             return $this->error(403, 'Unauthorized');
         }
 
-        $category->load('specifications');
+        $category->load('specifications.image');
 
         return $this->success(
             new CategoryResource($category),
@@ -175,7 +175,7 @@ class CategoryController extends BaseApiController
      */
     public function publicIndex(Request $request)
     {
-        $query = Category::with('specifications');
+        $query = Category::with('specifications.image');
 
         if ($request->filled('search')) {
             $query->search($request->search);
@@ -217,7 +217,7 @@ class CategoryController extends BaseApiController
             $syncData[$specId] = ['order' => $index];
         }
 
-        $oldSpecs = $category->specifications()->pluck('id')->toArray();
+        $oldSpecs = $category->specifications()->pluck('specifications.id')->toArray();
 
         // Sync specifications (removes old ones, adds new ones)
         $category->specifications()->sync($syncData);

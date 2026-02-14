@@ -4,9 +4,11 @@ namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use App\Traits\ResolvesStorageUrl;
 
 class CategoryResource extends JsonResource
 {
+    use ResolvesStorageUrl;
     /**
      * Transform the resource into an array.
      *
@@ -22,12 +24,22 @@ class CategoryResource extends JsonResource
             'specs_group_id' => $this->specs_group_id,
             'specifications' => $this->whenLoaded('specifications', function () {
                 return $this->specifications->map(function ($spec) {
+                    $image = null;
+                    if (method_exists($spec, 'relationLoaded') && $spec->relationLoaded('image') && $spec->image) {
+                        $image = [
+                            'id' => $spec->image->id,
+                            'url' => $this->resolveStorageUrl($spec->image->url),
+                            'type' => $spec->image->type,
+                        ];
+                    }
+
                     return [
                         'id' => $spec->id,
                         'name_en' => $spec->name_en,
                         'name_ar' => $spec->name_ar,
                         'type' => $spec->type,
                         'order' => $spec->pivot->order,
+                        'image' => $image,
                     ];
                 });
             }),
