@@ -398,7 +398,7 @@ Route::prefix('v1')->group(function () {
         Route::get('admin/notifications/sent/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminSentNotificationController::class, 'show']);
         // Admin: audit logs management
         Route::get('admin/audit-logs', [AdminAuditLogController::class, 'index']);
-        Route::get('admin/audit-logs/{audit_log}', [AdminAuditLogController::class, 'show']);
+        Route::get('admin/audit-logs/{audit_log}', [AdminAuditLogController::class, 'show'])->where('audit_log', '[0-9]+');
         Route::get('admin/audit-logs/stats', [AdminAuditLogController::class, 'stats']);
         Route::post('admin/audit-logs/mark-read', [AdminAuditLogController::class, 'markRead']);
         Route::post('admin/audit-logs/mark-unread', [AdminAuditLogController::class, 'markUnread']);
@@ -406,7 +406,7 @@ Route::prefix('v1')->group(function () {
         Route::post('admin/audit-logs/bulk', [AdminAuditLogController::class, 'bulk']);
         Route::get('admin/audit-logs/unread-count', [AdminAuditLogController::class, 'unreadCount']);
         Route::get('admin/audit-logs/counts', [AdminAuditLogController::class, 'counts']);
-        Route::delete('admin/audit-logs/{audit_log}', [AdminAuditLogController::class, 'destroy']);
+        Route::delete('admin/audit-logs/{audit_log}', [AdminAuditLogController::class, 'destroy'])->where('audit_log', '[0-9]+');
         Route::post('findit-ads/{findit_ad}/refresh-matches', [FindItAdsController::class, 'refreshMatches']); // Refresh matches
         
         // =====================
@@ -538,9 +538,7 @@ Route::prefix('v1')->group(function () {
         
         // Admin-only audit logging for compliance, forensics, and security monitoring
         // SECURITY: These routes are protected by AuditLogPolicy - admin and super_admin only
-        Route::get('admin/audit-logs', [AdminAuditLogController::class, 'index']); // List audit logs with filtering
-        Route::get('admin/audit-logs/stats', [AdminAuditLogController::class, 'stats']); // Audit log statistics
-        Route::get('admin/audit-logs/{audit_log}', [AdminAuditLogController::class, 'show']); // View single audit log
+        // (Defined earlier to ensure proper route ordering and parameter constraints)
         
         // =====================
         // PAGE CONTENT ROUTES (Admin)
