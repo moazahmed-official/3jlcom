@@ -21,12 +21,23 @@ class AdminSentNotificationController extends BaseApiController
 
         $query = AdminSentNotification::query();
 
+        $search = trim((string) $request->get('search', ''));
         if ($request->filled('title')) {
             $query->where('title', 'like', '%' . $request->get('title') . '%');
         }
 
         if ($request->filled('sent_by')) {
             $query->where('sent_by', $request->get('sent_by'));
+        }
+
+        if ($search !== '') {
+            $query->where(function ($q) use ($search) {
+                $q->where('title', 'like', "%{$search}%")
+                    ->orWhere('body', 'like', "%{$search}%")
+                    ->orWhere('image', 'like', "%{$search}%")
+                    ->orWhere('action_url', 'like', "%{$search}%")
+                    ->orWhereJsonContains('data', $search);
+            });
         }
 
         $perPage = min($request->get('limit', 20), 100);

@@ -79,7 +79,14 @@ class AdminAuditLogController extends Controller
         ]);
 
         // Build query with filters
-        $query = AuditLog::query()->with('actor:id,name,email');
+        $userId = $request->user()->id;
+        // Eager-load actor and current user's read state to avoid N+1
+        $query = AuditLog::query()->with([
+            'actor:id,name,email',
+            'reads' => function ($q) use ($userId) {
+                $q->where('user_id', $userId);
+            }
+        ]);
 
         // Apply filters
         if ($request->filled('start_date')) {
@@ -133,6 +140,13 @@ class AdminAuditLogController extends Controller
         // Pagination
         $perPage = min($request->get('per_page', 50), 500);
         $logs = $query->paginate($perPage);
+
+        // Attach `is_read` boolean per-item for the current admin and remove raw `reads` relation
+        $logs->getCollection()->transform(function ($log) {
+            $log->is_read = (isset($log->reads) && count($log->reads) > 0) ? true : false;
+            unset($log->reads);
+            return $log;
+        });
 
         return response()->json([
             'success' => true,

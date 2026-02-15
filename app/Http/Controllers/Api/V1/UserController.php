@@ -84,9 +84,29 @@ class UserController extends BaseApiController
      */
     public function index(): JsonResponse
     {
-        // Placeholder for future implementation
-        // This would include pagination and filtering
-        $users = User::paginate(20);
+        $request = request();
+        $search = trim((string) $request->get('search', ''));
+        $perPage = min((int) $request->get('per_page', 20), 100);
+
+        $query = User::query();
+
+        if ($search !== '') {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%");
+            });
+        }
+
+        // Optional filters
+        if ($request->filled('status')) {
+            $query->where('status', $request->get('status'));
+        }
+        if ($request->filled('account_type')) {
+            $query->where('account_type', $request->get('account_type'));
+        }
+
+        $users = $query->orderBy('name')->paginate($perPage);
 
         return $this->successPaginated(
             $users->through(fn($user) => new UserResource($user)),
