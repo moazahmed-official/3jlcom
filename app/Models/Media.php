@@ -44,7 +44,7 @@ class Media extends Model
 
         // If running in HTTP request context, prefer building URL from request host
         if (app()->runningInConsole() === false && request()) {
-            $base = request()->getSchemeAndHttpHost();
+            $base = config('app.url') ?: request()->getSchemeAndHttpHost();
             return rtrim($base, '/') . '/' . ltrim('storage/' . $this->path, '/');
         }
 
@@ -59,7 +59,7 @@ class Media extends Model
         }
 
         if (app()->runningInConsole() === false && request()) {
-            $base = request()->getSchemeAndHttpHost();
+            $base = config('app.url') ?: request()->getSchemeAndHttpHost();
             return rtrim($base, '/') . '/' . ltrim('storage/' . $this->thumbnail_url, '/');
         }
 

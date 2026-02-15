@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\V1\RoleController;
 use App\Http\Controllers\Api\V1\UserController;
 use App\Http\Controllers\Api\V1\SellerVerificationController;
 use App\Http\Controllers\Api\V1\BrandController;
+use App\Http\Controllers\Api\V1\ModelController;
 use App\Http\Controllers\Api\V1\SliderController;
 use App\Http\Controllers\Api\V1\AuctionAdsController;
 use App\Http\Controllers\FindItAdsController;
@@ -87,6 +88,8 @@ Route::prefix('v1')->group(function () {
         Route::post('/brands/{brand}/models', [BrandController::class, 'storeModel']);
         Route::put('/brands/{brand}/models/{model}', [BrandController::class, 'updateModel']);
         Route::delete('/brands/{brand}/models/{model}', [BrandController::class, 'destroyModel']);
+        // Public/global models listing/search
+        Route::get('/models', [ModelController::class, 'index']);
         
         // Media management routes
         Route::get('/media', [MediaController::class, 'index']);
@@ -390,6 +393,20 @@ Route::prefix('v1')->group(function () {
         
         // Admin notification sending
         Route::post('notifications/send', [NotificationController::class, 'send']); // Admin: send notification
+        // Admin: view sent notifications log
+        Route::get('admin/notifications/sent', [\App\Http\Controllers\Api\V1\Admin\AdminSentNotificationController::class, 'index']);
+        Route::get('admin/notifications/sent/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminSentNotificationController::class, 'show']);
+        // Admin: audit logs management
+        Route::get('admin/audit-logs', [AdminAuditLogController::class, 'index']);
+        Route::get('admin/audit-logs/{audit_log}', [AdminAuditLogController::class, 'show']);
+        Route::get('admin/audit-logs/stats', [AdminAuditLogController::class, 'stats']);
+        Route::post('admin/audit-logs/mark-read', [AdminAuditLogController::class, 'markRead']);
+        Route::post('admin/audit-logs/mark-unread', [AdminAuditLogController::class, 'markUnread']);
+        Route::post('admin/audit-logs/archive', [AdminAuditLogController::class, 'archive']);
+        Route::post('admin/audit-logs/bulk', [AdminAuditLogController::class, 'bulk']);
+        Route::get('admin/audit-logs/unread-count', [AdminAuditLogController::class, 'unreadCount']);
+        Route::get('admin/audit-logs/counts', [AdminAuditLogController::class, 'counts']);
+        Route::delete('admin/audit-logs/{audit_log}', [AdminAuditLogController::class, 'destroy']);
         Route::post('findit-ads/{findit_ad}/refresh-matches', [FindItAdsController::class, 'refreshMatches']); // Refresh matches
         
         // =====================

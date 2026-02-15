@@ -41,6 +41,8 @@ class AdminNotification extends Notification
             'message' => $this->notificationData['body'], // Alias for compatibility
             'data' => $this->notificationData['data'] ?? [],
             'action_url' => $this->notificationData['action_url'] ?? null,
+            // Optional image URL (string) if provided by admin
+            'image' => $this->notificationData['image'] ?? null,
             'sent_by' => $this->notificationData['sent_by'] ?? null,
             'type' => 'admin_message',
         ];

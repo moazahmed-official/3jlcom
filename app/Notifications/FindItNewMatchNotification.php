@@ -69,6 +69,7 @@ class FindItNewMatchNotification extends Notification implements ShouldQueue
             'top_match_score' => $this->topMatch?->match_score,
             'top_match_ad_id' => $this->topMatch?->ad_id,
             'message' => "Found {$this->newMatchesCount} new matches for \"{$this->finditRequest->title}\"",
+            'action_url' => url("/findit/{$this->finditRequest->id}/matches"),
         ];
     }
 

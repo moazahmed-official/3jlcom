@@ -18,6 +18,10 @@ class NotificationResource extends JsonResource
             'type_raw' => class_basename($this->type),
             'title' => $this->data['title'] ?? null,
             'body' => $this->data['body'] ?? $this->data['message'] ?? null,
+            // Convenience top-level image: prefer DB column if present, fallback to data.image
+            'image' => $this->image ?? ($this->data['image'] ?? null),
+            // Top-level action_url: prefer DB column, fallback to data.action_url
+            'action_url' => $this->action_url ?? ($this->data['action_url'] ?? null),
             'data' => $this->formatData($this->data),
             'read' => !is_null($this->read_at),
             'read_at' => $this->read_at?->toIso8601String(),

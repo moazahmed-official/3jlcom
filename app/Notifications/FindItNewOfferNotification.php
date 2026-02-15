@@ -72,6 +72,7 @@ class FindItNewOfferNotification extends Notification implements ShouldQueue
             'offeror_id' => $this->offer->user_id,
             'offeror_name' => $this->offer->user->name ?? 'Unknown',
             'message' => "New offer of " . number_format($this->offer->price) . " on \"{$finditRequest->title}\"",
+            'action_url' => url("/findit/{$finditRequest->id}/offers"),
         ];
     }
 

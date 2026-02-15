@@ -70,6 +70,7 @@ class FindItOfferAcceptedNotification extends Notification implements ShouldQueu
             'buyer_id' => $finditRequest->user_id,
             'buyer_name' => $finditRequest->user->name ?? 'Unknown',
             'message' => "Your offer of " . number_format($this->offer->price) . " on \"{$finditRequest->title}\" was accepted!",
+            'action_url' => url("/findit-offers/{$this->offer->id}"),
         ];
     }
 

@@ -67,6 +67,7 @@ class ReviewReceivedNotification extends Notification implements ShouldQueue
             'ad_title' => $adTitle,
             'excerpt' => $excerpt,
             'created_at' => $this->review->created_at->toIso8601String(),
+            'action_url' => $targetType === 'ad' && isset($this->review->ad) ? url("/ads/{$this->review->ad->id}") : url('/profile'),
         ];
     }
 

@@ -243,4 +243,12 @@ class AuditLog extends Model
         self::where('id', $this->id)->update(['archived_at' => now()]);
         $this->archived_at = now();
     }
+
+    /**
+     * Relationship: reads by admin users marking this log as read.
+     */
+    public function reads()
+    {
+        return $this->hasMany(AuditLogRead::class, 'audit_log_id');
+    }
 }

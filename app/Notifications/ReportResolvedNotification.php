@@ -63,6 +63,7 @@ class ReportResolvedNotification extends Notification implements ShouldQueue
             'reason' => $this->report->reason,
             'admin_message' => $this->message,
             'updated_at' => $this->report->updated_at->toIso8601String(),
+            'action_url' => url("/reports/{$this->report->id}"),
         ];
     }
 

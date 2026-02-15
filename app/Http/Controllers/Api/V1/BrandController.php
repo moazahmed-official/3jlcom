@@ -26,8 +26,17 @@ class BrandController extends BaseApiController
      */
     public function index(Request $request): JsonResponse
     {
-        $brands = Brand::orderBy('name_en')
-            ->paginate($request->get('per_page', 20));
+        $search = trim((string) $request->get('search', ''));
+        $perPage = min((int) $request->get('per_page', 20), 100);
+
+        $brands = Brand::when($search !== '', function ($q) use ($search) {
+                $q->where(function ($q2) use ($search) {
+                    $q2->where('name_en', 'like', "%{$search}%")
+                        ->orWhere('name_ar', 'like', "%{$search}%");
+                });
+            })
+            ->orderBy('name_en')
+            ->paginate($perPage);
 
         return $this->successPaginated(
             $brands->through(fn($brand) => new BrandResource($brand)),
@@ -81,9 +90,18 @@ class BrandController extends BaseApiController
      */
     public function models(Request $request, Brand $brand): JsonResponse
     {
+        $search = trim((string) $request->get('search', ''));
+        $perPage = min((int) $request->get('per_page', 20), 100);
+
         $models = $brand->models()
+            ->when($search !== '', function ($q) use ($search) {
+                $q->where(function ($q2) use ($search) {
+                    $q2->where('name_en', 'like', "%{$search}%")
+                        ->orWhere('name_ar', 'like', "%{$search}%");
+                });
+            })
             ->orderBy('name_en')
-            ->paginate($request->get('per_page', 20));
+            ->paginate($perPage);
 
         return $this->successPaginated(
             $models->through(fn($model) => new ModelResource($model)),

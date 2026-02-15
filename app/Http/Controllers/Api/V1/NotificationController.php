@@ -162,6 +162,9 @@ class NotificationController extends BaseApiController
             'body' => ['required', 'string', 'max:2000'],
             'data' => ['nullable', 'array'],
             'action_url' => ['nullable', 'string', 'url'],
+            // allow admin to attach an image by media id or direct url
+            'image_id' => ['nullable', 'integer', 'exists:media,id'],
+            'image_url' => ['nullable', 'string', 'url', 'max:2048'],
             'channel' => ['nullable', 'string', 'in:database,mail,fcm'], // Optional, not used in current implementation
         ]);
 
@@ -170,10 +173,23 @@ class NotificationController extends BaseApiController
             'body' => $validated['body'],
             'data' => $validated['data'] ?? [],
             'action_url' => $validated['action_url'] ?? null,
+            'image' => null,
             'sent_by' => $request->user()->id,
         ];
 
         $targetUsers = collect();
+        $createdNotifications = collect();
+
+        // Resolve image: image_id takes precedence over image_url
+        if (!empty($validated['image_id'])) {
+            $media = \App\Models\Media::find($validated['image_id']);
+            if (!$media) {
+                return $this->error(404, 'Image media not found');
+            }
+            $notificationData['image'] = $media->url ?? null;
+        } elseif (!empty($validated['image_url'])) {
+            $notificationData['image'] = $validated['image_url'];
+        }
 
         // Check if user_ids is provided (new approach)
         if (!empty($validated['user_ids'])) {
@@ -183,15 +199,30 @@ class NotificationController extends BaseApiController
                 return $this->error(404, 'No users found with the specified IDs');
             }
             
-            // Send to collected users
+            // Send to collected users and capture created notifications
             foreach ($targetUsers as $user) {
                 $user->notify(new AdminNotification($notificationData));
+                // Persist image and action_url into notifications table columns (if present)
+                $dbNotification = $user->notifications()->latest('created_at')->first();
+                if ($dbNotification) {
+                    if (!empty($notificationData['image'])) {
+                        $dbNotification->image = $notificationData['image'];
+                    }
+                    if (!empty($notificationData['action_url'])) {
+                        $dbNotification->action_url = $notificationData['action_url'];
+                    }
+                    $dbNotification->save();
+                    $createdNotifications->push($dbNotification->fresh());
+                }
             }
 
             return response()->json([
                 'success' => true,
                 'message' => 'Notification sent successfully',
-                'data' => ['recipients_count' => $targetUsers->count()],
+                'data' => [
+                    'recipients_count' => $targetUsers->count(),
+                    'notifications' => NotificationResource::collection($createdNotifications)->resolve(),
+                ],
             ], 202);
         }
 
@@ -213,6 +244,23 @@ class NotificationController extends BaseApiController
                 if ($targetUsers->isEmpty()) {
                     return $this->error(404, 'No users found with the specified role');
                 }
+                // Log admin send for group
+                try {
+                    \App\Models\AdminSentNotification::create([
+                        'sent_by' => $request->user()->id,
+                        'title' => $notificationData['title'],
+                        'body' => $notificationData['body'],
+                        'data' => $notificationData['data'] ?? [],
+                            'image' => $notificationData['image'] ?? null,
+                            'action_url' => $notificationData['action_url'] ?? null,
+                        'target' => 'group',
+                        'target_role' => $validated['target_role'] ?? null,
+                        'recipients' => $targetUsers->pluck('id')->toArray(),
+                        'recipients_count' => $targetUsers->count(),
+                    ]);
+                } catch (\Throwable $e) {
+                    report($e);
+                }
                 break;
 
             case 'all':
@@ -220,10 +268,37 @@ class NotificationController extends BaseApiController
                 $count = \App\Models\User::count();
                 \App\Models\User::chunk(100, function ($users) use ($notificationData) {
                     foreach ($users as $user) {
-                        $user->notify(new AdminNotification($notificationData));
-                    }
+                            $user->notify(new AdminNotification($notificationData));
+                            $dbNotification = $user->notifications()->latest('created_at')->first();
+                            if ($dbNotification) {
+                                if (!empty($notificationData['image'])) {
+                                    $dbNotification->image = $notificationData['image'];
+                                }
+                                if (!empty($notificationData['action_url'])) {
+                                    $dbNotification->action_url = $notificationData['action_url'];
+                                }
+                                $dbNotification->save();
+                            }
+                        }
                 });
                 
+                // Log admin send for target=all (store recipients_count only)
+                try {
+                    \App\Models\AdminSentNotification::create([
+                        'sent_by' => $request->user()->id,
+                        'title' => $notificationData['title'],
+                        'body' => $notificationData['body'],
+                        'data' => $notificationData['data'] ?? [],
+                        'image' => $notificationData['image'] ?? null,
+                        'action_url' => $notificationData['action_url'] ?? null,
+                        'target' => 'all',
+                        'recipients' => null,
+                        'recipients_count' => $count,
+                    ]);
+                } catch (\Throwable $e) {
+                    report($e);
+                }
+
                 return response()->json([
                     'success' => true,
                     'message' => "Notification queued for {$count} user(s)",
@@ -234,12 +309,44 @@ class NotificationController extends BaseApiController
         // Send to collected users
         foreach ($targetUsers as $user) {
             $user->notify(new AdminNotification($notificationData));
+            $dbNotification = $user->notifications()->latest('created_at')->first();
+            if ($dbNotification) {
+                if (!empty($notificationData['image'])) {
+                    $dbNotification->image = $notificationData['image'];
+                }
+                if (!empty($notificationData['action_url'])) {
+                    $dbNotification->action_url = $notificationData['action_url'];
+                }
+                $dbNotification->save();
+                $createdNotifications->push($dbNotification->fresh());
+            }
+        }
+
+        // Log admin send
+        try {
+            \App\Models\AdminSentNotification::create([
+                'sent_by' => $request->user()->id,
+                'title' => $notificationData['title'],
+                'body' => $notificationData['body'],
+                'data' => $notificationData['data'] ?? [],
+                'image' => $notificationData['image'] ?? null,
+                'action_url' => $notificationData['action_url'] ?? null,
+                'target' => 'user',
+                'recipients' => $targetUsers->pluck('id')->toArray(),
+                'recipients_count' => $targetUsers->count(),
+            ]);
+        } catch (\Throwable $e) {
+            // don't fail send if logging fails, but record in logs
+            report($e);
         }
 
         return response()->json([
             'success' => true,
             'message' => 'Notification sent successfully',
-            'data' => ['recipients_count' => $targetUsers->count()],
+            'data' => [
+                'recipients_count' => $targetUsers->count(),
+                'notifications' => NotificationResource::collection($createdNotifications)->resolve(),
+            ],
         ], 202);
     }
 }

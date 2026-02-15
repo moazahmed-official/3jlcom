@@ -67,6 +67,7 @@ class FindItOfferRejectedNotification extends Notification implements ShouldQueu
             'findit_request_title' => $finditRequest->title,
             'offer_price' => $this->offer->price,
             'message' => "Your offer on \"{$finditRequest->title}\" was not accepted.",
+            'action_url' => url('/findit-requests'),
         ];
     }
 

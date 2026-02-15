@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
+use App\Models\AuditLogRead;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Response;
@@ -287,5 +289,184 @@ class AdminAuditLogController extends Controller
             'message' => 'Audit statistics retrieved successfully',
             'data' => $stats,
         ]);
+    }
+
+    /**
+     * Mark one or more audit logs as read for the current admin user.
+     *
+     * POST /api/v1/admin/audit-logs/mark-read
+     * Body: { ids: [1,2,3] }
+     */
+    public function markRead(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'integer|exists:audit_logs,id',
+        ]);
+
+        $userId = $request->user()->id;
+        $count = 0;
+
+        foreach ($validated['ids'] as $id) {
+            $record = AuditLogRead::updateOrCreate(
+                ['audit_log_id' => $id, 'user_id' => $userId],
+                ['read_at' => now()]
+            );
+            if ($record) $count++;
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => "Marked {$count} log(s) as read",
+        ]);
+    }
+
+    /**
+     * Mark one or more audit logs as unread for the current admin user.
+     *
+     * POST /api/v1/admin/audit-logs/mark-unread
+     * Body: { ids: [1,2,3] }
+     */
+    public function markUnread(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'integer|exists:audit_logs,id',
+        ]);
+
+        $userId = $request->user()->id;
+
+        $deleted = AuditLogRead::whereIn('audit_log_id', $validated['ids'])
+            ->where('user_id', $userId)
+            ->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => "Marked {$deleted} log(s) as unread",
+        ]);
+    }
+
+    /**
+     * Archive one or more audit logs. This uses AuditLog::markAsArchived().
+     *
+     * POST /api/v1/admin/audit-logs/archive
+     * Body: { ids: [1,2,3] }
+     */
+    public function archive(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'integer|exists:audit_logs,id',
+        ]);
+
+        $count = 0;
+        DB::beginTransaction();
+        try {
+            foreach ($validated['ids'] as $id) {
+                $log = AuditLog::find($id);
+                if ($log && is_null($log->archived_at)) {
+                    $log->markAsArchived();
+                    $count++;
+                }
+            }
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to archive audit logs',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => "Archived {$count} log(s)",
+        ]);
+    }
+
+    /**
+     * Bulk action endpoint for audit logs.
+     * Supports actions: mark_read, mark_unread, archive
+     *
+     * POST /api/v1/admin/audit-logs/bulk
+     * Body: { action: 'mark_read', ids: [1,2,3] }
+     */
+    public function bulk(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'action' => 'required|string|in:mark_read,mark_unread,archive',
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'integer|exists:audit_logs,id',
+        ]);
+
+        switch ($validated['action']) {
+            case 'mark_read':
+                $request->merge(['ids' => $validated['ids']]);
+                return $this->markRead($request);
+            case 'mark_unread':
+                $request->merge(['ids' => $validated['ids']]);
+                return $this->markUnread($request);
+            case 'archive':
+                $request->merge(['ids' => $validated['ids']]);
+                return $this->archive($request);
+            default:
+                return response()->json(['success' => false, 'message' => 'Unknown action'], 400);
+        }
+    }
+
+    /**
+     * Get unread count for the current admin user (non-archived logs not read by the user).
+     *
+     * GET /api/v1/admin/audit-logs/unread-count
+     */
+    public function unreadCount(Request $request): JsonResponse
+    {
+        $userId = $request->user()->id;
+
+        $count = AuditLog::notArchived()
+            ->whereDoesntHave('reads', function ($q) use ($userId) {
+                $q->where('user_id', $userId);
+            })->count();
+
+        return response()->json([
+            'success' => true,
+            'data' => ['unread' => $count],
+        ]);
+    }
+
+    /**
+     * Additional aggregated counts for admin UI.
+     *
+     * GET /api/v1/admin/audit-logs/counts
+     */
+    public function counts(Request $request): JsonResponse
+    {
+        $userId = $request->user()->id;
+
+        $total = AuditLog::count();
+        $archived = AuditLog::whereNotNull('archived_at')->count();
+        $notArchived = AuditLog::whereNull('archived_at')->count();
+        $unread = AuditLog::notArchived()->whereDoesntHave('reads', function ($q) use ($userId) {
+            $q->where('user_id', $userId);
+        })->count();
+        $critical = AuditLog::whereIn('severity', ['error', 'critical', 'alert', 'emergency'])->count();
+
+        return response()->json([
+            'success' => true,
+            'data' => compact('total', 'archived', 'notArchived', 'unread', 'critical'),
+        ]);
+    }
+
+    /**
+     * Delete is intentionally not supported to preserve immutability.
+     * Provide a clear response explaining the policy.
+     */
+    public function destroy(AuditLog $auditLog)
+    {
+        return response()->json([
+            'success' => false,
+            'message' => 'Audit logs are immutable and cannot be deleted via API. Use archive instead.',
+        ], 405);
     }
 }
